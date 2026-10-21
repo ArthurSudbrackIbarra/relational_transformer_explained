@@ -54,6 +54,7 @@ function Card({ n, icon, title, rule, cite, example, paper, code, onShow, showLa
           <Button
             size="sm"
             variant="secondary"
+            data-show-me=""
             icon={<Crosshair size={13} />}
             onClick={(e: React.MouseEvent<HTMLElement>) => {
               const card = e.currentTarget.closest('article');
@@ -189,8 +190,8 @@ export function RuleCards() {
         }
         code={
           <>
-            the same scope as Algorithm 1 (parents are never tested), but the test needs both timestamps, so a child or a seed without one passes{' '}
-            <Cite kind="code" ref="rustler/src/fly.rs:406-424" />, and no global cutoff exists <Cite kind="spec" ref="§10" />.
+            the same scope as Algorithm 1 (parents are never tested), but the test needs both timestamps: a child without one passes, and a seed without one
+            disables the filter <Cite kind="code" ref="rustler/src/fly.rs:406-424" />. No global cutoff exists <Cite kind="spec" ref="§10" />.
           </>
         }
         example={
@@ -267,7 +268,11 @@ export function RuleCards() {
             number of cells reaches the context length” <Cite kind="paper" ref="p.16 App. A" />.
           </>
         }
-        code={<>the last row can be partial: the loop does not finish the row it is writing.</>}
+        code={
+          <>
+            the last row can be partial: the loop does not finish the row it is writing <Cite kind="code" ref="rustler/src/fly.rs:502-509" />.
+          </>
+        }
         example={
           ended && ended.kind === 'frontier-empty' ? (
             <>

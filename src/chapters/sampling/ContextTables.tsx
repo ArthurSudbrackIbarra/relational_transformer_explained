@@ -225,7 +225,7 @@ const TableGroup = memo(function TableGroup({
         }}
         footer={
           <>
-            {plural(rows.length, 'row')} · {plural(tokens, 'token')}
+            {plural(tokens, 'token')}
             {cutText ? ` · ${cutText}` : ''}
             {nMuted > 0 ? ` · struck-through cells produced no token` : ''}
           </>

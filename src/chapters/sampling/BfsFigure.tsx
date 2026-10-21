@@ -304,12 +304,12 @@ export function BfsFigure() {
               variant="secondary"
               iconRight={<ArrowDown size={13} />}
               onClick={() => {
-                const el = back.el;
+                // back to the card's own "Show me" button, centred, with focus on it
+                const target = back.el.querySelector<HTMLElement>('[data-show-me]') ?? back.el;
                 pl.clearOrigin();
-                const r = el.getBoundingClientRect();
                 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                window.scrollTo({ top: window.scrollY + r.top - 88, behavior: reduce ? 'auto' : 'smooth' });
-                el.querySelector<HTMLElement>('button')?.focus({ preventScroll: true });
+                target.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+                target.focus({ preventScroll: true });
               }}
             >
               Back to {back.label}
