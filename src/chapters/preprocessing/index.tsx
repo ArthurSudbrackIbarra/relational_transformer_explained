@@ -26,7 +26,7 @@ import { SemType } from '@/engine/types';
 import { BooleanNormFigure } from './BooleanNorm';
 import { CellFatesChart } from './CellFates';
 import { CellInspectorFigure, type CellPick } from './CellInspector';
-import { booleanStats, colRole, isMissing, statColumns, type TableFile } from './data';
+import { booleanStats, colRole, isMissing, sharePct, statColumns, type TableFile } from './data';
 import { DatetimeNormFigure } from './DatetimeNorm';
 import { IndexSpaceFigure } from './IndexSpace';
 import { NumberNormFigure } from './NumberNorm';
@@ -245,7 +245,7 @@ export default function PreprocessingChapter() {
     const kq = Math.round(n / 4);
     // the pure n − 1 effect at exactly p = 0.25, to separate it from the rounding of k
     const zExact = 0.75 / Math.sqrt((0.1875 * n) / (n - 1));
-    return { n, k: kq, exact: kq * 4 === n, pct: (100 * kq) / n, zTrue: booleanStats(n, kq).zTrue, zExact };
+    return { n, k: kq, exact: kq * 4 === n, pct: (100 * kq) / n, label: `${sharePct(kq, n)} true`, zTrue: booleanStats(n, kq).zTrue, zExact };
   })();
   // a task in this DB that drops leakage columns (the live task first), for the "cells are not tokens yet" paragraph
   const leakTask = task.columnsToDrop.length > 0 ? task : db.tasks.find((t) => t.columnsToDrop.length > 0);
@@ -729,9 +729,10 @@ export default function PreprocessingChapter() {
                       </>
                     ) : (
                       <>
-                        Try the “{quarter.pct.toFixed(1)}% true” chip in the boolean figure above: with that column’s n = {quarter.n} it sets k = {quarter.k} trues, so it shows{' '}
-                        {signed(quarter.zTrue, 3)}. Two things move it away from +1.732: the share is not exactly 25%, and the sample standard deviation divides by n − 1 (that
-                        alone would give {signed(quarter.zExact, 3)}).
+                        Try the “{quarter.label}” chip in the boolean figure above: with that column’s n = {quarter.n} it sets k = {quarter.k} trues (
+                        {quarter.pct.toFixed(2)}%), so it shows {signed(quarter.zTrue, 3)}, a little {quarter.zTrue < Math.sqrt(3) ? 'less' : 'more'} than +1.732. Two things
+                        cause the gap: the share is {quarter.pct > 25 ? 'above' : 'below'} 25%, and the sample standard deviation divides by n − 1 (that alone would give{' '}
+                        {signed(quarter.zExact, 4)}).
                       </>
                     )}
                   </>

@@ -11,7 +11,7 @@ import { Button, Segmented, Slider, StatusBadge, TeX, textWidth } from '@/compon
 import { useElementSize } from '@/components/viz/useSize';
 import { catVar } from '@/styles/palette';
 import { usePrefersReducedMotion } from '@/styles/theme';
-import { booleanStats, type StatColumn } from './data';
+import { booleanStats, sharePct, type StatColumn } from './data';
 import { PickChip, Readout, fixed, signed, texNum, usePhone, type ChapterData } from './shared';
 
 const nf = (n: number) => n.toLocaleString('en-US');
@@ -44,6 +44,10 @@ function ZLine({
   const x = scaleLinear().domain([-ext, ext]).range([M.l, W - M.r]);
   const ticks = x.ticks(Math.min(2 * ext + 1, Math.floor(W / 60)));
   const Y = 58;
+  const leftLabel = isTarget ? 'z < 0 → BCE target 0 (if masked)' : 'z < 0: false side';
+  const rightLabel = isTarget ? 'z > 0 → BCE target 1 (if masked)' : 'z > 0: true side';
+  // two lines when the side labels would collide (phones)
+  const stackLabels = textWidth(leftLabel, 13) + textWidth(rightLabel, 13) + 16 > x(ext) - x(-ext);
   const dot = (z: number, label: string, kind: 'true' | 'false', ghost = false) => {
     const lx = x(z);
     const text = `${label} ${signed(z, 3)}`;
@@ -81,7 +85,7 @@ function ZLine({
   };
   return (
     <div ref={ref} className="w-full">
-      <svg width={W} height={Y + 52} role="img" aria-label={`z of true ${signed(zTrue)}, z of false ${signed(zFalse)}`} className="block">
+      <svg width={W} height={Y + (stackLabels ? 68 : 52)} role="img" aria-label={`z of true ${signed(zTrue)}, z of false ${signed(zFalse)}`} className="block">
         {/* halves */}
         <rect x={x(-ext)} y={Y - 12} width={x(0) - x(-ext)} height={24} rx={4} style={{ fill: 'var(--surface-2)' }} />
         <rect x={x(0)} y={Y - 12} width={x(ext) - x(0)} height={24} rx={4} style={{ fill: 'var(--accent-soft)' }} />
@@ -96,10 +100,10 @@ function ZLine({
           z
         </text>
         <text x={x(-ext)} y={Y + 47} style={{ fill: 'var(--ink-2)', fontSize: 13 }}>
-          {isTarget ? 'z < 0 → BCE target 0 (if masked)' : 'z < 0: false side'}
+          {leftLabel}
         </text>
-        <text x={x(ext)} y={Y + 47} textAnchor="end" style={{ fill: 'var(--ink-2)', fontSize: 13 }}>
-          {isTarget ? 'z > 0 → BCE target 1 (if masked)' : 'z > 0: true side'}
+        <text x={x(ext)} y={Y + (stackLabels ? 64 : 47)} textAnchor="end" style={{ fill: 'var(--ink-2)', fontSize: 13 }}>
+          {rightLabel}
         </text>
         {finite && data && dot(data.zFalse, 'false', 'false', true)}
         {finite && data && dot(data.zTrue, 'true', 'true', true)}
@@ -159,10 +163,7 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
     t.kind === 'forecast' ? c.file.isTask && t.name === c.file.tableName && t.targetCol === c.col.name : t.table === c.file.tableName && t.targetCol === c.col.name,
   );
   // quick picks; the label shows the share the chip really sets (k is rounded)
-  const pctLabel = (kk: number) => {
-    const p = (100 * kk) / Math.max(1, n);
-    return Number.isInteger(p) ? `${p}%` : `${p.toFixed(1)}%`;
-  };
+  const pctLabel = (kk: number) => sharePct(kk, n);
   const chips = [
     { k: Math.max(1, Math.round(n / 20)), text: (kk: number) => `${pctLabel(kk)} true` },
     { k: Math.round(n / 4), text: (kk: number) => `${pctLabel(kk)} true` },
@@ -184,7 +185,7 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
       </div>
 
       {/* share of trues */}
-      <div className="mb-1 flex items-baseline justify-between text-[15px] text-ink-2">
+      <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[15px] text-ink-2">
         <span>
           <strong className="num text-ink">{nf(k)}</strong> true · <strong className="num text-ink">{nf(n - k)}</strong> false (n = {nf(n)})
         </span>

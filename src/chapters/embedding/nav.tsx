@@ -6,8 +6,8 @@ import { ArrowUp } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
 import { useCallback, useState, type ReactNode } from 'react';
 import { cx } from '@/components';
-import type { EmbeddingLive } from './live';
-import { rowRef } from './live';
+import type { EmbeddingStable } from './live';
+import { rowRef, useInspected } from './live';
 
 /** Id of the Step-2 figure (TokenEmbedder) and the event that makes its token header flash. */
 export const FOLLOW_ID = 'embed-follow';
@@ -37,10 +37,12 @@ export function JumpLink({ to, children, className }: { to: string; children: Re
 /**
  * For a figure that can change the inspected token: `pick(pos)` selects it and remembers that this
  * figure did; `chip` is then a visible confirmation with a jump to Step 2 (until another view picks).
+ * Also returns the inspected token itself (`useInspected`).
  */
-export function useCrossPick(live: Pick<EmbeddingLive, 'setInspected' | 'inspected' | 'ctx'>) {
+export function useCrossPick(live: Pick<EmbeddingStable, 'S' | 'target' | 'ctx'>) {
   const [picked, setPicked] = useState<number | null>(null);
-  const { setInspected, inspected, ctx } = live;
+  const { setInspected, inspected } = useInspected(live);
+  const { ctx } = live;
   const pick = useCallback(
     (pos: number) => {
       setInspected(pos);
@@ -50,7 +52,7 @@ export function useCrossPick(live: Pick<EmbeddingLive, 'setInspected' | 'inspect
   );
   const tok = picked !== null && picked === inspected ? ctx.tokens[picked] : undefined;
   const chip = tok ? <InspectChip pos={tok.pos} label={tok.isPadding ? 'padding' : `${rowRef(tok)}.${tok.colName}`} /> : null;
-  return { pick, chip };
+  return { pick, chip, inspected, setInspected };
 }
 
 function InspectChip({ pos, label }: { pos: number; label: string }) {

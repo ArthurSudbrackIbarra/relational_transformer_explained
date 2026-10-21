@@ -4,7 +4,7 @@
  * output lands on the circle of radius √2 (rms = 1) unless ‖x‖ is comparable to √(2ε).
  */
 import { RotateCcw } from 'lucide-react';
-import { useMemo, useRef, useState, type PointerEvent as RPointerEvent, type KeyboardEvent } from 'react';
+import { memo, useMemo, useRef, useState, type PointerEvent as RPointerEvent, type KeyboardEvent } from 'react';
 import { Button, Figure, Segmented, Slider, TeX } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import { rmsnormRow } from '@/engine/model';
@@ -13,19 +13,22 @@ import { fmt, fmtSigned } from './live';
 const EPS_PAPER = 2 ** -7;
 /** float32 machine epsilon: what newer torch uses for bf16 inputs (spec §7.2). */
 const EPS_FP32 = 2 ** -23;
-const LIM = 2;
 const X0: [number, number] = [0.5, 0.2];
+/** Half-width of the zoom inset around the origin (in data units): a few times √(2ε) for ε = 2⁻⁷. */
+const ZOOM = 0.3;
 
 /**
  * @param presetRms the median rms of the live context's column projections (W_col·c + b_col), for the
  *   "a column projection" preset; omitted while the forward pass loads.
  */
-export function RmsNormPlane({ presetRms }: { presetRms?: number }) {
+export const RmsNormPlane = memo(function RmsNormPlane({ presetRms }: { presetRms?: number }) {
   const [x, setX] = useState<[number, number]>(X0);
   const [epsKey, setEpsKey] = useState<'paper' | 'fp32'>('paper');
   const [g1, setG1] = useState(1);
   const [g2, setG2] = useState(1);
   const eps = epsKey === 'paper' ? EPS_PAPER : EPS_FP32;
+  // the plot always holds the target ellipse (radius √2·γ) and every possible output y
+  const LIM = Math.max(2, Math.ceil(1.15 * Math.SQRT2 * Math.max(g1, g2) * 2) / 2);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [boxRef, box] = useElementSize<HTMLDivElement>();
   const dragging = useRef(false);
@@ -74,7 +77,7 @@ export function RmsNormPlane({ presetRms }: { presetRms?: number }) {
   // the input arrow would hide under the handle when x is this close to the origin
   const tinyX = Math.hypot(x[0], x[1]) * unit < 13;
   const zoneR = Math.sqrt(2 * eps) * unit;
-  const ticks = [-2, -1, 0, 1, 2];
+  const ticks = Array.from({ length: 2 * Math.floor(LIM) + 1 }, (_, i) => i - Math.floor(LIM));
 
   return (
     <Figure
@@ -123,7 +126,8 @@ export function RmsNormPlane({ presetRms }: { presetRms?: number }) {
         <>
           The output y is computed by the same RMSNorm kernel the engine uses, with d = 2. The dashed curve is where y lands when ε is negligible:
           the circle of radius √2 (rms = 1) stretched by γ. The shaded disk is the ε zone, mean(x²) &lt; ε: inside it ε is most of the sum under the
-          square root. Drag x into it, use the arrow keys after focusing the handle (Shift for bigger steps), or try the column-projection preset.
+          square root; the magnified view shows it at a readable size. Drag x into it, use the arrow keys after focusing the handle
+          (Shift for bigger steps), or try the column-projection preset. The plane widens when a γ needs the room.
         </>
       }
     >
@@ -225,6 +229,7 @@ export function RmsNormPlane({ presetRms }: { presetRms?: number }) {
             />
           )}
           <circle cx={sx(out.y[0])} cy={sy(out.y[1])} r={5} style={{ fill: 'var(--accent)', stroke: 'var(--surface)' }} strokeWidth={2} />
+          {!atOrigin && (
           <text
             x={sx(out.y[0]) + (out.y[0] >= 0 ? 10 : -10)}
             y={sy(out.y[1]) + (out.y[1] >= 0 ? -10 : 18)}
@@ -235,6 +240,7 @@ export function RmsNormPlane({ presetRms }: { presetRms?: number }) {
           >
             y
           </text>
+          )}
           <g
             tabIndex={0}
             role="slider"
@@ -255,7 +261,7 @@ export function RmsNormPlane({ presetRms }: { presetRms?: number }) {
             style={{ fill: 'var(--ink)' }}
             pointerEvents="none"
           >
-            x
+            {atOrigin ? 'x = y = 0' : 'x'}
           </text>
         </svg>
         </div>
@@ -287,9 +293,68 @@ export function RmsNormPlane({ presetRms }: { presetRms?: number }) {
               </>
             )}
           </div>
+          <div className="mt-4">
+            <ZoomInset x={x} y={out.y} eps={eps} scale={LIM / ZOOM} />
+          </div>
         </div>
       </div>
     </Figure>
+  );
+});
+
+/**
+ * A magnified view of the plane around the origin, so the ε zone and a short input are readable: the
+ * disk mean(x²) < ε, the input x and the direction in which RMSNorm sends it (y itself lies far outside).
+ */
+function ZoomInset({ x, y, eps, scale }: { x: [number, number]; y: [number, number]; eps: number; scale: number }) {
+  const S = 172;
+  const P = 10;
+  const u = (S - 2 * P) / (2 * ZOOM);
+  const px = (v: number) => S / 2 + v * u;
+  const py = (v: number) => S / 2 - v * u;
+  const zr = Math.sqrt(2 * eps) * u;
+  const inside = Math.abs(x[0]) <= ZOOM && Math.abs(x[1]) <= ZOOM;
+  const yl = Math.hypot(y[0], y[1]);
+  const yIn = Math.abs(y[0]) <= ZOOM && Math.abs(y[1]) <= ZOOM;
+  // where the ray towards y leaves the inset
+  const edge = yl > 0 ? Math.min((ZOOM * 0.92) / Math.max(Math.abs(y[0]), Math.abs(y[1])), 1e9) : 0;
+  const ye: [number, number] = yIn ? y : [y[0] * edge, y[1] * edge];
+  const zx = (v: number) => (Math.abs(v) < 0.05 ? v.toFixed(2) : v.toFixed(1));
+  return (
+    <figure className="m-0">
+      <figcaption className="mb-1 text-[15px] font-medium text-ink-2">Around the origin, magnified ×{Math.round(scale)}</figcaption>
+      <svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} className="block" role="img" aria-label={`Magnified view of the square ±${ZOOM} around the origin`}>
+        <rect x={P} y={P} width={S - 2 * P} height={S - 2 * P} rx={6} style={{ fill: 'var(--surface-2)', stroke: 'var(--border)' }} />
+        <line x1={P} x2={S - P} y1={S / 2} y2={S / 2} style={{ stroke: 'var(--axis)' }} />
+        <line y1={P} y2={S - P} x1={S / 2} x2={S / 2} style={{ stroke: 'var(--axis)' }} />
+        <text x={S - P - 4} y={S / 2 + 15} textAnchor="end" fontSize={13} style={{ fill: 'var(--muted)' }}>
+          {zx(ZOOM)}
+        </text>
+        {zr >= 1 && (
+          <>
+            <circle cx={S / 2} cy={S / 2} r={zr} style={{ fill: 'var(--accent)', stroke: 'var(--accent)' }} fillOpacity={0.16} strokeOpacity={0.6} strokeDasharray="2 2" />
+            <text x={S / 2 - zr * 0.72 - 3} y={S / 2 + zr * 0.72 + 14} textAnchor="end" fontSize={13} style={{ fill: 'var(--accent-text)' }}>
+              ε zone
+            </text>
+          </>
+        )}
+        {yl > 0 && (
+          <line x1={S / 2} y1={S / 2} x2={px(ye[0])} y2={py(ye[1])} style={{ stroke: 'var(--accent)' }} strokeWidth={2} markerEnd={yIn ? undefined : 'url(#rms-arrow-out)'} />
+        )}
+        {inside && (
+          <>
+            <circle cx={px(x[0])} cy={py(x[1])} r={5} style={{ fill: 'var(--ink)', stroke: 'var(--surface)' }} strokeWidth={1.5} />
+            <text x={px(x[0]) + (x[0] >= 0 ? 8 : -8)} y={py(x[1]) + (x[1] >= 0 ? -8 : 16)} textAnchor={x[0] >= 0 ? 'start' : 'end'} fontSize={13} fontWeight={600} style={{ fill: 'var(--ink)' }}>
+              x
+            </text>
+          </>
+        )}
+      </svg>
+      <p className="!mt-1 !mb-0 max-w-[260px] text-[14.5px] leading-snug text-ink-2">
+        {inside ? 'The black dot is x.' : 'x lies outside this view.'}{' '}
+        {yl === 0 ? 'y = 0.' : yIn ? 'The purple arrow ends at y.' : 'The purple arrow points towards y, which lies outside this view.'}
+      </p>
+    </figure>
   );
 }
 

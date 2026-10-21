@@ -415,12 +415,16 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
     <div className="min-w-0">
       <div className="mb-3 rounded-lg bg-surface-2 px-3 py-2 text-[14.5px] leading-snug text-ink-2">
         <div className="mb-1 font-medium text-ink">Read by:</div>
-        <ul className="space-y-1">
+        <ul className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2 gap-y-1">
           {(Object.keys(READER) as Reader[]).map((r) => (
-            <li key={r} className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              <ReaderTag reader={r} />
-              <span>{READER[r].meaning}</span>
-              {READER[r].cite && <Cite kind="code" ref={READER[r].cite!} />}
+            <li key={r} className="contents">
+              <span>
+                <ReaderTag reader={r} />
+              </span>
+              <span>
+                {READER[r].meaning}
+                {READER[r].cite && <Cite kind="code" ref={READER[r].cite!} />}
+              </span>
             </li>
           ))}
         </ul>

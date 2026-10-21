@@ -113,9 +113,9 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
           })}
           <div className="grid gap-2 text-[15px] leading-snug text-ink-2 [&_code]:text-[14.5px]">
             <p className="!m-0">
-              Each <TeX tex="m_t" /> starts as <code>torch.randn({data.d})</code>, a standard normal vector of length about √{data.d} ={' '}
+              Each <Mt /> starts as <code>torch.randn({data.d})</code>, a standard normal vector of length about √{data.d} ={' '}
               {fmt(Math.sqrt(data.d), 0)}, as long as a normalised value term with γ = 1 <Cite kind="spec" ref="§7.4" />. Only{' '}
-              <code>m_number</code> and <code>m_boolean</code> can ever get a gradient: the gate that adds <TeX tex="m_t" /> is 1 only at a
+              <code>m_number</code> and <code>m_boolean</code> can ever get a gradient: the gate that adds <Mt /> is 1 only at a
               masked token of type t <Cite kind="code" ref="rt/model.py:221-224" />, RT never masks text <Cite kind="code" ref="rt/model.py:256-257" />,
               and no paper-era task has a datetime target <Cite kind="code" ref="rt/tasks.py:3-88" />. AdamW still applies weight decay to every
               parameter, in one parameter group <Cite kind="code" ref="rt/main.py:188-195" />, so <code>m_text</code> and <code>m_datetime</code>{' '}
@@ -123,7 +123,7 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
             </p>
             {data.m0 && (
               <p className="!m-0">
-                In the checkpoint this page runs, every <TeX tex="m_t" /> still has a cosine of at least {minCos.toFixed(4)} with its starting
+                In the checkpoint this page runs, every <Mt /> still has a cosine of at least {minCos.toFixed(4)} with its starting
                 value. <code>m_text</code> and <code>m_datetime</code>, which only see weight decay, got {pct(shrink(iText))} and{' '}
                 {pct(shrink(iDt))} shorter; <code>m_number</code> and <code>m_boolean</code> got {pct(shrink(0))} and{' '}
                 {pct(shrink(TYPES.indexOf(SemType.Boolean)))} shorter.
@@ -175,22 +175,22 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
                   { value: 'big', label: '1000' },
                 ]}
               />
-              <ol className="mt-3 grid gap-2.5 text-[15px] leading-snug text-ink-2">
+              <ol className="mt-3 grid list-none gap-2.5 pl-0 text-[15px] leading-snug text-ink-2">
                 <li>
                   <div className="mb-1">
-                    <span className="font-semibold text-ink">1.</span> The code evaluates the {check.key} branch on the stored label{' '}
+                    <span className="font-semibold text-ink">a.</span> The code evaluates the {check.key} branch on the stored label{' '}
                     {VALUE_FIELD[tgt.sem]} = {fmtSigned(check.v, 2)}, like at every position <Cite kind="code" ref="rt/model.py:218" />:
                   </div>
                   <VectorStrip values={check.branch} columns={32} cellHeight={10} domain={data.domain} label={undefined} hint={false} />
-                  <div className="num mt-0.5">
+                  <div className="mt-0.5">
                     <span className="text-[17px]">
                       <TeX tex={String.raw`\mathrm{RMSNorm}_{\mathrm{${check.key}}}(W v + b)`} />
                     </span>{' '}
-                    has length <span className="text-ink">{fmt(norm(check.branch), 2)}</span>: not zero.
+                    has length <span className="num text-ink">{fmt(norm(check.branch), 2)}</span>: not zero.
                   </div>
                 </li>
                 <li>
-                  <span className="font-semibold text-ink">2.</span> It multiplies that vector by its gate{' '}
+                  <span className="font-semibold text-ink">b.</span> It multiplies that vector by its gate{' '}
                   <span className="whitespace-nowrap text-[17px]">
                     <TeX tex={String.raw`[t_i{=}\mathrm{${check.key}} \land \lnot\mathrm{mask}_i \land \lnot\mathrm{pad}_i] = 0`} />
                   </span>
@@ -199,7 +199,7 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
                   label.
                 </li>
                 <li>
-                  <span className="font-semibold text-ink">3.</span> The engine’s <code className="text-[14.5px]">embedTokens</code> on a copy of the
+                  <span className="font-semibold text-ink">c.</span> The engine’s <code className="text-[14.5px]">embedTokens</code> on a copy of the
                   target with this label, against the forward pass:{' '}
                   {check.delta === 0 ? (
                     <StatusBadge status="good">x₀ identical: max |Δ| = 0</StatusBadge>
@@ -209,8 +209,8 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
                 </li>
               </ol>
               <p className="!mt-2.5 !mb-0 text-[15px] leading-snug text-ink-2">
-                Step 3 holds by construction: our engine skips every branch whose gate is 0 and never reads a masked label. The official code does
-                compute the branch of step 1 and then zeroes it. That gives the same x₀ for any finite label; a NaN label would not, because NaN·0 =
+                Check c holds by construction: our engine skips every branch whose gate is 0 and never reads a masked label. The official code does
+                compute the branch of a and then zeroes it, as b shows. That gives the same x₀ for any finite label; a NaN label would not, because NaN·0 =
                 NaN <Cite kind="spec" ref="§5.3" />.
               </p>
             </div>
@@ -267,6 +267,15 @@ function targetSems(db: RawDatabase): Record<SemType, string[]> {
     if (c) out[semOfDType(c.dtype)].push(task.kind === 'forecast' ? task.name : `${task.table ?? task.name}.${task.targetCol}`);
   }
   return out;
+}
+
+/** m_t inline at 17.5px, so its subscript stays above the 12px floor inside 15px text. */
+function Mt() {
+  return (
+    <span className="text-[17.5px]">
+      <TeX tex="m_t" />
+    </span>
+  );
 }
 
 function Knows({ ok, children }: { ok: boolean; children: ReactNode }) {

@@ -5,11 +5,11 @@
  * one dot per distinct input, in one row per input kind. Hover a dot for its numbers, click to inspect it.
  */
 import { scaleLinear, scaleLog } from 'd3';
-import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { memo, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Figure, SemBadge, SVG_TYPE, StatusBadge, maxTextWidth } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import { SemType } from '@/engine/types';
-import type { EmbeddingLive } from './live';
+import type { EmbeddingStable } from './live';
 import { fmt, int, phraseOf, rowRef, SEM_LABEL } from './live';
 import { meanSquare, norm, slice } from './math';
 import { useCrossPick } from './nav';
@@ -47,9 +47,9 @@ function median(a: number[]): number {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-export function EpsKnee({ live }: { live: EmbeddingLive }) {
-  const { fr, weights, ctx, pdb, inspected, assets } = live;
-  const { pick, chip } = useCrossPick(live);
+export const EpsKnee = memo(function EpsKnee({ live }: { live: EmbeddingStable }) {
+  const { fr, weights, ctx, pdb, assets } = live;
+  const { pick, chip, inspected } = useCrossPick(live);
   const [wrapRef, size] = useElementSize<HTMLDivElement>();
   const [pointerPt, setPointerPt] = useState<Pt | null>(null);
   /** The dot picked by click, tap or keyboard focus: its tooltip stays until another dot is picked. */
@@ -186,8 +186,9 @@ export function EpsKnee({ live }: { live: EmbeddingLive }) {
       caption={
         <>
           Top: the length RMSNorm gives a vector (as rms, before γ) as a function of the length it receives. Bottom: every distinct input of the live
-          forward pass, one dot each, placed by its rms. Dots left of √ε come out short. Hover or tap a dot for its numbers; click it (or focus it
-          and press Enter) to inspect that token in Step 2.
+          forward pass, one dot each, placed by its rms. Left of √ε, ε is more than half of the sum under the root and the output keeps less than
+          71% of its full length; well to the right (r ≫ √ε) it reaches full length. Hover or tap a dot for its numbers; click it (or focus it and
+          press Enter) to inspect that token in Step 2.
         </>
       }
     >
@@ -204,6 +205,12 @@ export function EpsKnee({ live }: { live: EmbeddingLive }) {
             <line x1="1" x2="21" y1="4" y2="4" style={{ stroke: 'var(--muted)' }} strokeWidth={2} strokeDasharray="4 3" />
           </svg>
           ε = 2⁻²³ (float32, newer torch)
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <svg width="14" height="14" aria-hidden="true">
+            <circle cx="7" cy="7" r="5.5" style={{ fill: 'var(--accent)' }} />
+          </svg>
+          the token inspected in Step 2 (its column phrase and its value)
         </span>
       </div>
       <div ref={wrapRef} className="relative w-full">
@@ -230,13 +237,18 @@ export function EpsKnee({ live }: { live: EmbeddingLive }) {
                 </text>
               </g>
             ))}
-            <text x={left - 8} y={top - 8} textAnchor="end" fontSize={SVG_TYPE.axisTitle} style={{ fill: 'var(--ink-2)' }}>
-              rms out
+            <text x={left} y={top - 8} textAnchor="start" fontSize={SVG_TYPE.axisTitle} style={{ fill: 'var(--ink-2)' }}>
+              rms out (before γ)
             </text>
             {/* vertical ticks through both panels */}
             {ticks.map((t) => (
               <g key={t}>
-                <line x1={x(t)} x2={x(t)} y1={top} y2={rowY(ROWS.length - 1) + rowH / 2} style={{ stroke: 'var(--grid)' }} />
+                {/* no grid line at 0.1: it would sit next to the √ε guide (0.088) and read as a second threshold */}
+                {t !== 0.1 ? (
+                  <line x1={x(t)} x2={x(t)} y1={top} y2={rowY(ROWS.length - 1) + rowH / 2} style={{ stroke: 'var(--grid)' }} />
+                ) : (
+                  <line x1={x(t)} x2={x(t)} y1={rowY(ROWS.length - 1) + rowH / 2 - 5} y2={rowY(ROWS.length - 1) + rowH / 2} style={{ stroke: 'var(--axis)' }} />
+                )}
                 <text x={x(t)} y={rowY(ROWS.length - 1) + rowH / 2 + 18} textAnchor="middle" fontSize={SVG_TYPE.tick} style={{ fill: 'var(--muted)' }}>
                   {t >= 1 ? t : t.toString()}
                 </text>
@@ -403,4 +415,4 @@ export function EpsKnee({ live }: { live: EmbeddingLive }) {
       )}
     </Figure>
   );
-}
+});

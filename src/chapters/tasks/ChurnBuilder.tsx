@@ -603,7 +603,7 @@ export function ChurnBuilder({
             </span>
           </div>
           <div ref={tableScroll} className={cx('scroll-quiet overflow-auto', isAll ? 'max-h-[340px]' : 'max-h-[248px] min-h-[150px]')}>
-            <table className="w-full border-collapse text-[15px]">
+            <table className={cx('w-full border-collapse', narrow ? 'text-[14px] [&_td]:!px-2 [&_th]:!px-2' : 'text-[15px]')}>
               <thead className="sticky top-0 z-[1] bg-surface-2">
                 <tr className="border-b border-grid text-left text-[14px] text-ink-2">
                   <th scope="col" className="px-3 py-1.5 font-semibold">
@@ -613,9 +613,13 @@ export function ChurnBuilder({
                     </span>
                   </th>
                   <th scope="col" className="px-2 py-1.5 font-semibold" title="Foreign key → customers: a link, no token">
-                    <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                    <span className={cx('inline-flex items-center gap-1', !narrow && 'whitespace-nowrap')}>
                       {!narrow && <Link2 aria-label="foreign key" size={13} className="shrink-0" />}
-                      <span className="font-mono">customer_id</span>
+                      <span className="font-mono">
+                        customer_
+                        <wbr />
+                        id
+                      </span>
                     </span>
                   </th>
                   <th scope="col" className="px-2 py-1.5 font-semibold">

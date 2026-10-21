@@ -3,11 +3,11 @@
  * with its shape in our mini model and in the paper), and which of the eight value gates of
  * model.py:216-224 fires for each token of the live context.
  */
-import { useMemo, useState, type ReactNode } from 'react';
+import { memo, useMemo, useState, type ReactNode } from 'react';
 import { Cite, Figure, SemBadge, Stat, TeX, TokenStrip, cx } from '@/components';
 import { ENC_KEYS, MINI_CONFIG, PAPER_CONFIG, SEM_KEYS, paramCount, parameterShapes } from '@/engine/model';
 import { SemType, type RTConfig } from '@/engine/types';
-import type { EmbeddingLive } from './live';
+import type { EmbeddingStable } from './live';
 import { int, rowRef, SEM_LABEL } from './live';
 import { useCrossPick } from './nav';
 
@@ -15,7 +15,7 @@ import { useCrossPick } from './nav';
 // Symbol table
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function SymbolTable({ config }: { config: RTConfig }) {
+export const SymbolTable = memo(function SymbolTable({ config }: { config: RTConfig }) {
   const d = config.dModel;
   const D = PAPER_CONFIG.dModel;
   const dt = config.dText;
@@ -61,7 +61,7 @@ export function SymbolTable({ config }: { config: RTConfig }) {
     },
     {
       sym: 'm_t',
-      what: 'The learned mask vector of type t',
+      what: 'The mask vector of type t, a trainable parameter',
       code: <code>mask_embs[t]</code>,
       ours: `${d}`,
       paper: `${D}`,
@@ -120,7 +120,7 @@ export function SymbolTable({ config }: { config: RTConfig }) {
       </p>
     </div>
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Parameter count of the embedding layer
@@ -140,7 +140,7 @@ function embeddingParams(cfg: RTConfig) {
   return { enc, norm, mask, total: enc + norm + mask };
 }
 
-export function EmbeddingParamStats() {
+export const EmbeddingParamStats = memo(function EmbeddingParamStats() {
   const ours = useMemo(() => embeddingParams(MINI_CONFIG), []);
   const paper = useMemo(() => embeddingParams(PAPER_CONFIG), []);
   return (
@@ -170,7 +170,7 @@ export function EmbeddingParamStats() {
       />
     </div>
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Gate grid
@@ -178,9 +178,9 @@ export function EmbeddingParamStats() {
 
 type GateKey = `${'value' | 'mask'}-${SemType}` | 'padding';
 
-export function GateGrid({ live }: { live: EmbeddingLive }) {
-  const { gates, ctx, slots, inspected, target } = live;
-  const { pick, chip } = useCrossPick(live);
+export const GateGrid = memo(function GateGrid({ live }: { live: EmbeddingStable }) {
+  const { gates, ctx, slots, target } = live;
+  const { pick, chip, inspected } = useCrossPick(live);
   const tgt = ctx.tokens[target];
   const defaultKey: GateKey = tgt ? (`mask-${tgt.sem}` as GateKey) : 'value-0';
   const [picked, setPicked] = useState<GateKey>(defaultKey);
@@ -254,8 +254,8 @@ export function GateGrid({ live }: { live: EmbeddingLive }) {
       caption={
         <>
           Each count is the number of live tokens whose gate is 1 (model.py:213, 219, 223). Click a count to light those tokens up in the strip;
-          click a token to follow it through the figure above. Every one of the {int(real)} real tokens gets the column term and exactly one
-          value-side term.
+          click a token to follow it through Step 2. Every one of the {int(real)} real tokens gets the column term and exactly one value-side
+          term.
         </>
       }
     >
@@ -305,10 +305,18 @@ export function GateGrid({ live }: { live: EmbeddingLive }) {
         onSelect={pick}
         label="Context tokens; the tokens of the chosen gate are highlighted"
       />
+      <p className="!mt-2 !mb-0 text-[15px] leading-snug text-ink-2">
+        A square’s colour is its table, not its type.{' '}
+        {shown.length === 0
+          ? 'No token uses the selected gate, so none is highlighted.'
+          : shown.length === 1
+            ? 'The square at full strength is the one token of the selected gate; the faded ones use another gate.'
+            : `The squares at full strength are the ${int(shown.length)} tokens of the selected gate; the faded ones use another gate.`}
+      </p>
       {chip}
     </Figure>
   );
-}
+});
 
 function GateRow({ sem, children }: { sem: SemType; children: ReactNode }) {
   return (

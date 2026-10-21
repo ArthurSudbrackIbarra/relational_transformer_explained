@@ -269,10 +269,16 @@ export function jaccard(a: ReadonlySet<string>, b: ReadonlySet<string>): { j: nu
 // Paper numbers (copied from the PDF; do not edit without re-reading the page)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Table 4 (p.9): mean AUROC (%) / R² (%), "none" vs "col names" (shuffled column and table names). */
+/**
+ * Table 4 (p.9): mean AUROC (%) / R² (%) for every context ablation. "col names" = shuffled column
+ * and table names (p.9 §5.1); "self labels" = past task rows of the target entity removed; "other
+ * labels" = task rows of other entities removed.
+ */
 export const TABLE4 = {
   none: { zsClf: 70.1, zsReg: 22.8, ftClf: 77.2, ftReg: 33.2 },
   colNames: { zsClf: 69.5, zsReg: 20.5, ftClf: 77.5, ftReg: 33.2 },
+  selfLabels: { zsClf: 53.8, zsReg: -5.5, ftClf: 77.1, ftReg: 26.7 },
+  otherLabels: { zsClf: 70.6, zsReg: 22.9, ftClf: 77.4, ftReg: 31.0 },
 } as const;
 
 export interface AblationRow {

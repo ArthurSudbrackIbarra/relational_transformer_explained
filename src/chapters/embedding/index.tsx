@@ -21,12 +21,13 @@ import {
 } from '@/components';
 import { MINI_CONFIG, SEM_KEYS } from '@/engine/model';
 import { SemType } from '@/engine/types';
+import type { ReactNode } from 'react';
 import { ContextMatrix, PaddingCheck } from './ContextMatrix';
 import { EpsFinding } from './EpsFinding';
 import { EpsKnee } from './EpsKnee';
 import { EmbeddingParamStats, GateGrid, SymbolTable } from './FormulaParts';
 import { GainStrips } from './GainStrips';
-import { fmt, int, phraseOf, rowRef, useEmbeddingLive, type EmbeddingLive } from './live';
+import { fmt, int, phraseOf, rowRef, useEmbeddingStable, type EmbeddingStable } from './live';
 import { MaskVectors } from './MaskVectors';
 import { meanSquare, slice } from './math';
 import { RmsNormPlane } from './RmsNormPlane';
@@ -37,6 +38,7 @@ import {
   MODEL_EMBED_208_224,
   MODEL_ENCODERS_115_146,
 } from './snippets';
+import { JumpLink } from './nav';
 import { TokenEmbedder } from './TokenEmbedder';
 import { ValueCurve } from './ValueCurve';
 
@@ -59,10 +61,11 @@ x_i \;=\;& [\lnot\mathrm{pad}_i]\\
 const PAPER_FORMULA = String.raw`\mathbf{x} \;=\; \mathbf{W}_d\,\mathbf{r} \;+\; \mathbf{W}\,\mathcal{E}^{\text{schema}}(c, t)`;
 
 const RMSNORM_FORMULA = String.raw`\mathrm{RMSNorm}(x)_j \;=\; \frac{x_j}{\sqrt{\tfrac{1}{d}\sum_{k=1}^{d} x_k^2 \;+\; \varepsilon}}\;\gamma_j,\qquad \varepsilon = 2^{-7} = 0.0078125`;
-const RMSNORM_FORMULA_NARROW = String.raw`\begin{gathered}\mathrm{RMSNorm}(x)_j \;=\; \frac{x_j}{\sqrt{\tfrac{1}{d}\sum_{k=1}^{d} x_k^2 + \varepsilon}}\,\gamma_j\\[8pt] \varepsilon = 2^{-7} = 0.0078125\end{gathered}`;
+/** Phone width: mean(x²) on its own line, so no script sits inside another script (every glyph ≥ 12.5px at 17.5px). */
+const RMSNORM_FORMULA_NARROW = String.raw`\begin{gathered}\mathrm{RMSNorm}(x)_j \;=\; \frac{x_j}{\sqrt{\operatorname{mean}(x^2) + \varepsilon}}\,\gamma_j\\[8pt] \operatorname{mean}(x^2) = \frac{1}{d}\sum_{k=1}^{d} x_k^2\\[8pt] \varepsilon = 2^{-7} = 0.0078125\end{gathered}`;
 
 export default function EmbeddingChapter() {
-  const live = useEmbeddingLive();
+  const live = useEmbeddingStable();
   const { ctx, target, weights, assets } = live;
   const tgt = ctx.tokens[target];
   const d = weights?.config.dModel ?? 64;
@@ -74,13 +77,13 @@ export default function EmbeddingChapter() {
         lede={
           <>
             Before any attention happens, every cell token becomes one vector of d numbers, x₀. It is the sum of two parts: a term that says which
-            column of which table the cell belongs to, and a term that says what value it holds. The masked target gets a learned mask vector in
-            place of its value. This chapter computes x₀ for the live context, number by number.
+            column of which table the cell belongs to, and a term that says what value it holds. The masked target gets a trainable mask vector
+            in place of its value. This chapter computes x₀ for the live context, number by number.
           </>
         }
         learn={[
           'The exact input embedding of the code, and how it differs from the paper’s shorter formula',
-          'How a column phrase and a value become two 64-d vectors, with the trained mini model’s real numbers',
+          'How a column phrase and a value become two 64-d vectors, with the real numbers of the checkpoint this page runs',
           'What RMSNorm does, and why its ε matters for short inputs such as the column projection',
           'Why every number column shares one encoder, and what the masked target’s vector still knows',
         ]}
@@ -122,8 +125,8 @@ export default function EmbeddingChapter() {
             has its own linear layer <TeX tex="W_t" /> and its own RMSNorm.
           </li>
           <li>
-            The <Term id="mask-vector">mask vector</Term> <TeX tex="m_t" /> takes the value term’s place for the masked target. It is learned, one per
-            type, and added as it is, with no norm <Cite kind="code" ref="rt/model.py:221-224" />.
+            The <Term id="mask-vector">mask vector</Term> <TeX tex="m_t" /> takes the value term’s place for the masked target. It is a trainable
+            parameter, one per type, and is added as it is, with no norm <Cite kind="code" ref="rt/model.py:221-224" />.
           </li>
           <li>
             The square brackets are 0/1 gates. For a real token exactly one of the eight value-side gates is 1. For a{' '}
@@ -131,12 +134,18 @@ export default function EmbeddingChapter() {
             <Cite kind="spec" ref="§5.2" />.
           </li>
         </ul>
+        <p>
+          Here are those gates for all {int(ctx.tokens.length)} positions of the live context. Every real token takes the column term and exactly
+          one of the eight value-side gates: most take a value encoder, and exactly one, the target, takes a mask vector{' '}
+          <Cite kind="spec" ref="§4.10" />.
+        </p>
+        <GateGrid live={live} />
         <SymbolTable config={weights?.config ?? MINI_CONFIG} />
         <p>
           The paper describes the same idea in one line <Cite kind="paper" ref="p.5 §3.1" />. There <TeX tex="\mathbf{r}" /> is the normalized
           value (for text, its frozen MiniLM embedding <TeX tex="\mathbf{r} = \mathcal{E}^{\text{text}}(v)" />
           <Cite kind="paper" ref="p.5 §3.1" />) and <TeX tex="\mathcal{E}^{\text{schema}}(c,t)" /> is the text embedding of the phrase built from
-          column c and table t <Cite kind="paper" ref="p.4 §3.1" />. Note that this t is the table, not the type t of the code formula above.
+          column c and table t <Cite kind="paper" ref="p.5 §3.1" />. Note that this t is the table, not the type t of the code formula above.
         </p>
         <MathBlock
           tex={PAPER_FORMULA}
@@ -166,7 +175,7 @@ export default function EmbeddingChapter() {
               <Cite kind="code" ref="rt/model.py:221-224" />.
             </span>
           }
-          verdict="Same structure, two extra operations per term. This site computes the code’s version (spec §10 #2)."
+          verdict="Same structure; the code adds a bias and an RMSNorm to each projected term (the mask vector stays raw). This site computes the code’s version (spec §10 #2)."
         />
         <CodeRef
           title="The encoders, the five input norms and the four mask vectors"
@@ -185,35 +194,38 @@ export default function EmbeddingChapter() {
           note="Lines 213, 219 and 223 are the gates: boolean masks broadcast over the d dimensions with [..., None]."
         />
         <ScaleNote paper="d = 256" ours={`d = ${d}`}>
-          The 384-d MiniLM inputs are identical in both models; only the size of the space they are projected into changes.
+          The 384-d MiniLM inputs have the same width and come from the same encoder in both models; only d changes. The paper stores and computes
+          them in bfloat16, this site in float32, with ε fixed at the paper’s 2⁻⁷ <Cite kind="spec" ref="§10 #20" />.
         </ScaleNote>
-        <EmbeddingParamStats />
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 2 */}
       <Section id="step-through" title="Follow one token through" kicker="Step 2">
         <p>
-          The figure below computes x₀ for one token in seven steps. The left lane is the column term, the right lane the value term or the mask
-          vector, and step 7 adds them. Every strip holds real numbers from the forward pass of the trained mini model; hover a 64-d strip to see the
-          arithmetic of a single dimension.
+          The figure below computes x₀ for one token in seven stages, ① to ⑦. The left lane is the column term, the right lane the value term or
+          the mask vector, and stage ⑦ adds them. Every strip holds real numbers from the forward pass of the checkpoint this page runs; hover a 64-d
+          strip to see the arithmetic of a single dimension.
         </p>
         <p>
-          It opens on the token you last inspected, the masked target by default. Press play, then try the presets. A few things to notice. Two cells of the same column get the same column
-          term. A text value goes through MiniLM on its own, without its column name <Cite kind="spec" ref="§3.6" />. For the masked target, steps 5
-          and 6 do nothing: the learned vector goes straight into the sum.
+          Stages ③ and ⑥ are RMSNorms. An RMSNorm divides a vector by its root mean square, plus a small constant ε inside the square root, and
+          multiplies it by a learned gain γ <Cite kind="spec" ref="§7.2" />. <JumpLink to="rmsnorm">Step 3</JumpLink> looks at it closely; for now,
+          the panel next to each norm shows the numbers it uses.
+        </p>
+        <p>
+          The figure opens on the token you last inspected, the masked target by default. It plays once when it scrolls into view; replay it or try
+          the presets. A few things to notice. Two cells of the same column get the same column term. A text value goes through MiniLM on its own,
+          without its column name <Cite kind="spec" ref="§3.6" />. For the masked target, stages ⑤ and ⑥ do nothing: its mask vector goes straight
+          into the sum.
         </p>
         <TokenEmbedder live={live} />
         <p>
           The code does not branch on the type. It evaluates all four value branches at every position, then multiplies each by its gate{' '}
-          <Cite kind="code" ref="rt/model.py:216-224" />. Every slot therefore holds something, even when it is not used. A non-text cell’s{' '}
-          <code>text_values</code> slot holds the embedding of text index 0, a table name, which the gate then zeroes <Cite kind="spec" ref="§3.6" />.
-          Our engine skips the branches whose gate is 0, which gives the same sum for any finite value <Cite kind="spec" ref="§5.3" />.
+          <Cite kind="code" ref="rt/model.py:216-224" />. Every slot holds something, because the sampler writes all of them{' '}
+          <Cite kind="code" ref="rustler/src/fly.rs:482-490" />. Every slot must also hold a finite number, because the branches are evaluated before
+          the multiplication by the gate, and NaN·0 = NaN <Cite kind="spec" ref="§5.3" />. A non-text cell’s <code>text_values</code> slot, for
+          example, holds the embedding of text index 0, a table name, which the gate then zeroes <Cite kind="spec" ref="§3.6" />. Our engine skips
+          the branches whose gate is 0, which gives the same sum for any finite value <Cite kind="spec" ref="§5.3" />.
         </p>
-        <p>
-          Now all {int(ctx.tokens.length)} positions at once. Every real token takes the column term and exactly one of the eight value-side gates:
-          most take a value encoder, and exactly one, the target, takes a mask vector <Cite kind="spec" ref="§4.10" />.
-        </p>
-        <GateGrid live={live} />
         <CodeRef
           title="The sampler fills every slot of a cell token"
           file="rustler/src/fly.rs"
@@ -239,7 +251,7 @@ export default function EmbeddingChapter() {
           <Cite kind="url" ref="https://docs.pytorch.org/docs/2.8/generated/torch.nn.RMSNorm.html" title="torch.nn.RMSNorm" />:
         </p>
         <MathBlock tex={RMSNORM_FORMULA} className="relative hidden overflow-hidden text-[18px] sm:block" label={<Cite kind="spec" ref="§7.2" />} />
-        <MathBlock tex={RMSNORM_FORMULA_NARROW} className="relative overflow-hidden text-[16px] sm:hidden" label={<Cite kind="spec" ref="§7.2" />} />
+        <MathBlock tex={RMSNORM_FORMULA_NARROW} className="relative overflow-hidden text-[17.5px] sm:hidden" label={<Cite kind="spec" ref="§7.2" />} />
         <p>
           There is no mean subtraction and no bias: only a division and a per-dimension gain. With γ = 1, which is how every gain starts{' '}
           <Cite kind="spec" ref="§7.4" />, the output keeps the input’s direction and has a root mean square close to 1, unless the input is tiny.
@@ -301,10 +313,11 @@ export default function EmbeddingChapter() {
           ellipse. All of this follows from the formula alone.
         </p>
         <p>
-          Two more consequences follow. First, a z-score is the only thing the value term sees, so the same z means “a typical
-          price” in one column and “a typical age” in another; the column term has to carry the difference. Second, for very large |z| the bias
-          becomes negligible next to <TeX tex="z\,w_t" />, so the curve flattens out toward the two points marked × in the figure: extreme values of
-          a type all look alike.
+          Two more consequences follow. First, a z-score is the only thing the value term sees, and a z-score counts standard deviations of its own
+          column <Cite kind="spec" ref="§3.3" />. So z = 0.5 means “half a standard deviation above the mean {sameZExample(live)[0]}” in one column
+          and “half a standard deviation above the mean {sameZExample(live)[1]}” in another; the column term has to carry the difference. Second, for
+          very large |z| the bias becomes negligible next to <TeX tex="z\,w_t" />, so the curve flattens out toward the two points marked × in the
+          figure, as its cosine chart shows: extreme values of a type all look alike.
         </p>
         <p>
           Text works differently. Its encoder is <code>nn.Linear(384, d)</code> on the string’s MiniLM vector, so text values do not lie on one curve:
@@ -317,7 +330,7 @@ export default function EmbeddingChapter() {
       <Section id="mask-vector" title="The mask vector" kicker="Step 5">
         <p>
           The seed row’s target cell is the only masked token in a context <Cite kind="spec" ref="§4.10" />. Its value term is replaced by{' '}
-          <TeX tex="m_t" />, a learned vector of the target’s type, created as <code>nn.Parameter(torch.randn(d_model))</code>{' '}
+          <TeX tex="m_t" />, a trainable vector of the target’s type, created as <code>nn.Parameter(torch.randn(d_model))</code>{' '}
           <Cite kind="code" ref="rt/model.py:141-146" />. It skips both the linear layer and the RMSNorm <Cite kind="code" ref="rt/model.py:221-224" />.
         </p>
         <p>
@@ -368,6 +381,11 @@ export default function EmbeddingChapter() {
         </ScaleNote>
         <ContextMatrix live={live} />
         <p>
+          The weights that build this matrix are few. Counted from the engine’s list of the parameters created in{' '}
+          <Cite kind="code" ref="rt/model.py:115-146" />, the input embedding has this many in each model.
+        </p>
+        <EmbeddingParamStats />
+        <p>
           This is all the transformer gets. From here on, information moves between tokens only through attention, along the four relational masks of
           the next chapter.
         </p>
@@ -391,7 +409,7 @@ export default function EmbeddingChapter() {
                     </>
                   ),
                   correct: true,
-                  why: 'It is the only part of x₀ that identifies the column; the value term depends only on the type and z. The column id also exists, but it only enters the attention masks.',
+                  why: 'It is the only part of x₀ that identifies the column. The value term depends only on the type and the stored value (a z-score, or the string’s MiniLM vector for text), and the masked target’s is m_t. The column id also exists, but it only enters the attention masks.',
                 },
                 {
                   text: 'The token’s position in the sequence',
@@ -411,7 +429,7 @@ export default function EmbeddingChapter() {
                 {
                   text: (
                     <>
-                      The learned mask vector <TeX tex="m_t" /> of its type, added without a norm
+                      The mask vector <TeX tex="m_t" /> of its type, added without a norm
                     </>
                   ),
                   correct: true,
@@ -451,8 +469,7 @@ export default function EmbeddingChapter() {
                   why: 'That is the largest factor RMSNorm can scale a vector up by, not the rms of its output.',
                 },
               ],
-              explanation:
-                'This is the regime of the column projections in Step 3: when mean(x²) is not much larger than ε, the term comes out shorter than √d. Step 3’s table shows where the inputs of the live context sit.',
+              explanation: q4Explanation(live),
             },
           ]}
         />
@@ -464,7 +481,7 @@ export default function EmbeddingChapter() {
 }
 
 /** Median rms of W_col·c + b_col over the distinct column phrases of the live context (forward-pass capture). */
-function medianColumnRms(live: EmbeddingLive): number | undefined {
+function medianColumnRms(live: EmbeddingStable): number | undefined {
   const { fr, weights, ctx } = live;
   if (!fr || !weights) return undefined;
   const d = weights.config.dModel;
@@ -482,11 +499,34 @@ function medianColumnRms(live: EmbeddingLive): number | undefined {
 }
 
 /** "Age of customers, price of products, … and rating of reviews": the number columns of the live DB (context tables). */
-function numberColumnsText(live: EmbeddingLive): string {
+function numberColumnsText(live: EmbeddingStable): string {
   const names = live.contextColumns.filter((c) => c.sem === SemType.Number).map((c) => `${c.col} of ${c.table}`);
   if (names.length === 0) return 'Every number column';
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
   return list.charAt(0).toUpperCase() + list.slice(1);
+}
+
+/** Two number columns of the live context for the "same z" example: "price" / "age" style names (live). */
+function sameZExample(live: EmbeddingStable): [string, string] {
+  const nums = live.contextColumns.filter((c) => c.sem === SemType.Number);
+  if (nums.length >= 2) return [nums[0].col, nums[1].col];
+  return ['of the first column', 'of the second column'];
+}
+
+/** Quiz 4 explanation, worded from the live checkpoint (ε share for the median column projection). */
+function q4Explanation(live: EmbeddingStable): ReactNode {
+  const r = medianColumnRms(live);
+  const eps = live.weights?.config.eps ?? 2 ** -7;
+  const base = 'When mean(x²) is not much larger than ε, RMSNorm cannot bring the term up to full length, so it comes out shorter than √d.';
+  if (r === undefined) return base;
+  const share = eps / (r * r + eps);
+  return (
+    <>
+      {base} In the checkpoint this page runs, ε is {Math.round(share * 100)}% of the sum for a typical column projection
+      {share > 0.5 ? ', so the column terms sit in this regime' : share > 0.2 ? ', so the column terms are close to this regime' : ', so the column terms are mostly out of it'}{' '}
+      (Step 3). At initialisation they sit in it in both models, ours and the paper’s.
+    </>
+  );
 }
 
 /** Inline TeX at 17.5px, so its sub- and superscripts stay ≥ 12.5px inside smaller caption text. */

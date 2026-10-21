@@ -2,9 +2,6 @@
  * Live data for the "embedding" chapter: the global context window and its forward pass (whose
  * `embedding` capture holds the column term, value term and x₀ of every token, model.py:208-224),
  * plus the weights and the embedding store for the extra read-outs.
- *
- * The inspected token is the store's `selectedPos`, shared with the tokens, masks and attention
- * chapters as "the token being inspected" (session-scoped, not persisted); null = the masked target.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadWeights } from '@/engine/model';
@@ -23,7 +20,12 @@ import {
 import { useSim } from '@/state/store';
 import { featureColumns } from './math';
 
-export function useEmbeddingLive() {
+/**
+ * Everything the chapter shows except the inspected token, as one memoised object. The chapter root
+ * uses only this, so picking a token does not re-render the whole page; the figures that show the
+ * inspected token call `useInspected` themselves (and are memoised on this object).
+ */
+export function useEmbeddingStable() {
   const db = useDatabase();
   const pdb = usePreprocessed();
   const task = useTask();
@@ -32,17 +34,9 @@ export function useEmbeddingLive() {
   const slots = useTableSlots();
   const assets = useAssets();
   const fr = useForward();
-  const selectedPos = useSim((s) => s.selectedPos);
-  const setSelectedPos = useSim((s) => s.setSelectedPos);
 
   const S = ctx.tokens.length;
   const target = ctx.targetPos >= 0 ? ctx.targetPos : 0;
-  const valid = selectedPos !== null && selectedPos >= 0 && selectedPos < S;
-  const inspected = valid ? selectedPos : target;
-  const setInspected = useCallback(
-    (pos: number | null) => setSelectedPos(pos === null || pos === target ? null : pos),
-    [setSelectedPos, target],
-  );
 
   const columns = useMemo(() => featureColumns(db, pdb), [db, pdb]);
 
@@ -79,11 +73,7 @@ export function useEmbeddingLive() {
   const store = assets.store;
   const ready = assets.status === 'ready' && !!weights && !!store && !!fr;
 
-  /**
-   * Everything except the inspected token, as one stable object: figures that do not show the
-   * inspected token take this (and are memoised), so picking a token does not re-render them.
-   */
-  const stable = useMemo(
+  return useMemo(
     () => ({
       db,
       pdb,
@@ -106,13 +96,29 @@ export function useEmbeddingLive() {
     }),
     [db, pdb, task, seedNode, ctx, S, slots, assets, weights, store, fr, ready, target, columns, contextColumns, gates, firstOfType, padCount],
   );
-
-  return useMemo(() => ({ ...stable, stable, inspected, setInspected }), [stable, inspected, setInspected]);
 }
 
-export type EmbeddingLive = ReturnType<typeof useEmbeddingLive>;
-/** The live data without the inspected token (see `stable` above). */
-export type EmbeddingStable = EmbeddingLive['stable'];
+export type EmbeddingStable = ReturnType<typeof useEmbeddingStable>;
+
+/**
+ * The inspected token: the store's `selectedPos`, shared with the tokens, masks and attention
+ * chapters as "the token being inspected" (session-scoped, not persisted); null = the masked target.
+ */
+export function useInspected(live: Pick<EmbeddingStable, 'S' | 'target'>) {
+  const selectedPos = useSim((s) => s.selectedPos);
+  const setSelectedPos = useSim((s) => s.setSelectedPos);
+  const { S, target } = live;
+  const valid = selectedPos !== null && selectedPos >= 0 && selectedPos < S;
+  const inspected = valid ? selectedPos : target;
+  const setInspected = useCallback(
+    (pos: number | null) => setSelectedPos(pos === null || pos === target ? null : pos),
+    [setSelectedPos, target],
+  );
+  return { inspected, setInspected };
+}
+
+/** Stable data plus the inspected token (for figures that show it). */
+export type EmbeddingLive = EmbeddingStable & ReturnType<typeof useInspected>;
 
 /**
  * The exported untrained initialisation of our mini model (public/data/weights/init.*, PyTorch

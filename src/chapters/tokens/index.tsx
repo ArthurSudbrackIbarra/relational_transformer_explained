@@ -66,7 +66,7 @@ function RunningExampleNote({ live }: { live: TokensLive }) {
 
 export default function TokensChapter() {
   const live = useTokensLive();
-  const { db, pdb, ctx, S, seed, entityNode, task, assets, tokensByNode, labels } = live;
+  const { pdb, ctx, S, seed, entityNode, task, assets, tokensByNode, labels } = live;
   const target = ctx.targetPos >= 0 ? ctx.tokens[ctx.targetPos] : null;
   const nRows = tokensByNode.size;
   const cut = useMemo(() => cutRow(pdb, ctx), [pdb, ctx]);

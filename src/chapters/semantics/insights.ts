@@ -94,3 +94,28 @@ export function groupMeans(store: EmbeddingStore, catalog: Catalog): { sameTable
   const m = (g: number[]) => (g[1] ? g[0] / g[1] : NaN);
   return { sameTable: m(acc.sameTable), sameDb: m(acc.sameDb), crossDb: m(acc.crossDb) };
 }
+
+/**
+ * 384-d backing for what the PCA map suggests: mean cosine between two key-column phrases, between a
+ * key-column phrase and any other phrase, and between two non-key phrases (all four databases).
+ */
+export function keyMeans(store: EmbeddingStore, catalog: Catalog): { keyKey: number; keyOther: number; otherOther: number } {
+  const ps = catalog.phrases.filter((p) => store.has(p.text));
+  const vs = ps.map((p) => store.get(p.text));
+  const acc = { keyKey: [0, 0], keyOther: [0, 0], otherOther: [0, 0] };
+  for (let i = 0; i < ps.length; i++)
+    for (let k = i + 1; k < ps.length; k++) {
+      const a = !ps[i].onToken;
+      const b = !ps[k].onToken;
+      const g = a && b ? acc.keyKey : a || b ? acc.keyOther : acc.otherOther;
+      g[0] += cosine(vs[i], vs[k]);
+      g[1] += 1;
+    }
+  const m = (g: number[]) => (g[1] ? g[0] / g[1] : NaN);
+  return { keyKey: m(acc.keyKey), keyOther: m(acc.keyOther), otherOther: m(acc.otherOther) };
+}
+
+/** Cosine of two stored strings, or null if either was never embedded. */
+export function pairCos(store: EmbeddingStore, a: string, b: string): number | null {
+  return store.has(a) && store.has(b) ? cosine(store.get(a), store.get(b)) : null;
+}

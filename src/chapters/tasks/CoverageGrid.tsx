@@ -67,8 +67,8 @@ export function CoverageGrid({
   const splitK = (sp: Split) => stamps.findIndex((s) => s.split === sp);
   const kVal = splitK('Val');
   const kTest = splitK('Test');
-  // narrow columns: anchor "val" / "test" on either side of the gap between them so they never touch
-  const tight = colW < 30;
+  // narrow columns: centred "Val" and "Test" would collide (or "Test" would pass the right edge)
+  const tight = colW < 25;
 
   return (
     <div ref={ref} className="min-w-0">
@@ -93,21 +93,16 @@ export function CoverageGrid({
           </g>
         )}
         {kVal >= 0 && (
-          <text
-            x={tight && kTest >= 0 ? xOf(kVal) + colW : xOf(kVal) + colW / 2}
-            y={top - 5}
-            textAnchor={tight && kTest >= 0 ? 'end' : 'middle'}
-            className="fill-[var(--ink-2)] text-[13px] font-medium"
-            aria-hidden="true"
-          >
+          <text x={xOf(kVal) + colW / 2} y={top - 5} textAnchor="middle" className="fill-[var(--ink-2)] text-[13px] font-medium" aria-hidden="true">
             Val
           </text>
         )}
         {kTest >= 0 && (
+          // narrow columns: "Test" moves up to the Train line, right-aligned, so it never touches "Val" or the edge
           <text
-            x={tight ? xOf(kTest) : xOf(kTest) + colW / 2}
-            y={top - 5}
-            textAnchor={tight ? 'start' : 'middle'}
+            x={tight ? xOf(kTest) + colW : xOf(kTest) + colW / 2}
+            y={tight ? top - 26 : top - 5}
+            textAnchor={tight ? 'end' : 'middle'}
             className="fill-[var(--ink-2)] text-[13px] font-medium"
             aria-hidden="true"
           >

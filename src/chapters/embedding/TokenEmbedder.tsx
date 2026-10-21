@@ -1,6 +1,7 @@
 /**
  * "Follow one token through": the input embedding of any token of the live context, computed in
- * seven steps with the trained mini model's weights (model.py:208-224, spec §5.2).
+ * seven stages with the weights of the checkpoint the page runs (model.py:208-224, spec §5.2).
+ * The figure's units are "stages" (①-⑦) so they never clash with the chapter's "Step N" sections.
  *
  * Every vector shown is the forward pass's own capture (`ForwardResult.embedding`: colPreNorm,
  * colTerm, valuePreNorm, valueTerm, x0) or the precomputed MiniLM embedding it was computed from;
@@ -8,7 +9,7 @@
  */
 import { ArrowDown, ArrowRight, Plus, Equal } from 'lucide-react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Button,
   Figure,
@@ -26,8 +27,9 @@ import {
 } from '@/components';
 import { SEM_KEYS, tensor } from '@/engine/model';
 import { SemType, type Token } from '@/engine/types';
-import { type EmbeddingLive, fmt, fmtSigned, phraseOf, rowRef, SEM_LABEL, VALUE_FIELD } from './live';
+import { type EmbeddingStable, fmt, fmtSigned, phraseOf, rowRef, SEM_LABEL, useInspected, VALUE_FIELD } from './live';
 import { dot, norm, rmsInfo, slice, tokenScalar } from './math';
+import { useElementSize } from '@/components/viz/useSize';
 import { FLASH_EVENT, FOLLOW_ID, JumpLink } from './nav';
 
 const STEPS = 7;
@@ -35,13 +37,40 @@ const STEPS = 7;
 type Lane = 'col' | 'val' | 'sum';
 const STAGE_LANE: Lane[] = ['col', 'col', 'col', 'val', 'val', 'val', 'sum'];
 
-export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
-  const { ctx, slots, inspected, setInspected, target, firstOfType, fr, weights, store, pdb, ready, assets } = live;
+export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: EmbeddingStable }) {
+  const { ctx, slots, target, firstOfType, fr, weights, store, pdb, ready, assets } = live;
+  const { inspected, setInspected } = useInspected(live);
   const tok = ctx.tokens[inspected];
   const reduce = useReducedMotion();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const inView = useInView(rootRef, { once: true, amount: 0.35 });
   const player = useStepPlayer(STEPS, { intervalMs: 1700 });
+  // Stages the reader steps to (buttons, scrubber, keys) are scrolled into view if hidden; autoplay never scrolls.
+  const stageRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const userNav = useRef(false);
+  const [playerRef, playerSize] = useElementSize<HTMLDivElement>();
+  useEffect(() => {
+    if (!userNav.current) return;
+    userNav.current = false;
+    stageRefs.current[player.index]?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+  }, [player.index, reduce]);
+  const userStep = useCallback(
+    (delta: number) => {
+      userNav.current = true;
+      player.step(delta);
+    },
+    [player],
+  );
+  const userSetIndex = useCallback(
+    (i: number) => {
+      userNav.current = true;
+      player.setIndex(i);
+    },
+    [player],
+  );
+  const stageRef = (i: number) => (el: HTMLDivElement | null) => {
+    stageRefs.current[i] = el;
+  };
   const [hoverDim, setHoverDim] = useState<number | null>(null);
   // "Go to Step 2" from another figure: flash the token header once it is in view.
   const [flash, setFlash] = useState(false);
@@ -128,21 +157,21 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
         const wc = dot(data.Wc.subarray(j * data.c.length, (j + 1) * data.c.length), data.c);
         return (
           <>
-            dim {j}: W[{j}]·c = {fmtSigned(wc)} , b[{j}] = {fmtSigned(data.bc[j])} → {fmtSigned(data.colPre[j])}
+            dim {j}: W[{j}]·c = {fmtSigned(wc)}, b[{j}] = {fmtSigned(data.bc[j])} → {fmtSigned(data.colPre[j])}
           </>
         );
       }
       case 2:
         return (
           <>
-            dim {j}: {fmtSigned(data.colPre[j])} × {fmt(data.colInfo.scale, 2)} × γ[{j}] {fmt(data.gc[j])} = {fmtSigned(data.colTerm[j])}
+            dim {j}: {fmtSigned(data.colPre[j])} × {fmt(data.colInfo.scale, 2)} × γ[{j}] ({fmt(data.gc[j])}) = {fmtSigned(data.colTerm[j])}
           </>
         );
       case 3:
         if (!masked) return null;
         return (
           <>
-            dim {j}: m_{data.key}[{j}] = {fmtSigned(data.valTerm[j])} (learned, used as is)
+            dim {j}: m_{data.key}[{j}] = {fmtSigned(data.valTerm[j])} (used as is)
           </>
         );
       case 4:
@@ -151,7 +180,7 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
           const wt = dot(data.Wt.subarray(j * data.textInput.length, (j + 1) * data.textInput.length), data.textInput);
           return (
             <>
-              dim {j}: W[{j}]·e = {fmtSigned(wt)} , b[{j}] = {fmtSigned(data.bt[j])} → {fmtSigned(data.valPre[j])}
+              dim {j}: W[{j}]·e = {fmtSigned(wt)}, b[{j}] = {fmtSigned(data.bt[j])} → {fmtSigned(data.valPre[j])}
             </>
           );
         }
@@ -165,7 +194,7 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
         if (masked) return null;
         return (
           <>
-            dim {j}: {fmtSigned(data.valPre[j])} × {fmt(data.valInfo.scale, 2)} × γ[{j}] {fmt(data.gt[j])} = {fmtSigned(data.valTerm[j])}
+            dim {j}: {fmtSigned(data.valPre[j])} × {fmt(data.valInfo.scale, 2)} × γ[{j}] ({fmt(data.gt[j])}) = {fmtSigned(data.valTerm[j])}
           </>
         );
       case 6:
@@ -183,6 +212,7 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
     if (!data || !tok) return 'Loading the embeddings and the weights…';
     if (padding) return 'This is a padding position: every term is multiplied by ¬is_padding = 0, so x₀ is the zero vector.';
     const key = data.key;
+    const m = <TeX tex={`m_{\\mathrm{${key}}}`} />;
     switch (i) {
       case 0:
         return (
@@ -194,18 +224,18 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
       case 1:
         return (
           <>
-            A linear layer maps <em>c</em> to {data.d} numbers: W_col·c + b_col. The result is short: length{' '}
-            {fmt(norm(data.colPre))}, mean square {fmt(data.colInfo.ms, 4)}.
+            A linear layer maps <em>c</em> to {data.d} numbers, <TeX tex="W_{\mathrm{col}}\,c + b_{\mathrm{col}}" />. The result has length{' '}
+            {fmt(norm(data.colPre))} and mean square {fmt(data.colInfo.ms, 4)}
+            {data.colInfo.epsShare > 0.2 ? `, small next to ε = ${fmt(data.eps, 4)}` : ''}.
           </>
         );
       case 2:
         return (
           <>
             RMSNorm divides by √(mean square + ε) = √({fmt(data.colInfo.ms, 4)} + {fmt(data.eps, 4)}), a factor of ×{fmt(data.colInfo.scale, 2)}, then
-            multiplies by γ_col. The column term has length {fmt(norm(data.colTerm))}. Here ε makes up{' '}
+            multiplies by <TeX tex="\gamma_{\mathrm{col}}" />. The column term has length {fmt(norm(data.colTerm))}. Here ε makes up{' '}
             {(data.colInfo.epsShare * 100).toFixed(0)}% of the sum under the square root
-            {data.colInfo.epsShare > 0.2 ? ', so this term comes out short' : ''}.{' '}
-            <JumpLink to="rmsnorm">Step 3</JumpLink> explains ε.
+            {data.colInfo.epsShare > 0.2 ? ', so this term comes out short' : ''}. <JumpLink to="rmsnorm">Step 3</JumpLink> explains ε.
           </>
         );
       case 3:
@@ -213,7 +243,7 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
           return (
             <>
               This is the masked target. Its stored label ({VALUE_FIELD[tok.sem]} = {fmtSigned(tokenScalar(tok))}) is still in the batch, but
-              the gate ignores it. The learned mask vector m_{key} takes the place of the value term.
+              the gate ignores it. The mask vector {m} of its type takes the place of the value term.
             </>
           );
         if (data.textString !== null)
@@ -237,32 +267,34 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
           );
         return data.textInput ? (
           <>
-            enc_dict.text is Linear(384, {data.d}): W_text·e + b_text, length {fmt(norm(data.valPre))}.
+            <code>enc_dict["text"]</code> is Linear(384, {data.d}): <TeX tex="W_{\mathrm{text}}\,e + b_{\mathrm{text}}" />, length{' '}
+            {fmt(norm(data.valPre))}.
           </>
         ) : (
           <>
-            enc_dict.{key} is Linear(1, {data.d}): the scalar times one weight column, plus a bias, z·w + b. Length {fmt(norm(data.valPre))}.
+            <code>enc_dict["{key}"]</code> is Linear(1, {data.d}): the scalar times one weight column, plus a bias, <TeX tex="z\,w + b" />. Length{' '}
+            {fmt(norm(data.valPre))}.
           </>
         );
       case 5:
         if (masked)
           return (
             <>
-              No RMSNorm either: m_{key} is added raw, with its learned length {fmt(norm(data.valTerm))}.
+              No RMSNorm either: {m} is added raw, with its length {fmt(norm(data.valTerm))}.
             </>
           );
         return (
           <>
-            RMSNorm_{key} rescales by ×{fmt(data.valInfo.scale, 2)} and applies γ_{key}: the value term has length{' '}
-            {fmt(norm(data.valTerm))}. Here ε makes up {(data.valInfo.epsShare * 100).toFixed(data.valInfo.epsShare < 0.01 ? 1 : 0)}% of the sum under
-            the square root.
+            <TeX tex={`\\mathrm{RMSNorm}_{\\mathrm{${key}}}`} /> rescales by ×{fmt(data.valInfo.scale, 2)} and applies{' '}
+            <TeX tex={`\\gamma_{\\mathrm{${key}}}`} />: the value term has length {fmt(norm(data.valTerm))}. Here ε makes up{' '}
+            {(data.valInfo.epsShare * 100).toFixed(data.valInfo.epsShare < 0.01 ? 1 : 0)}% of the sum under the square root.
           </>
         );
       default:
         return (
           <>
-            x₀ = column term + {masked ? `m_${key}` : 'value term'}: {data.d} numbers of length {fmt(norm(data.x0))}. This is the vector the token
-            brings into block 1.
+            x₀ = column term + {masked ? m : 'value term'}: {data.d} numbers of length {fmt(norm(data.x0))}. This is the vector the token brings
+            into block 1.
           </>
         );
     }
@@ -282,13 +314,19 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
       title="Compute x₀ for one token of the live context"
       caption={
         <>
-          Pick any token: click a square, or a preset; in the strip the arrow keys move and Enter picks. The seven steps follow model.py:208-224
-          with the trained mini model’s weights. Hover a cell of any 64-d strip to see the arithmetic of that dimension in every step. Post-norm
-          vectors (③, ⑥, ⑦) share one colour scale; the others have their own (shown as “scale ±…”).
+          Pick any token: click a square, or a preset; in the strip the arrow keys move and Enter picks. The seven stages follow model.py:208-224,
+          with the weights of the checkpoint this page runs. The player stays at the top of the screen while you scroll through the stages. Hover a
+          cell of any 64-d strip to see the arithmetic of that dimension in every stage. Post-norm vectors (③, ⑥, ⑦) share one colour scale; the
+          others have their own (shown as “scale ±…”).
         </>
       }
     >
-      <div ref={rootRef} id={FOLLOW_ID} className="scroll-mt-[calc(var(--topbar-h)+24px)]">
+      <div
+        ref={rootRef}
+        id={FOLLOW_ID}
+        className="scroll-mt-[calc(var(--topbar-h)+24px)]"
+        style={{ ['--emb-player-h' as string]: `${Math.round(playerSize.height || 0)}px` }}
+      >
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-[14.5px] font-medium text-ink-2">Presets</span>
           {presets.map((p, i) => (
@@ -327,6 +365,24 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
               {assets.weightsKind === 'init' && <StatusBadge status="warning">untrained weights: values from a random initialisation</StatusBadge>}
             </div>
 
+            {/* The player and its narration stay in view (sticky) while the reader scrolls through the stages. */}
+            <div ref={playerRef} className="sticky top-[calc(var(--topbar-h)+8px)] z-20 mt-3">
+              <StepPlayer
+                {...player}
+                step={userStep}
+                setIndex={userSetIndex}
+                className="shadow-[var(--shadow-card)]"
+                unit="stage"
+                label="Embedding stage-through controls"
+                describe={(i) => (
+                  <span>
+                    <span className="mr-1.5 font-semibold text-accent-text">{'①②③④⑤⑥⑦'[i]}</span>
+                    {describe(i)}
+                  </span>
+                )}
+              />
+            </div>
+
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               {/* ── column lane ── */}
               <LaneBox
@@ -334,16 +390,17 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
                 subtitle="Which column of which table is this?"
                 gate={<TeX tex={`[\\lnot\\,\\mathrm{pad}] = ${padding ? 0 : 1}`} />}
               >
-                <Stage n={1} active={step === 0} revealed={revealed(0)} title="Phrase → frozen MiniLM" tex={String.raw`c = E(\text{“}\mathit{col}\text{ of }\mathit{table}\text{”}) \in \mathbb{R}^{384}`}>
+                <Stage innerRef={stageRef(0)} n={1} active={step === 0} revealed={revealed(0)} title="Phrase → frozen MiniLM" tex={String.raw`c = E(\text{“}\mathit{col}\text{ of }\mathit{table}\text{”}) \in \mathbb{R}^{384}`}>
                   <div className="mb-1.5 font-mono text-[15px] text-ink">“{padding ? '—' : data.phrase}”</div>
                   <VectorStrip values={data.c} columns={64} cellHeight={7} label={`c (${data.c.length}-d, col_name_values)`} hint={false} />
                 </Stage>
                 <Arrow on={revealed(1)} />
-                <Stage n={2} active={step === 1} revealed={revealed(1)} title={`Linear 384 → ${data.d}`} tex={String.raw`W_{\mathrm{col}}\,c + b_{\mathrm{col}}`} foot={dimLine(1)}>
+                <Stage innerRef={stageRef(1)} n={2} active={step === 1} revealed={revealed(1)} title={`Linear 384 → ${data.d}`} tex={String.raw`W_{\mathrm{col}}\,c + b_{\mathrm{col}}`} foot={dimLine(1)}>
                   <VectorStrip values={data.colPre} columns={32} cellHeight={13} onHover={(i) => setHoverDim(i)} highlightIndex={hoverDim} hint={false} />
                 </Stage>
                 <Arrow on={revealed(2)} />
                 <Stage
+                  innerRef={stageRef(2)}
                   n={3}
                   active={step === 2}
                   revealed={revealed(2)}
@@ -367,17 +424,18 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
               {/* ── value lane ── */}
               <LaneBox
                 title={masked ? 'Mask vector' : 'Value term'}
-                subtitle={masked ? 'The value is hidden: a learned stand-in' : 'What value does the cell hold?'}
+                subtitle={masked ? 'The value is hidden: one stand-in vector per type' : 'What value does the cell hold?'}
                 gate={<GateSwitch tok={tok} />}
               >
                 <Stage
+                  innerRef={stageRef(3)}
                   n={4}
                   active={step === 3}
                   revealed={revealed(3)}
                   title={masked ? `Stored label ignored → m_${data.key}` : data.textInput ? 'String → frozen MiniLM' : `Scalar input (${SEM_LABEL[tok.sem]})`}
                   tex={
                     masked
-                      ? String.raw`m_{\mathrm{${data.key}}} \in \mathbb{R}^{${data.d}}\ \text{(learned)}`
+                      ? String.raw`m_{\mathrm{${data.key}}} \in \mathbb{R}^{${data.d}}`
                       : data.textInput
                         ? String.raw`e = E(\text{value}) \in \mathbb{R}^{384}`
                         : String.raw`v = z \in \mathbb{R}^{1}`
@@ -416,6 +474,7 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
                 </Stage>
                 <Arrow on={revealed(4)} />
                 <Stage
+                  innerRef={stageRef(4)}
                   n={5}
                   active={step === 4}
                   revealed={revealed(4)}
@@ -437,6 +496,7 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
                 </Stage>
                 <Arrow on={revealed(5)} />
                 <Stage
+                  innerRef={stageRef(5)}
                   n={6}
                   active={step === 5}
                   revealed={revealed(5)}
@@ -470,6 +530,7 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
               <Arrow on={revealed(6)} />
             </div>
             <Stage
+              innerRef={stageRef(6)}
               n={7}
               active={step === 6}
               revealed={revealed(6)}
@@ -490,24 +551,12 @@ export function TokenEmbedder({ live }: { live: EmbeddingLive }) {
               </div>
             </Stage>
 
-            <StepPlayer
-              {...player}
-              className="mt-4"
-              unit="step"
-              label="Embedding step-through controls"
-              describe={(i) => (
-                <span>
-                  <span className="mr-1.5 font-semibold text-accent-text">{'①②③④⑤⑥⑦'[i]}</span>
-                  {describe(i)}
-                </span>
-              )}
-            />
           </>
         )}
       </div>
     </Figure>
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pieces
@@ -586,6 +635,7 @@ function GateSwitch({ tok }: { tok: Token }) {
 }
 
 function Stage({
+  innerRef,
   n,
   title,
   tex,
@@ -597,6 +647,7 @@ function Stage({
   className,
   children,
 }: {
+  innerRef?: (el: HTMLDivElement | null) => void;
   n: number;
   title: ReactNode;
   tex?: string;
@@ -610,11 +661,12 @@ function Stage({
 }) {
   return (
     <motion.div
+      ref={innerRef}
       initial={false}
       animate={{ y: revealed ? 0 : 4 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
       className={cx(
-        'min-w-0 rounded-lg border bg-surface px-3 py-2.5 transition-shadow',
+        'min-w-0 scroll-mt-[calc(var(--topbar-h)+var(--emb-player-h,0px)+20px)] scroll-mb-4 rounded-lg border bg-surface px-3 py-2.5 transition-shadow',
         skipped ? 'border-dashed border-border-strong' : 'border-border',
         active && 'ring-2 ring-accent',
         className,

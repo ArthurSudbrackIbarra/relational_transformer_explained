@@ -141,6 +141,10 @@ export const CellsVsNodes = memo(function CellsVsNodes({ db, idx, slots, focus }
     row.forEach((c, i) => pos.set(rowKey(c.ref), { x: (width * (i + 0.5)) / row.length, y: levelY(l, view) }));
   }
 
+  // graph view: labels sit where no arrow arrives: above the parents, beside the focus row, below the children
+  const focusLevel = clusters.find((c) => rowKey(c.ref) === rowKey(focus))?.level ?? 0;
+  const labelSide = (c: Cluster): 'above' | 'right' | 'below' => (c.level === focusLevel ? 'right' : c.level < focusLevel ? 'above' : 'below');
+
   const nTokens = clusters.reduce((s, c) => s + c.cells.length, 0);
   const nKeys = clusters.reduce((s, c) => s + c.nKeys, 0);
   const nMissing = clusters.reduce((s, c) => s + c.nMissing, 0);
@@ -225,8 +229,9 @@ export const CellsVsNodes = memo(function CellsVsNodes({ db, idx, slots, focus }
                       {isFocus && <circle r={16} fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth={2} />}
                       <path d={shapePath(shapeOfSlot(slot), NODE_R)} style={{ fill: catVar(slot), stroke: 'var(--surface)' }} strokeWidth={2} paintOrder="stroke" />
                       <text
-                        x={isFocus ? 21 : 15}
-                        y={0}
+                        x={labelSide(c) === 'right' ? 21 : 0}
+                        y={labelSide(c) === 'above' ? -21 : labelSide(c) === 'below' ? 25 : 0}
+                        textAnchor={labelSide(c) === 'right' ? 'start' : 'middle'}
                         dominantBaseline="central"
                         className="font-mono"
                         style={{ fill: 'var(--ink)', fontSize: 13, stroke: 'var(--surface)', strokeWidth: 4, paintOrder: 'stroke', strokeLinejoin: 'round' }}

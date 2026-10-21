@@ -7,7 +7,7 @@
  * text embeddings from the precomputed MiniLM table (public/data/embeddings).
  */
 import { motion } from 'motion/react';
-import { useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Cite, NumberField, ScaleNote, Select, SemBadge, StatusBadge, TableView, TeX, VectorStrip, cx, formatRaw } from '@/components';
 import { SEM_TYPE_NAMES, SemType, type Cell } from '@/engine/types';
 import { catVar } from '@/styles/palette';
@@ -406,6 +406,34 @@ function useNarrow(): boolean {
   );
 }
 
+/**
+ * A fade on the right edge of the TableView's scroller while columns are hidden to the right,
+ * so it is clear that the table scrolls sideways (the scroller is found by its role="table").
+ */
+function useEdgeFade(dep: unknown) {
+  const wrap = useRef<HTMLDivElement | null>(null);
+  const [fade, setFade] = useState<{ top: number; height: number; hidden: boolean } | null>(null);
+  useEffect(() => {
+    const el = wrap.current?.querySelector<HTMLDivElement>('[role="table"]');
+    if (!el || !wrap.current) return;
+    const update = () => {
+      const w = wrap.current!.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const more = el.scrollWidth - el.clientWidth - el.scrollLeft > 2;
+      setFade(el.scrollWidth > el.clientWidth + 1 ? { top: r.top - w.top, height: el.clientHeight, hidden: !more } : null);
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    ro?.observe(el);
+    return () => {
+      el.removeEventListener('scroll', update);
+      ro?.disconnect();
+    };
+  }, [dep]);
+  return { wrap, fade };
+}
+
 export function CellInspectorFigure({ data, picks }: { data: ChapterData; picks: CellPick[] }) {
   const { files, pdb, seedNode } = data;
   const first = picks[0] ?? { key: files[0].key, row: 0, col: files[0].table.schema.columns[0].name };
@@ -416,6 +444,7 @@ export function CellInspectorFigure({ data, picks }: { data: ChapterData; picks:
   const row = Math.min(sel.row, file.numNodes - 1);
   const col = file.table.schema.columns.some((c) => c.name === sel.col) ? sel.col : file.table.schema.columns[0].name;
   const seedRow = seedNode >= file.offset && seedNode < file.offset + file.numNodes ? seedNode - file.offset : null;
+  const { wrap, fade } = useEdgeFade(file.key);
 
   const zValue = (r: number, c: string) => {
     const cell = pdb.nodes[file.offset + r]?.cells.find((x) => x.colName === c);
@@ -435,8 +464,8 @@ export function CellInspectorFigure({ data, picks }: { data: ChapterData; picks:
       </div>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <div className="min-w-0 xl:sticky xl:top-[calc(var(--topbar-h)+16px)] xl:self-start">
-          <div className="mb-3 grid grid-cols-[minmax(0,1.3fr)_84px_minmax(0,1fr)] gap-2">
-            <Select label="Table file" value={file.key} onChange={(e) => setSel({ key: e.target.value, row: 0, col: sel.col })}>
+          <div className="mb-3 grid grid-cols-[84px_minmax(0,1fr)] gap-2 sm:grid-cols-[minmax(0,1.3fr)_84px_minmax(0,1fr)]">
+            <Select label="Table file" className="col-span-2 sm:col-span-1" value={file.key} onChange={(e) => setSel({ key: e.target.value, row: 0, col: sel.col })}>
               {files.map((f) => (
                 <option key={f.key} value={f.key}>
                   {f.key}
@@ -458,6 +487,7 @@ export function CellInspectorFigure({ data, picks }: { data: ChapterData; picks:
               ))}
             </Select>
           </div>
+          <div ref={wrap} className="relative">
           <TableView
             schema={file.table.schema}
             rows={file.table.rows}
@@ -475,11 +505,19 @@ export function CellInspectorFigure({ data, picks }: { data: ChapterData; picks:
             maxHeight={narrow ? 300 : 560}
             footer={
               <>
-                Click any cell. {seedRow !== null ? `Shaded row ${seedRow}: the live seed. ` : ''}The z-scored toggle shows numbers, booleans and datetimes exactly as pre.rs
-                stores them; text is stored as a string index, and keys store no cell.
+                Click any cell{fade ? ' (the table scrolls sideways)' : ''}. {seedRow !== null ? `Shaded row ${seedRow}: the live seed. ` : ''}The z-scored toggle shows
+                numbers, booleans and datetimes exactly as pre.rs stores them; text is stored as a string index, and keys store no cell.
               </>
             }
           />
+          {fade && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute right-px w-9 transition-opacity duration-200"
+              style={{ top: fade.top, height: fade.height, opacity: fade.hidden ? 0 : 1, background: 'linear-gradient(to right, transparent, var(--surface))' }}
+            />
+          )}
+          </div>
         </div>
         <div className="min-w-0 rounded-xl border border-border bg-surface px-4 py-3.5">
           <Panel data={data} file={file} row={row} col={col} roomy={narrow} />

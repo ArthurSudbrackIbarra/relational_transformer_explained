@@ -7,7 +7,7 @@
  * masking → softmax weight.
  */
 import { useMemo, useState } from 'react';
-import { Cite, Figure, LayerLabel, ScaleNote, Segmented, StatusBadge, TeX, cx, divergingCss, formatPct, sequentialCss } from '@/components';
+import { Cite, Figure, LayerLabel, ScaleNote, Segmented, StatusBadge, cx, divergingCss, formatPct, sequentialCss } from '@/components';
 import type { AttnLayer } from '@/engine/types';
 import { useAssets, useForward } from '@/state/hooks';
 import { useResolvedTheme } from '@/styles/theme';
@@ -150,16 +150,16 @@ export function SoftmaxDemo({ live }: { live: LiveMasks }) {
           {data.allowed > 0 && (
             <p className="text-[16.5px] leading-snug text-ink-2">
               Why: read literally, ⊙ M gives each of the {int(data.blocked)} blocked keys the logit 0, and{' '}
-              <span className="whitespace-nowrap">e⁰ = 1</span>. In the softmax denominator they add{' '}
+              <span className="whitespace-nowrap">exp(0) = 1</span>. In the softmax denominator they add{' '}
               <span className="whitespace-nowrap">
                 {int(data.blocked)} × 1 = {int(data.blocked)}
               </span>
               ,
-              against <TeX tex="\textstyle\sum e^{\text{score}}" /> = {data.expAllowed.toFixed(1)} from the {data.allowed} allowed keys, so the allowed keys keep only{' '}
+              against <span className="whitespace-nowrap">Σ exp(score) = {data.expAllowed.toFixed(1)}</span> from the {data.allowed} allowed keys, so the allowed keys keep only{' '}
               <span className="whitespace-nowrap">
                 {data.expAllowed.toFixed(1)} / ({data.expAllowed.toFixed(1)} + {int(data.blocked)}) = <strong className="text-ink">{formatPct(data.massLit, 1)}</strong>
               </span>
-              . With −∞, <TeX tex="e^{-\infty}=0" /> and the blocked keys add nothing.
+              . With −∞, <span className="whitespace-nowrap">exp(−∞) = 0</span> and the blocked keys add nothing.
             </p>
           )}
 
@@ -315,7 +315,7 @@ function KeyStrips({
           </span>
         ) : (
           <span className="text-muted">
-            Hover a key. Hatched = −∞. Scores: blue negative, red positive; weights: darker = more of the attention.
+            Hover a key. Hatched = −∞. Scores: blue negative, red positive; weights: {mode === 'dark' ? 'lighter' : 'darker'} = more of the attention.
             {literal ? ' Under ⊙ M every blocked key gets the same logit 0, so they all light up in the weight row.' : ''}
           </span>
         )}

@@ -135,6 +135,8 @@ export function TableView({
   const start = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN);
   const end = Math.min(order.length, Math.ceil((scrollTop + viewH) / ROW_H) + OVERSCAN);
 
+  // vertical target of a smooth scroll started in this commit, so a horizontal scroll (scrollToCol) does not cancel it
+  const pendingTop = useRef<number | null>(null);
   useEffect(() => {
     if (scrollToRow === null || scrollToRow === undefined || !scroller.current) return;
     const idx = order.indexOf(scrollToRow);
@@ -143,7 +145,10 @@ export function TableView({
     const top = idx * ROW_H;
     if (top < el.scrollTop || top + ROW_H * 2 > el.scrollTop + el.clientHeight) {
       // snap to whole rows so no row is left half-hidden under the sticky header
-      el.scrollTo({ top: Math.max(0, Math.round((top - el.clientHeight / 3) / ROW_H) * ROW_H), behavior: 'smooth' });
+      const target = Math.max(0, Math.round((top - el.clientHeight / 3) / ROW_H) * ROW_H);
+      el.scrollTo({ top: target, behavior: 'smooth' });
+      pendingTop.current = target;
+      requestAnimationFrame(() => (pendingTop.current = null));
     }
   }, [scrollToRow, order]);
 
@@ -172,7 +177,8 @@ export function TableView({
     const right = left + colWidth(scrollToCol);
     if (left < el.scrollLeft || right > el.scrollLeft + el.clientWidth) {
       // centre the column (the row-position column scrolls with the table)
-      el.scrollTo({ left: Math.max(0, left - Math.max(0, (el.clientWidth - (right - left)) / 2)), behavior: 'smooth' });
+      const target = Math.max(0, left - Math.max(0, (el.clientWidth - (right - left)) / 2));
+      el.scrollTo(pendingTop.current !== null ? { left: target, top: pendingTop.current, behavior: 'smooth' } : { left: target, behavior: 'smooth' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollToCol, cols, widths]);

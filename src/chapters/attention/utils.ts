@@ -143,3 +143,8 @@ export function pctw(p: number): string {
   if (x >= 0.1) return `${x.toFixed(2)}%`;
   return `${x.toPrecision(2)}%`;
 }
+
+/** Fixed decimals without trailing zeros: trimNum(0.25, 3) = "0.25", trimNum(0.1768, 3) = "0.177". */
+export function trimNum(v: number, digits = 3): string {
+  return v.toFixed(digits).replace(/\.?0+$/, '');
+}

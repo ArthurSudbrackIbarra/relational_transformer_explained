@@ -5,7 +5,7 @@
  * the task table: all columns, label shaded) + the live P→F adjacency of the example entity
  * (PreprocessedDB.p2fAdj), filtered exactly as the sampler's table test filters it (fly.rs:417):
  * task-table children only from a seed of that table. The task table sits in a column left of its
- * entity, so its one FK edge crosses no card. Below 600 px the schema is a compact stack.
+ * entity, so its one FK edge crosses no card. Below 860 px the schema is a compact stack.
  */
 import { AnimatePresence, motion } from 'motion/react';
 import { Clock, Link2 } from 'lucide-react';
@@ -93,7 +93,8 @@ export function PromptingFigure({
   const [choice, setChoice] = useState<Choice>(forecast[0]?.name ?? 'none');
   const task = forecast.find((t) => t.name === choice);
   const [wrapRef, size] = useElementSize<HTMLDivElement>();
-  const narrow = (size.width || 800) < 600;
+  // the three-column diagram needs ~852 px (SchemaDiagram: 3 × 244 + 2 × 56 + 8); below that, a compact stack
+  const narrow = (size.width || 900) < 860;
 
   // DB tables: key and time columns only (the figure is about links); the task table: every column,
   // because its label column is what makes past task rows in-context labels (spec §2.5).

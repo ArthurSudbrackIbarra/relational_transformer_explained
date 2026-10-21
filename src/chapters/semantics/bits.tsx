@@ -1,8 +1,8 @@
 /** Small presentational pieces shared by the figures of chapter 5. */
 import { KeyRound, Link2 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import type { ReactNode } from 'react';
-import { SemBadge, ShapeGlyph, shapeOfSlot, cx } from '@/components';
+import { Fragment, useEffect, useId, useState, type ReactNode } from 'react';
+import { CodeRef, SemBadge, ShapeGlyph, shapeOfSlot, cx, type CodeRefProps } from '@/components';
 import { semOfDType } from '@/components/viz/format';
 import type { DbName } from '@/engine/db';
 import { catVar } from '@/styles/palette';
@@ -26,21 +26,108 @@ export function Quoted({ text, className }: { text: string; className?: string }
 }
 
 /** Key icon / link icon / sem-type glyph of a column. */
-export function RoleGlyph({ role, dtype, size = 'xs' }: { role: PhraseRole; dtype: PhraseInfo['dtype']; size?: 'xs' | 'sm' }) {
+export function RoleGlyph({ role, dtype, size = 'sm' }: { role: PhraseRole; dtype: PhraseInfo['dtype']; size?: 'xs' | 'sm' }) {
   const px = size === 'xs' ? 15 : 17;
   if (role === 'pk') return <KeyRound aria-label="primary key" size={px} className="shrink-0 text-ink-2" />;
   if (role === 'fk') return <Link2 aria-label="foreign key" size={px} className="shrink-0 text-ink-2" />;
   return <SemBadge sem={semOfDType(dtype)} size={size} />;
 }
 
-/** Database identity for figures coloured by database: shape + colour + name. */
-export function DbTag({ db, className, showName = true }: { db: DbName; className?: string; showName?: boolean }) {
+/**
+ * Database identity: shape + name. Coloured (slot 1-4) only in the figure that colours by database
+ * (the PCA map); `neutral` draws the shape in ink, for figures where colour already means table.
+ */
+export function DbTag({ db, className, showName = true, neutral = false }: { db: DbName; className?: string; showName?: boolean; neutral?: boolean }) {
   const slot = DB_SLOT[db];
   return (
-    <span className={cx('inline-flex items-center gap-1.5', className)}>
-      <ShapeGlyph shape={shapeOfSlot(slot)} size={12} fill={catVar(slot)} />
-      {showName && <span className="text-ink">{DB_SHORT[db]}</span>}
+    <span className={cx('inline-flex items-center gap-1.5', className)} title={showName ? undefined : DB_SHORT[db]}>
+      <ShapeGlyph shape={shapeOfSlot(slot)} size={12} fill={neutral ? 'var(--ink-2)' : catVar(slot)} />
+      {showName ? <span className="text-ink">{DB_SHORT[db]}</span> : <span className="sr-only">{DB_SHORT[db]}</span>}
     </span>
+  );
+}
+
+/** Keeps its children on one line (e.g. the last word, a citation chip and the full stop after it). */
+export function Nw({ children }: { children: ReactNode }) {
+  return <span className="whitespace-nowrap">{children}</span>;
+}
+
+/** A long identifier that may wrap only after "/", "_", "-" or "." (never inside a word). */
+export function BreakId({ text }: { text: string }) {
+  const parts = text.split(/(?<=[/_.-])/);
+  return (
+    <>
+      {parts.map((p, i) => (
+        <Fragment key={i}>
+          {p}
+          {i < parts.length - 1 && <wbr />}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/** True while the media query matches (false where matchMedia is unavailable). */
+export function useMedia(query: string): boolean {
+  const get = () => typeof window !== 'undefined' && !!window.matchMedia?.(query).matches;
+  const [m, setM] = useState(get);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mql = window.matchMedia(query);
+    const on = () => setM(mql.matches);
+    on();
+    mql.addEventListener('change', on);
+    return () => mql.removeEventListener('change', on);
+  }, [query]);
+  return m;
+}
+
+/** Several official-code excerpts behind one set of tabs, so related excerpts read as one block. */
+export function CodeTabs({ label, tabs }: { label: string; tabs: (CodeRefProps & { tab: string })[] }) {
+  const [i, setI] = useState(0);
+  // after the reader picks a tab, show that excerpt expanded (the first view stays collapsed)
+  const [touched, setTouched] = useState(false);
+  const id = useId();
+  const cur = tabs[Math.min(i, tabs.length - 1)];
+  const { tab: _tab, ...ref } = cur;
+  void _tab;
+  return (
+    <div className="my-6">
+      <div role="tablist" aria-label={label} className="scroll-quiet mb-[-1px] flex gap-1 overflow-x-auto">
+        {tabs.map((t, k) => {
+          const on = k === i;
+          return (
+            <button
+              key={t.tab}
+              id={`${id}-tab-${k}`}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              aria-controls={`${id}-panel`}
+              tabIndex={on ? 0 : -1}
+              onClick={() => (setI(k), setTouched(true))}
+              onKeyDown={(e) => {
+                if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+                e.preventDefault();
+                const n = (k + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+                setI(n);
+                setTouched(true);
+                document.getElementById(`${id}-tab-${n}`)?.focus();
+              }}
+              className={cx(
+                'shrink-0 rounded-t-lg border px-3 py-1.5 font-mono text-[14.5px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-accent',
+                on ? 'border-border border-b-transparent bg-surface text-ink' : 'border-transparent text-ink-2 hover:text-ink',
+              )}
+            >
+              {t.tab}
+            </button>
+          );
+        })}
+      </div>
+      <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${i}`}>
+        <CodeRef key={cur.tab} {...ref} defaultOpen={touched || ref.defaultOpen} className={cx('!my-0', ref.className)} />
+      </div>
+    </div>
   );
 }
 

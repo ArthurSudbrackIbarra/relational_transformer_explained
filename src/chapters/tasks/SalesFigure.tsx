@@ -83,6 +83,7 @@ export function SalesFigure({
     const i = presentTs.indexOf(from);
     const j = Math.max(0, Math.min(presentTs.length - 1, i + dir));
     const t = presentTs[j];
+    setHoverT(null);
     setPinnedT(t);
     barRefs.current.get(t)?.focus();
   };
@@ -218,7 +219,10 @@ export function SalesFigure({
                   onPointerEnter={(e) => e.pointerType === 'mouse' && setHoverT(r.t)}
                   onPointerLeave={() => setHoverT(null)}
                   onClick={() => setPinnedT((p) => (p === r.t ? null : r.t))}
-                  onFocus={() => setFocusT(r.t)}
+                  onFocus={(e) => {
+                    // keyboard focus only (a mouse click pins instead): show the window and a focus ring
+                    if (e.currentTarget.matches(':focus-visible')) setFocusT(r.t);
+                  }}
                   onBlur={() => setFocusT(null)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -293,7 +297,7 @@ export function SalesFigure({
           </svg>
           {hover && hover.stored !== null && (
             <TooltipBox style={tipStyle(hover.t)}>
-              <div className="text-[13.5px] text-muted">
+              <div className="text-[14px] text-muted">
                 {hover.split} · t = {isoDay(hover.t)}
               </div>
               <div className="mt-0.5">

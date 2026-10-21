@@ -402,7 +402,7 @@ function GateFlow({
         <div className="rounded-xl border border-dashed border-axis px-3 py-2 text-center">
           <ZeroVec className="text-[19px] text-ink-2" />
           <VectorStrip values={zero} columns={16} cellHeight={7} domain={domain} showReadout={false} className="mt-1" />
-          <div className="mt-0.5 text-[13px] text-ink-2">{d} zeros</div>
+          <div className="mt-0.5 text-[14px] text-ink-2">{d} zeros</div>
         </div>
       </div>
 

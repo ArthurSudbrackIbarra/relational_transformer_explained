@@ -199,7 +199,7 @@ export function SplitsTimeline({ db, task, defaultSeedT }: { db: RawDatabase; ta
         </svg>
         {hover && (
           <TooltipBox style={{ left: Math.max(4, Math.min(W - 230, x(new Date(hover.t)) + 12)), top: M.top - 6 }}>
-            <div className="text-[13.5px] text-muted">
+            <div className="text-[14px] text-muted">
               {hover.split} · {isoDay(hover.t)}
             </div>
             <div className="mt-0.5">

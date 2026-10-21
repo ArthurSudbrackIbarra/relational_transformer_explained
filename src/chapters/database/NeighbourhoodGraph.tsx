@@ -20,6 +20,8 @@ const CAP_DEEP = 12;
 const NODE_GAP = 19;
 /** Radial distance between the sub-bands of a crowded ring. */
 const BAND_GAP = 15;
+/** Ring sizes as a fraction of the drawing area, per number of hops. */
+const RING_FRACTIONS: Record<1 | 2 | 3, number[]> = { 1: [1], 2: [0.6, 1], 3: [0.42, 0.72, 1] };
 
 export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
   db,
@@ -125,7 +127,8 @@ export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
     const guides: { rx: number; ry: number; label: string }[] = [];
     for (let h = 1; h <= hops; h++) {
       const ring = [...g.hopOf.entries()].filter(([, x]) => x === h).map(([k]) => k);
-      const f = h / hops;
+      // inner rings get a little more room than an even split: they usually hold the crowded child lists
+      const f = RING_FRACTIONS[hops][h - 1];
       const rx = rxMax * f;
       const ry = ryMax * f;
       guides.push({ rx, ry, label: `${h} hop${h === 1 ? '' : 's'}` });

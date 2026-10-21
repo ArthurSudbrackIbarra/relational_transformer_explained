@@ -249,9 +249,16 @@ export function MaskedCellFigure({
                       return (
                         <span key={c} role="cell" className={cx('min-w-0', acStacked && c === 'review_text' && 'col-span-2')}>
                           {c === 'review_time' ? (
-                            <span className="num whitespace-nowrap text-ink">
-                              <span className="mr-1.5 text-[14px] text-muted">#{r}</span>
-                              {typeof v === 'number' ? isoSecond(v) : formatRaw(v, dtypeOf(c))}
+                            <span className="num text-ink">
+                              <span className="mr-1.5 text-[14px] whitespace-nowrap text-muted">#{r}</span>
+                              {typeof v === 'number' ? (
+                                <>
+                                  <span className="whitespace-nowrap">{isoSecond(v).slice(0, 10)}</span>{' '}
+                                  <span className="whitespace-nowrap">{isoSecond(v).slice(11)}</span>
+                                </>
+                              ) : (
+                                formatRaw(v, dtypeOf(c))
+                              )}
                             </span>
                           ) : isSeed && c === ratingTask.targetCol ? (
                             <HiddenCell masked={masked} value={formatRaw(v, dtypeOf(c))} />

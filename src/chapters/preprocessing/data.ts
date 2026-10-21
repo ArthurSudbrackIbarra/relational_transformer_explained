@@ -236,6 +236,12 @@ export function booleanStats(n: number, k: number): { mean: number; std: number;
   return { mean, std, zTrue: (1 - mean) / std, zFalse: (0 - mean) / std };
 }
 
+/** Share of k trues among n as a chip label: "25%", or "25.5%" when it is not a whole percent at one decimal. */
+export function sharePct(k: number, n: number): string {
+  const p = (100 * k) / Math.max(1, n);
+  return Math.abs(p - Math.round(p)) < 0.05 ? `${Math.round(p)}%` : `${p.toFixed(1)}%`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // bf16 (fly.rs:482-490, spec §3.7)
 // ─────────────────────────────────────────────────────────────────────────────

@@ -103,8 +103,8 @@ export default function MasksChapter() {
         slug="masks"
         lede={
           <>
-            Each RT block runs four attention layers with the same arithmetic, each with its own weights and its own normalization. What makes
-            them relational is a boolean mask that decides which token may look at which. This chapter builds the four masks for the live context
+            Each RT block runs four attention layers with the same arithmetic, each with its own weights and its own normalization. What sets
+            them apart is a boolean mask that decides which token may look at which. This chapter builds the four masks for the live context
             and shows what each one lets through.
           </>
         }
@@ -144,7 +144,10 @@ export default function MasksChapter() {
           You may know masks from GPT-style language models, which use the causal mask <TeX tex="\mathbf{M}^{\text{causal}}[q,k]=\mathbf{1}\{k\le q\}" />{' '}
           so that no token reads the tokens after it <Cite kind="paper" ref="p.5 §3.2" />. RT has no causal mask: its attention is
           bidirectional, and its masks are built from row, column and table ids, so they say nothing about token order{' '}
-          <Cite kind="spec" ref="§6.1" /> <Cite kind="spec" ref="§6.5" />. They encode relations instead. A word on names: paper Figure 1 brackets
+          <Cite kind="spec" ref="§6.1" /> <Cite kind="spec" ref="§6.5" />. They encode relations instead.
+        </p>
+        <p>
+          A word on names. Paper Figure 1 brackets
           the column, feature and neighbor layers as the <Term id="relational-attention">Relational Attention layers</Term>, and the fourth, full
           attention, is unrestricted <Cite kind="paper" ref="p.2 Fig. 1" /> (App. J uses the name for all four{' '}
           <Cite kind="paper" ref="p.26 App. J" />). This chapter says “the three relational masks” for the first three and “the four masks”
@@ -184,8 +187,7 @@ export default function MasksChapter() {
         <SoftmaxDemo live={live} />
         <p>
           The Python code never writes the −∞ itself. Each layer hands a precompiled block mask to FlexAttention, whose kernel sets the blocked
-          scores to −∞ and skips tiles of the score matrix that are blocked entirely <Cite kind="code" ref="rt/model.py:43" />{' '}
-          <Cite kind="spec" ref="§6.1" />. The plain scaled-dot-product branch is never taken, because all four layers always receive a mask{' '}
+          scores to −∞ and skips tiles of the score matrix that are blocked entirely <Cite kind="code" ref="rt/model.py:43" />. The plain scaled-dot-product branch is never taken, because all four layers always receive a mask{' '}
           <Cite kind="spec" ref="§6.1" />.
         </p>
         <CodeRef
