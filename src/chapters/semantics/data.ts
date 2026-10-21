@@ -259,10 +259,11 @@ export function dbColumnNames(db: RawDatabase): Set<string> {
   return new Set(db.tables.flatMap((t) => t.schema.columns.map((c) => c.name)));
 }
 
-export function jaccard(a: ReadonlySet<string>, b: ReadonlySet<string>): { j: number; shared: string[] } {
+/** Jaccard overlap |A∩B| / |A∪B|, with the shared names and the size of the union. */
+export function jaccard(a: ReadonlySet<string>, b: ReadonlySet<string>): { j: number; shared: string[]; union: number } {
   const shared = [...a].filter((x) => b.has(x)).sort();
   const union = new Set([...a, ...b]).size;
-  return { j: union ? shared.length / union : 0, shared };
+  return { j: union ? shared.length / union : 0, shared, union };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

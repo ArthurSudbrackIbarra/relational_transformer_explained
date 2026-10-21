@@ -34,9 +34,13 @@ export interface Provenance {
   dbTitle: string;
   /** For fine-tuned checkpoints: the task it was fine-tuned on (e.g. "customer-churn"), if known. */
   finetuneTask: string | null;
+  /** How the checkpoint was chosen, from its meta (e.g. "best ShopDB customer-churn VAL AUROC"), if recorded. */
+  selection: string | null;
 }
 
 const listWords = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+const countWord = (n: number) => NUMBER_WORDS[n] ?? String(n);
 
 export function useProvenance(live: AttnLive): Provenance | null {
   const [ds, setDs] = useState<DatasetJson | null>(null);
@@ -53,26 +57,56 @@ export function useProvenance(live: AttnLive): Provenance | null {
   const pretrainTitles = ds.pretrain.dbs.map((n) => titles.get(n) ?? n);
   const dbTitle = titles.get(db.name) ?? db.name;
   const seen = ds.pretrain.dbs.includes(db.name);
-  if (assets.weightsKind === 'init' || assets.ckpt === 'init') return { kind: 'init', pretrainTitles, dbTitle, finetuneTask: null };
+  const sel = assets.weights?.meta?.selection;
+  const selection = typeof sel === 'string' && sel ? sel : null;
+  if (assets.weightsKind === 'init' || assets.ckpt === 'init') return { kind: 'init', pretrainTitles, dbTitle, finetuneTask: null, selection };
   if (assets.ckpt.startsWith('finetune-')) {
-    const sel = String(assets.weights?.meta?.selection ?? '');
-    const m = /[a-z]+\/([\w.-]+)/.exec(sel);
-    return { kind: 'finetuned', pretrainTitles, dbTitle, finetuneTask: m ? m[1] : null };
+    const m = /[a-z]+\/([\w.-]+)/.exec(selection ?? '');
+    return { kind: 'finetuned', pretrainTitles, dbTitle, finetuneTask: m ? m[1] : null, selection };
   }
-  return { kind: seen ? 'seen' : 'zero-shot', pretrainTitles, dbTitle, finetuneTask: null };
+  return { kind: seen ? 'seen' : 'zero-shot', pretrainTitles, dbTitle, finetuneTask: null, selection };
 }
 
-/** One sentence: what the weights were trained on, and whether the maps are zero-shot. */
+const dbList = (p: Provenance, small = false) => `${countWord(p.pretrainTitles.length)} ${small ? 'small ' : ''}synthetic databases (${listWords(p.pretrainTitles)})`;
+
+/** Whether the checkpoint was picked on the current database's validation split (meta.selection names it). */
+const selectedOnDb = (p: Provenance) => !!p.selection && p.selection.startsWith('best ') && p.selection.includes(p.dbTitle);
+
+/**
+ * One sentence: what the weights were trained on, and whether the maps are zero-shot. "Zero-shot"
+ * means no gradient update on the target DB; as in the paper, the target task's validation split may
+ * still pick the checkpoint (spec §9.1, §9.4).
+ */
 export function provenanceSentence(p: Provenance): string {
-  const dbs = `${p.pretrainTitles.length === 3 ? 'three' : p.pretrainTitles.length} synthetic databases (${listWords(p.pretrainTitles)})`;
+  const dbs = dbList(p);
   switch (p.kind) {
     case 'init':
       return 'These weights are untrained (a random initialisation), so the patterns carry no learned meaning.';
     case 'zero-shot':
-      return `It was pretrained on ${dbs}; ${p.dbTitle} was held out, so every map here is a zero-shot attention pattern on a database the model never saw.`;
+      return (
+        `It was pretrained on ${dbs}; ${p.dbTitle} was held out, so no gradient update ever used it and every map here is a zero-shot attention pattern.` +
+        (selectedOnDb(p)
+          ? ` As in the paper, ${p.dbTitle}’s validation split was used only to choose the checkpoint (the training step with the ${p.selection}; spec §9.4).`
+          : '')
+      );
     case 'seen':
       return `It was pretrained on ${dbs}, including ${p.dbTitle}, so these patterns are not zero-shot.`;
     case 'finetuned':
       return `It was pretrained on ${dbs} and then fine-tuned on ${p.dbTitle}’s ${p.finetuneTask ?? 'task'} Train split, so these are no longer zero-shot patterns.`;
+  }
+}
+
+/** A clause for "a N-parameter replica …": what the replica was trained on, in a few words. */
+export function provenanceClause(p: Provenance): string {
+  const dbs = dbList(p, true);
+  switch (p.kind) {
+    case 'init':
+      return 'left at its random initialisation (no training at all)';
+    case 'zero-shot':
+      return `pretrained on ${dbs}, with ${p.dbTitle} held out, so these are zero-shot patterns`;
+    case 'seen':
+      return `pretrained on ${dbs}, ${p.dbTitle} among them, so these patterns are not zero-shot`;
+    case 'finetuned':
+      return `pretrained on ${dbs} and then fine-tuned on ${p.dbTitle}’s ${p.finetuneTask ?? 'task'} Train split`;
   }
 }

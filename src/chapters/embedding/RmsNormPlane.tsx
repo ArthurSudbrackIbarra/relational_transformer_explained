@@ -77,6 +77,8 @@ export const RmsNormPlane = memo(function RmsNormPlane({ presetRms }: { presetRm
   // the input arrow would hide under the handle when x is this close to the origin
   const tinyX = Math.hypot(x[0], x[1]) * unit < 13;
   const zoneR = Math.sqrt(2 * eps) * unit;
+  // x and y nearly on top of each other (γ ≈ 1 and rms(x) ≈ 1): put the y label on the other side
+  const labelsClash = Math.hypot(sx(x[0]) - sx(out.y[0]), sy(x[1]) - sy(out.y[1])) < 20;
   const ticks = Array.from({ length: 2 * Math.floor(LIM) + 1 }, (_, i) => i - Math.floor(LIM));
 
   return (
@@ -185,9 +187,11 @@ export const RmsNormPlane = memo(function RmsNormPlane({ presetRms }: { presetRm
           {zoneR >= 1 && (
             <g pointerEvents="none">
               <circle cx={sx(0)} cy={sy(0)} r={zoneR} style={{ fill: 'var(--accent)', stroke: 'var(--accent)' }} fillOpacity={0.16} strokeOpacity={0.6} strokeDasharray="2 2" />
+              {zoneR >= 8 && (
               <text x={sx(0) - zoneR - 4} y={sy(0) + zoneR + 14} textAnchor="end" fontSize={13} style={{ fill: 'var(--accent-text)' }}>
                 ε zone
               </text>
+              )}
             </g>
           )}
           {/* target set: rms = 1 circle stretched by γ */}
@@ -232,7 +236,7 @@ export const RmsNormPlane = memo(function RmsNormPlane({ presetRms }: { presetRm
           {!atOrigin && (
           <text
             x={sx(out.y[0]) + (out.y[0] >= 0 ? 10 : -10)}
-            y={sy(out.y[1]) + (out.y[1] >= 0 ? -10 : 18)}
+            y={sy(out.y[1]) + ((out.y[1] >= 0) !== labelsClash ? -10 : 18)}
             textAnchor={out.y[0] >= 0 ? 'start' : 'end'}
             fontSize={14}
             fontWeight={600}

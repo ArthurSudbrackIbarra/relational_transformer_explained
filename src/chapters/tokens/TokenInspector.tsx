@@ -10,7 +10,7 @@
  * and attention chapters).
  */
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Figure,
   IconButton,
@@ -49,8 +49,6 @@ const TABLE_FIELDS: TokenField[] = [
   'is_task_nodes',
   'class_value_idxs',
 ];
-/** Children shown in the ego view of the context graph (the rest are counted). */
-const MAX_CHILDREN = 5;
 
 /**
  * True when `el` fits in the viewport below the top bar, so it can stay sticky without an inner
@@ -154,7 +152,6 @@ export function TokenInspector({ live }: { live: TokensLive }) {
     return out;
   }, [rowNode, ctx, pdb, tokensByNode]);
   const egoNode = (n: number): EgoNode => ({ id: n, tag: tags.get(n) ?? String(n), name: nodeLabel(pdb, n), slot: slots[pdb.nodes[n].tableName] ?? 0 });
-  const hiddenChildren = Math.max(0, children.length - MAX_CHILDREN);
   // Mini table view: the columns that become tokens first, then the key columns (structure only).
   const tableCols = useMemo(() => {
     if (!raw) return undefined;
@@ -163,8 +160,10 @@ export function TokenInspector({ live }: { live: TokensLive }) {
     return [...names.filter((c) => !keys(c)), ...names.filter(keys)];
   }, [raw]);
   // Bring the inspected cell into view sideways, inside the table's own scroller (never the page).
+  // A layout effect, so it runs before TableView's own (passive) smooth vertical scroll to the row:
+  // a horizontal scroll issued after it would cancel that animation.
   const colName = t && !t.isPadding ? t.colName : null;
-  useEffect(() => {
+  useLayoutEffect(() => {
     const wrap = tableWrap.current;
     if (!wrap || !colName || !tableCols) return;
     const scroller = wrap.querySelector<HTMLElement>('[role="table"]');
@@ -175,7 +174,7 @@ export function TokenInspector({ live }: { live: TokensLive }) {
     const left = h.offsetLeft;
     const right = left + h.offsetWidth;
     if (left >= scroller.scrollLeft && right <= scroller.scrollLeft + scroller.clientWidth) return;
-    scroller.scrollTo({ left: Math.max(0, left - (scroller.clientWidth - h.offsetWidth) / 2), behavior: 'auto' });
+    scroller.scrollLeft = Math.max(0, left - (scroller.clientWidth - h.offsetWidth) / 2);
   }, [colName, tableCols, t?.nodeIdx]);
 
   const step = (d: number) => setInspected(Math.max(0, Math.min(S - 1, inspected + d)));
@@ -368,8 +367,7 @@ export function TokenInspector({ live }: { live: TokensLive }) {
               <EgoGraph
                 parents={parentsIn.map(egoNode)}
                 row={egoNode(rowNode)}
-                children={children.slice(0, MAX_CHILDREN).map(egoNode)}
-                hiddenChildren={hiddenChildren}
+                children={children.map(egoNode)}
                 seed={ctx.params.seedNode}
                 onPick={(id) => {
                   const p = tokensByNode.get(id)?.[0];
@@ -383,9 +381,7 @@ export function TokenInspector({ live }: { live: TokensLive }) {
                 </li>
                 <li>
                   <span className="font-medium text-ink">Rows that list it as a parent:</span>{' '}
-                  {children.length
-                    ? `${children.length} in the context${hiddenChildren > 0 ? `, the first ${MAX_CHILDREN} drawn` : ''}`
-                    : 'none in the context'}
+                  {children.length ? `${children.length} in the context` : 'none in the context'}
                   {rowNode === ctx.params.seedNode ? ' · dashed ring = the seed row' : ''}
                 </li>
               </ul>

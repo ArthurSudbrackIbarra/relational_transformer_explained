@@ -215,6 +215,10 @@ export default function DatabaseChapter() {
     return { total: adj.length, nDb, byTask: [...byTask.entries()] };
   }, [pdb, example]);
 
+  // the seed's own task table is the only one whose rows take part (fly.rs:416-419)
+  const seedTaskRows = seed?.isTaskNode ? (exampleKids?.byTask.find(([n]) => n === task.name)?.[1] ?? null) : null;
+  const otherTaskRows = exampleKids?.byTask.filter(([n]) => n !== task.name) ?? [];
+
   const taskChildTables = useMemo(
     () => db.tasks.filter((t) => t.kind === 'forecast' && t.entityTable === focus.table).map((t) => t.name),
     [db, focus.table],
@@ -617,17 +621,18 @@ export default function DatabaseChapter() {
             </>
           }
         >
-          {exampleKids && exampleKids.byTask.length > 0 && (
+          {exampleKids && seedTaskRows !== null && (
             <p>
-              In the preprocessed {dbShort} graph, {rowLabel(example)} has <span className="num">{exampleKids.total}</span> children:{' '}
-              <span className="num">{exampleKids.nDb}</span> database rows and{' '}
-              {exampleKids.byTask.map(([name, n], i) => (
-                <span key={name}>
-                  {i > 0 && ' and '}
-                  <span className="num">{n}</span> rows of the {name} task table
-                </span>
-              ))}
-              . The bound can cut the first group, never the second; the time filter applies to both.
+              In the preprocessed {dbShort} graph, {rowLabel(example)} has <span className="num">{exampleKids.nDb}</span> database children and{' '}
+              <span className="num">{seedTaskRows}</span> children in the {taskName} task table. The bound can cut the first group, never the
+              second; the time filter applies to both.
+              {otherTaskRows.length > 0 && (
+                <>
+                  {' '}
+                  Rows of other task tables ({otherTaskRows.map(([name, n]) => `${n} of ${name}`).join(', ')}) never enter a context for this task
+                  at all <Cite kind="code" ref="rustler/src/fly.rs:416-419" />.
+                </>
+              )}
             </p>
           )}
         </Callout>
@@ -810,7 +815,8 @@ export default function DatabaseChapter() {
           Put all the links together and the database becomes a graph. Relational deep learning (RDL) makes this explicit: it represents a database
           as a <em>relational entity graph</em>, “a temporal, heterogeneous graph where each table is a node-type, each row an individual node, and
           every primary-foreign key relationship an edge” <Cite kind="paper" ref="p.16 App. B" />. The first models applied graph neural networks
-          directly to that graph, and later ones use graph transformers <Cite kind="paper" ref="p.16 App. B" />.
+          directly to that graph; later work refined their message passing and moved to transformer-based architectures{' '}
+          <Cite kind="paper" ref="p.16 App. B" />.
         </p>
         <Figure
           wide

@@ -5,7 +5,7 @@
  */
 import { useMemo, useState } from 'react';
 import { ChartFrame, DataTable, Segmented, cx } from '@/components';
-import { sequentialCss } from '@/components/viz/scales';
+import { divergingCss, sequentialCss } from '@/components/viz/scales';
 import { textWidth } from '@/components/viz/text';
 import { useElementSize } from '@/components/viz/useSize';
 import { DB_NAMES } from '@/engine/db';
@@ -17,29 +17,100 @@ import { DB_SHORT, TABLE11_CLF, TABLE11_MEANS, TABLE11_REG, TABLE4, TABLE6, f1, 
 // Table 4 summary tiles
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function Table4Tiles() {
-  const tiles = [
-    { label: 'Zero-shot AUROC', a: TABLE4.none.zsClf, b: TABLE4.colNames.zsClf, unit: '%' },
-    { label: 'Zero-shot R²', a: TABLE4.none.zsReg, b: TABLE4.colNames.zsReg, unit: '%' },
-    { label: 'Fine-tuned AUROC', a: TABLE4.none.ftClf, b: TABLE4.colNames.ftClf, unit: '%' },
-    { label: 'Fine-tuned R²', a: TABLE4.none.ftReg, b: TABLE4.colNames.ftReg, unit: '%' },
-  ];
-  return (
-    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-      {tiles.map((t) => {
-        const d = Math.round((t.b - t.a) * 10) / 10;
-        return (
-          <div key={t.label} className="rounded-lg border border-border bg-surface px-3.5 py-3">
-            <div className="text-[15px] font-medium text-ink-2">{t.label}</div>
-            <div className="num mt-1 flex items-baseline gap-2 text-[22px] font-semibold text-ink">
-              <span>{f1(t.a)}</span>
-              <span className="text-[16px] font-normal text-muted">→</span>
-              <span>{f1(t.b)}</span>
-            </div>
-            <div className="num mt-0.5 text-[15px] text-ink-2">{d === 0 ? 'no change' : `${signed1(d)} points`}</div>
+const T4_ROWS = [
+  { key: 'none', label: 'none (full context)' },
+  { key: 'colNames', label: 'column and table names shuffled' },
+  { key: 'selfLabels', label: 'target entity’s past labels removed' },
+  { key: 'otherLabels', label: 'other entities’ labels removed' },
+] as const;
+const T4_COLS = [
+  { key: 'zsClf', setting: 'Zero-shot', metric: 'AUROC' },
+  { key: 'zsReg', setting: 'Zero-shot', metric: 'R²' },
+  { key: 'ftClf', setting: 'Fine-tuned', metric: 'AUROC' },
+  { key: 'ftReg', setting: 'Fine-tuned', metric: 'R²' },
+] as const;
+type T4Col = (typeof T4_COLS)[number]['key'];
+
+/**
+ * Paper Table 4 (p.9), all four rows, with each change from "none" drawn as a bar on one shared scale,
+ * so the names row can be compared with the label ablations. On narrow screens: one table per setting.
+ */
+export function Table4Grid({ narrow }: { narrow: boolean }) {
+  const mode = useResolvedTheme();
+  const maxAbs = Math.max(...T4_ROWS.flatMap((r) => T4_COLS.map((c) => Math.abs(TABLE4[r.key][c.key] - TABLE4.none[c.key]))));
+  const groups: (typeof T4_COLS)[number][][] = narrow ? [T4_COLS.slice(0, 2), T4_COLS.slice(2)] : [[...T4_COLS]];
+  const cellOf = (r: (typeof T4_ROWS)[number], c: T4Col) => {
+    const v = TABLE4[r.key][c];
+    const d = Math.round((v - TABLE4.none[c]) * 10) / 10;
+    const isNone = r.key === 'none';
+    return (
+      <td key={c} className="num px-2 py-2 text-right align-top">
+        <div className="text-[16px] font-semibold text-ink">{f1(v)}</div>
+        {!isNone && (
+          <div className="mt-0.5 flex items-center justify-end gap-1.5">
+            <span className="relative inline-block h-2 w-[56px] rounded-full bg-surface-3" aria-hidden="true">
+              <span
+                className="absolute inset-y-0 rounded-full"
+                style={{
+                  width: `${Math.max(2, (50 * Math.abs(d)) / maxAbs)}%`,
+                  [d < 0 ? 'right' : 'left']: '50%',
+                  background: divergingCss(d, maxAbs, mode),
+                }}
+              />
+              <span className="absolute inset-y-[-2px] left-1/2 w-px bg-axis" />
+            </span>
+            <span className={cx('w-[44px] text-[14.5px]', d < 0 ? 'text-ink' : 'text-ink-2')}>{d === 0 ? '0.0' : signed1(d)}</span>
           </div>
-        );
-      })}
+        )}
+      </td>
+    );
+  };
+  return (
+    <div className={cx('grid gap-5', narrow ? '' : '')}>
+      {groups.map((cols, gi) => (
+        <div key={gi} className="scroll-quiet overflow-x-auto">
+          <table className="w-full border-collapse text-[15px]">
+            <caption className="sr-only">Paper Table 4: mean AUROC and R² (%) of each context ablation{narrow ? `, ${cols[0].setting.toLowerCase()}` : ''}</caption>
+            <thead>
+              {!narrow && (
+                <tr className="text-ink-2">
+                  <th />
+                  <th scope="colgroup" colSpan={2} className="border-b border-grid pb-1 text-center font-semibold">
+                    Zero-shot
+                  </th>
+                  <th scope="colgroup" colSpan={2} className="border-b border-grid pb-1 text-center font-semibold">
+                    Fine-tuned
+                  </th>
+                </tr>
+              )}
+              <tr className="border-b border-grid text-ink-2">
+                <th scope="col" className="py-1.5 pr-2 text-left font-semibold">
+                  {narrow ? cols[0].setting : 'Ablation'}
+                </th>
+                {cols.map((c) => (
+                  <th key={c.key} scope="col" className="px-2 py-1.5 text-right font-semibold">
+                    {c.metric} (%)
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {T4_ROWS.map((r) => (
+                <tr key={r.key} className={cx('border-b border-grid/70', r.key === 'colNames' && 'bg-accent-soft')}>
+                  <th scope="row" className={cx('py-2 pr-2 text-left align-top font-normal leading-snug', r.key === 'colNames' ? 'font-semibold text-ink' : 'text-ink-2')}>
+                    {r.label}
+                  </th>
+                  {cols.map((c) => cellOf(r, c.key))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+      <p className="!m-0 text-[14.5px] leading-snug text-ink-2">
+        Values copied from the paper. Under each value: its change from “none”, drawn on one scale for the whole table (the longest bar is{' '}
+        {f1(maxAbs)} points), so the names row can be read against the two label ablations.
+      </p>
     </div>
   );
 }
@@ -89,7 +160,7 @@ export function AblationDumbbells() {
   return (
     <ChartFrame
       title={`Per task: names intact vs shuffled, ${setting === 'zs' ? 'zero-shot' : 'fine-tuned'} ${unit}`}
-      subtitle="Paper Table 11 (p.22), sorted by the change. Shuffling hurts most at the top."
+      subtitle="Paper Table 11 (p.22), sorted by the change. Shuffling hurts most at the top. A ring around a dot means the two values are equal."
       legend={
         <ul className="!m-0 flex !list-none flex-wrap items-center gap-x-5 gap-y-1 !p-0 text-[15px] text-ink-2">
           <li className="!m-0 inline-flex items-center gap-1.5 !p-0">
@@ -159,8 +230,18 @@ export function AblationDumbbells() {
                   {isMean ? 'mean' : r.name.replace('rel-', '')}
                 </text>
                 <line x1={x(r.a)} x2={x(r.b)} y1={y + dotDy} y2={y + dotDy} style={{ stroke: 'var(--ink-2)' }} strokeWidth={2} />
-                <circle cx={x(r.a)} cy={y + dotDy} r={6} style={{ fill: catVar(1), stroke: 'var(--surface)' }} strokeWidth={2} />
-                <circle cx={x(r.b)} cy={y + dotDy} r={5.5} style={{ fill: 'var(--surface)', stroke: catVar(2) }} strokeWidth={2.4} />
+                {Math.abs(r.a - r.b) < 0.05 ? (
+                  // equal values: the ring sits around the dot, so both series stay visible
+                  <>
+                    <circle cx={x(r.b)} cy={y + dotDy} r={8} style={{ fill: 'var(--surface)', stroke: catVar(2) }} strokeWidth={2.4} />
+                    <circle cx={x(r.a)} cy={y + dotDy} r={4.5} style={{ fill: catVar(1) }} />
+                  </>
+                ) : (
+                  <>
+                    <circle cx={x(r.a)} cy={y + dotDy} r={6} style={{ fill: catVar(1), stroke: 'var(--surface)' }} strokeWidth={2} />
+                    <circle cx={x(r.b)} cy={y + dotDy} r={5.5} style={{ fill: 'var(--surface)', stroke: catVar(2) }} strokeWidth={2.4} />
+                  </>
+                )}
                 <text
                   x={plotR + deltaW - 4}
                   y={y + dotDy}
@@ -271,18 +352,21 @@ export function OverlapTables({ catalog }: { catalog: Catalog }) {
         title="RelBench (paper Table 6, p.17)"
         labels={TABLE6.dbs.map((d) => d.replace('rel-', ''))}
         value={(i, j) => TABLE6.m[i][j]}
-        note={(i, j) => `${TABLE6.dbs[i]} vs ${TABLE6.dbs[j]}: Jaccard ${TABLE6.m[i][j].toFixed(3)} (exact column-name matches)`}
+        note={(i, j) => `${TABLE6.dbs[i]} vs ${TABLE6.dbs[j]}: Jaccard ${TABLE6.m[i][j].toFixed(3)} (exact column-name matches; the paper gives no counts)`}
       />
       <OverlapGrid
         title="This site’s toy databases (computed live)"
         labels={DB_NAMES.map((d) => DB_SHORT[d].replace('DB', ''))}
         value={(i, j) => ours[i][j].j}
-        note={(i, j) => `${DB_SHORT[DB_NAMES[i]]} vs ${DB_SHORT[DB_NAMES[j]]}: shared ${ours[i][j].shared.length ? ours[i][j].shared.join(', ') : 'none'}`}
+        note={(i, j) =>
+          `${DB_SHORT[DB_NAMES[i]]} vs ${DB_SHORT[DB_NAMES[j]]}: ${ours[i][j].shared.length} shared / ${ours[i][j].union} distinct column names = ${ours[i][j].j.toFixed(3)}${ours[i][j].shared.length ? ` (${ours[i][j].shared.join(', ')})` : ''}`
+        }
       />
     </div>
     <p className="mt-3 !mb-0 text-[15px] leading-snug text-ink-2">
-      Largest overlap here: {DB_SHORT[DB_NAMES[best.i]]} vs {DB_SHORT[DB_NAMES[best.j]]}, {best.j_.toFixed(3)} (shared:{' '}
-      <span className="font-mono text-ink">{ours[best.i][best.j].shared.join(', ') || 'none'}</span>), against {paperMax.toFixed(3)} in RelBench.
+      Largest overlap here: {DB_SHORT[DB_NAMES[best.i]]} vs {DB_SHORT[DB_NAMES[best.j]]}, {best.j_.toFixed(3)} ({ours[best.i][best.j].shared.length} shared of{' '}
+      {ours[best.i][best.j].union} distinct names: <span className="font-mono text-ink">{ours[best.i][best.j].shared.join(', ') || 'none'}</span>),{' '}
+      {best.j_ > paperMax ? 'higher than' : best.j_ < paperMax ? 'lower than' : 'equal to'} RelBench’s largest, {paperMax.toFixed(3)}.
     </p>
     </div>
   );

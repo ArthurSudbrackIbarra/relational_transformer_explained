@@ -280,7 +280,7 @@ export default function AttentionChapter() {
         <Callout variant="warning" title="Reading attention weights with care">
           <p>
             These are the weights of a {int(paramCount(live.cfg))}-parameter replica{' '}
-            {prov ? provenanceClause(prov) : 'trained on small synthetic databases'}, so they describe this model, not the paper’s. And a weight
+            {prov ? provenanceClause(prov) : 'trained on small synthetic databases'}. They describe this model, not the paper’s. And a weight
             says where a head looks, not what it takes away: the value vectors, <TeX tex="W_o" /> and every later sublayer decide what the
             information becomes. Treat the patterns as clues, not explanations.
           </p>

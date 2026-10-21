@@ -5,7 +5,8 @@
  * mirror of rt/model.py:50-86 and :226-229) through the shared hooks, so the seed, context and tokens match
  * every other chapter. Spec: research/RT_TECHNICAL_SPEC.md §7 (all), §6.4, §10 #1, #23, §11.4-11.5, §13 #1.
  */
-import { useMemo, useState } from 'react';
+import { useReducedMotion } from 'motion/react';
+import { useMemo } from 'react';
 import {
   Button,
   Callout,
@@ -35,7 +36,7 @@ import { MODEL_BLOCK_62_86, MODEL_FFN_50_59, MODEL_LOOP_226_229, MODEL_STACK_147
 import { ParamTable, StackFigure } from './Stack';
 import { SwiGLUFigure } from './SwiGLU';
 import { useBlockLive } from './useBlockLive';
-import { allowedKeys, flowOrder, fx, int, rowName, singular, streamStages, SUB_NAME, traceFlow } from './utils';
+import { allowedKeys, article, flowOrder, fx, int, rowName, singular, streamStages, SUB_NAME, traceFlow } from './utils';
 
 const RMSNORM_TEX = String.raw`\begin{gathered}\mathrm{RMSNorm}(x)_i \;=\; \frac{x_i}{\sqrt{\tfrac{1}{d}\sum_{j=1}^{d} x_j^2 \;+\; \varepsilon}}\;\gamma_i\\[4pt] \varepsilon = 2^{-7}\end{gathered}`;
 const ALG2_TEX = String.raw`\textbf{Alg. 2:}\quad \mathbf{X} \leftarrow \mathbf{X} + \mathrm{Norm}\big(\mathrm{MHA}(\mathbf{X};\,\mathbf{M})\big)`;
@@ -47,19 +48,21 @@ x &\leftarrow x + \mathrm{MHA}_{\text{nbr}}\big(\mathrm{RMSNorm}_{\text{nbr}}(x)
 x &\leftarrow x + \mathrm{MHA}_{\text{full}}\big(\mathrm{RMSNorm}_{\text{full}}(x);\ \mathbf{M}^{\text{full}}\big)\\
 x &\leftarrow x + \mathrm{SwiGLU}\big(\mathrm{RMSNorm}_{\text{ffn}}(x)\big)
 \end{aligned}`;
+const RUNNING_TASK = 'shop/customer-churn';
 const SWIGLU_TEX = String.raw`\begin{gathered}\mathrm{FFN}(h) \;=\; W_2\Big(\mathrm{SiLU}(W_1 h)\;\odot\;W_3 h\Big)\\[6pt] \mathrm{SiLU}(z) = z\,\sigma(z) = \frac{z}{1+e^{-z}}\end{gathered}`;
 
 export default function BlockChapter() {
   const live = useBlockLive();
-  const { ctx, fr, task, target, nBlocks, d, dFF, H, assets, inCtx, masks, S } = live;
-  const [followRaw, setFollow] = useState<number | null>(null);
-  const follow = followRaw !== null && followRaw < S && !ctx.tokens[followRaw].isPadding ? followRaw : target;
+  const { ctx, fr, task, target, nBlocks, d, dFF, H, assets, inCtx, masks, S, follow, setFollow } = live;
+  const reduceMotion = useReducedMotion();
+  const forecast = task.kind === 'forecast';
 
   const seed = ctx.tokens[target];
   const entityNode = seed?.f2pNbrIdxs.find((p) => p >= 0);
   const entityTok = entityNode !== undefined ? ctx.tokens.find((t) => !t.isPadding && t.nodeIdx === entityNode) : undefined;
   const entityText = entityNode !== undefined ? ctx.tokens.find((t) => !t.isPadding && t.nodeIdx === entityNode && t.sem === SemType.Text) : undefined;
-  const entity = task.entityTable ? singular(task.entityTable) : 'entity';
+  // forecast: the task's entity table; autocomplete: the first row the target's row points to
+  const entity = task.entityTable ? singular(task.entityTable) : entityTok ? singular(entityTok.tableName) : 'parent row';
   const childTables = useMemo(
     () => live.db.tables.filter((t) => task.entityTable && Object.values(t.schema.fkeys).includes(task.entityTable)).map((t) => t.schema.name),
     [live.db, task],
@@ -73,6 +76,8 @@ export default function BlockChapter() {
     const top = subs.reduce((a, b) => (b.updNorm > a.updNorm ? b : a), subs[0]);
     const lastBlock = tStages[tStages.length - 2];
     const firstBlockOut = tStages[5];
+    const ran = subs.filter((s) => !s.skipped && Number.isFinite(s.updNorm));
+    const nonZero = ran.filter((s) => s.updNorm > 0);
     return {
       x0: tStages[0].xNorm,
       xLast: lastBlock.xNorm,
@@ -81,16 +86,20 @@ export default function BlockChapter() {
       cos1: firstBlockOut.cosLast,
       hMin: Math.min(...subs.filter((s) => Number.isFinite(s.hNorm)).map((s) => s.hNorm)),
       hMax: Math.max(...subs.filter((s) => Number.isFinite(s.hNorm)).map((s) => s.hNorm)),
+      dMin: nonZero.length ? Math.min(...nonZero.map((s) => s.updNorm)) : NaN,
+      dMax: ran.length ? Math.max(...ran.map((s) => s.updNorm)) : NaN,
+      nZero: ran.length - nonZero.length,
     };
   }, [tStages]);
   const targetNbrKeys = allowedKeys(masks, 'nbr', target, S);
   const entityNbrKeys = entityTok ? allowedKeys(masks, 'nbr', entityTok.pos, S) : 0;
 
-  // a worked flow example: the first in-context label of the same entity, and an order of the entity
+  // worked flow examples on the live context, through the relational layers that ran (no full attention)
   const flowFacts = useMemo(() => {
+    const order = flowOrder(nBlocks, false, live.disabledLayers);
     const ex = (id: string, pos: number | undefined, what: string) => {
       if (pos === undefined) return null;
-      const rel = traceFlow(masks, ctx.tokens, pos, target, flowOrder(nBlocks, false));
+      const rel = traceFlow(masks, ctx.tokens, pos, target, order);
       return { id, what, pos, path: rel.path };
     };
     const child = live.presets.find((p) => p.id === 'child');
@@ -100,8 +109,17 @@ export default function BlockChapter() {
       child ? ex('child', child.pos, child.label) : null,
       far ? ex('far', far.pos, `a cell of ${far.label}`) : null,
     ].filter((x): x is NonNullable<typeof x> => x !== null);
-  }, [masks, ctx, target, nBlocks, inCtx, live.presets, entity]);
+  }, [masks, ctx, target, nBlocks, inCtx, live.presets, live.disabledLayers, entity]);
   const farRoute = flowFacts.find((f) => f.id === 'far')?.path;
+  const nRoutesWord = ['One', 'Two', 'Three', 'Four'][flowFacts.length - 1] ?? String(flowFacts.length);
+
+  const followEntity = (pos: number) => {
+    setFollow(pos);
+    window.setTimeout(
+      () => document.getElementById('block-diagram')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' }),
+      30,
+    );
+  };
 
   const miniParams = paramCount(MINI_CONFIG);
   const paperParams = paramCount(PAPER_CONFIG);
@@ -120,7 +138,7 @@ export default function BlockChapter() {
         }
         learn={[
           'The five sublayers of an RT block, in the order the code runs them',
-          'Pre-norm residuals: why the code differs from the paper’s Algorithm 2, and what that does to the residual stream',
+          'Pre-norm residuals: how the code differs from the paper’s Algorithm 2, and what each sublayer reads and adds as a result',
           'SwiGLU, the gated feed-forward network, with the hidden units of a live token',
           `The stack: ${nBlocks} blocks here, 12 in the paper, then a final RMSNorm, and where the parameters live`,
           'How information from any cell can reach the masked target, block by block (an interpretation of the masks)',
@@ -148,17 +166,33 @@ export default function BlockChapter() {
         </p>
       </ChapterHeader>
 
-      {live.disabledLayers.length > 0 && (
+      {(task.id !== RUNNING_TASK || live.disabledLayers.length > 0) && (
         <div className="page-grid -mt-6 mb-8">
-          <Callout variant="warning" title="An inference-time ablation is active">
-            <p>
-              The playground switched off {live.disabledLayers.map((l) => SUB_NAME[l]).join(', ')} attention in every block, so the numbers below
-              come from that modified forward pass.{' '}
-              <Button size="sm" variant="secondary" onClick={() => live.setDisabledLayers([])}>
-                Restore the full model
-              </Button>
-            </p>
-          </Callout>
+          <div className="grid gap-4">
+            {task.id !== RUNNING_TASK && (
+              <Callout variant="note" title="You are viewing another task">
+                <p>
+                  The figures follow your simulation settings: <span className="font-mono">{live.db.name}</span> ·{' '}
+                  <span className="font-mono">{task.id.split('/')[1]}</span> ({task.kind}). The prose is written for the running example, ShopDB’s{' '}
+                  <span className="font-mono">customer-churn</span>, so a few sentences may not apply.
+                </p>
+                <Button size="sm" variant="secondary" onClick={() => live.setTask(RUNNING_TASK)}>
+                  Switch the course to the running example
+                </Button>
+              </Callout>
+            )}
+            {live.disabledLayers.length > 0 && (
+              <Callout variant="warning" title="An inference-time ablation is active">
+                <p>
+                  The playground switched off {live.disabledLayers.map((l) => SUB_NAME[l]).join(', ')} attention in every block, so the numbers below
+                  come from that modified forward pass, and the route tracer of step 6 leaves those layers out.{' '}
+                  <Button size="sm" variant="secondary" onClick={() => live.setDisabledLayers([])}>
+                    Restore the full model
+                  </Button>
+                </p>
+              </Callout>
+            )}
+          </div>
         </div>
       )}
 
@@ -176,23 +210,31 @@ export default function BlockChapter() {
           <Term id="rmsnorm">RMSNorm</Term> and its own weights: a block holds five RMSNorms, four separate attention modules and one feed-forward
           module <Cite kind="code" ref="rt/model.py:71-80" />.
         </p>
-        <MathBlock tex={BLOCK_TEX} className="text-[15px] sm:text-[18px]" label={<Cite kind="code" ref="rt/model.py:82-86" />} caption="One RT block, as the code runs it. Each line reads the x left by the line above." />
+        <MathBlock tex={BLOCK_TEX} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:82-86" />} caption="One RT block, as the code runs it. Each line reads the x left by the line above." />
         <p>
           Walk through a block below. The pulse travels with the followed token, the masked target by default; each box shows the length of the
           update it adds, ‖Δ‖, from the live forward pass. Click a box to inspect that sublayer.
         </p>
-        <Figure wide title="An RT block, with the live numbers of one token">
-          <BlockDiagram live={live} follow={follow} setFollow={setFollow} />
+        <Figure wide id="block-diagram" title="An RT block, with the live numbers of one token">
+          <BlockDiagram live={live} />
         </Figure>
         {targetNbrKeys === 0 && (
           <p>
-            One box stays at zero for the target in every block: neighbor. The neighbor mask lets a row read its child rows, and no row has a
-            foreign key to a task row, so the target has no key to read <Cite kind="spec" ref="§6.2" />. A fully masked query returns exactly 0, and{' '}
-            <TeX tex="W_o" /> has no bias, so the update is the zero vector <Cite kind="spec" ref="§6.1" />.
+            One box stays at zero for the target in every block: neighbor. The neighbor mask lets a row read only the rows that point to it, and{' '}
+            {forecast ? (
+              <>
+                no row has a foreign key to a task row: task tables have no primary key, so their rows are never parents{' '}
+                <Cite kind="spec" ref="§1.3" />
+              </>
+            ) : (
+              <>no row in the context points to the target’s row</>
+            )}
+            , so the target has no key to read <Cite kind="spec" ref="§6.2" />. A fully masked query returns exactly 0, and <TeX tex="W_o" /> has
+            no bias, so the update is the zero vector <Cite kind="spec" ref="§6.1" />.
             {entityTok && entityNbrKeys > 0 && (
               <>
                 {' '}
-                <button type="button" className="font-medium text-accent-text underline decoration-dotted underline-offset-4" onClick={() => setFollow(entityTok.pos)}>
+                <button type="button" className="font-medium text-accent-text underline decoration-dotted underline-offset-4" onClick={() => followEntity(entityTok.pos)}>
                   Follow the {entity}’s {entityTok.colName}
                 </button>{' '}
                 instead: its neighbor row has {int(entityNbrKeys)} keys, and its neighbor update is not zero.
@@ -225,20 +267,20 @@ export default function BlockChapter() {
           Every sublayer starts with an RMSNorm. It divides a vector by its root mean square and multiplies each dimension by a learned weight{' '}
           <TeX tex="\gamma_i" /> <Cite kind="spec" ref="§7.2" />. Unlike LayerNorm it subtracts no mean and adds no bias.
         </p>
-        <MathBlock tex={RMSNORM_TEX} className="text-[15px] sm:text-[19px]" label={<Cite kind="spec" ref="§7.2" />} />
+        <MathBlock tex={RMSNORM_TEX} className="text-[18px] sm:text-[19px]" label={<Cite kind="spec" ref="§7.2" />} />
         <p>
-          The small constant ε = 2⁻⁷ is not a typo. The paper ran in bfloat16 with PyTorch 2.6, where <code>nn.RMSNorm</code> without an explicit ε
-          uses the machine epsilon of the input type, and bfloat16’s is 2⁻⁷ <Cite kind="spec" ref="§7.2" />. This site runs in float32 and keeps
-          ε = 2⁻⁷ to match.
+          The small constant ε = 2⁻⁷ is not a typo. The paper trained in bfloat16 <Cite kind="paper" ref="p.6 §4.1" />, and the official code pins
+          PyTorch 2.6.0, where <code>nn.RMSNorm</code> without an explicit ε uses the machine epsilon of the input type: 2⁻⁷ for bfloat16{' '}
+          <Cite kind="spec" ref="§7.2" />. This site runs in float32 and keeps ε = 2⁻⁷ to match.
         </p>
         <h3>Algorithm 2 and the code disagree on placement</h3>
         <p>
           The paper’s Algorithm 2 normalises the <em>output</em> of each sublayer before adding it. The code normalises the <em>input</em>: the
           sublayer reads <TeX tex="\mathrm{RMSNorm}_\ell(x)" />, and its raw output is added to the stream <Cite kind="paper" ref="p.26 Alg. 2" />{' '}
-          <Cite kind="code" ref="rt/model.py:84-85" />.
+          <Cite kind="code" ref="rt/model.py:84-85" />. This placement is called <Term id="pre-norm">pre-norm</Term>.
         </p>
-        <MathBlock tex={ALG2_TEX} className="text-[15px] sm:text-[18px]" label={<Cite kind="paper" ref="p.26 Alg. 2" />} />
-        <MathBlock tex={CODE_TEX} className="text-[15px] sm:text-[18px]" label={<Cite kind="code" ref="rt/model.py:84" />} />
+        <MathBlock tex={ALG2_TEX} className="text-[18px]" label={<Cite kind="paper" ref="p.26 Alg. 2" />} />
+        <MathBlock tex={CODE_TEX} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:84" />} />
         <WiringCompare />
         <Callout
           variant="paper-vs-code"
@@ -265,14 +307,32 @@ export default function BlockChapter() {
           </p>
         </Callout>
         <p>
-          Pre-norm has a visible consequence. Nothing inside a block ever rescales the residual stream itself: only the copy each sublayer reads is
-          normalised, so the updates pile up. The chart follows the target.
+          Neither wiring rescales the stream itself inside a block: in both, x only ever receives additions. The original Transformer did
+          rescale it, with <TeX tex="x \leftarrow \mathrm{LayerNorm}(x + f(x))" />{' '}
+          <Cite kind="url" ref="https://arxiv.org/abs/1706.03762" title="Vaswani et al. 2017, Attention Is All You Need, §3.1" />. What the placement
+          changes is what each sublayer reads and how large its update can be:
+        </p>
+        <ul>
+          <li>
+            <strong>What a sublayer reads.</strong> In Algorithm 2 it reads the raw stream x. In the code it reads{' '}
+            <TeX tex="\mathrm{RMSNorm}_\ell(x)" />, whose length depends only on the direction of x and the weights γ, whatever the length of x.
+          </li>
+          <li>
+            <strong>How large an update can be.</strong> In Algorithm 2 every update passes through Norm, so its length is set the same way, whatever
+            the sublayer computed. In the code the raw output is added, so the length of the update is free.
+          </li>
+        </ul>
+        <p>
+          The chart shows both effects in the trained mini model, for the target.
           {facts && (
             <>
               {' '}
-              Its stream grows from ‖x‖ = {fx(facts.x0)} at the embedding to {fx(facts.xLast)} after block {nBlocks}, while every sublayer reads a
-              copy whose length stays between {fx(facts.hMin)} and {fx(facts.hMax)}, set by the RMSNorm and its weights γ. The final RMSNorm,{' '}
-              <code>norm_out</code>, rescales the stream once more, to {fx(facts.xOut)}, before the decoders read it{' '}
+              Its stream {facts.xLast > facts.x0 ? 'grows' : 'goes'} from ‖x‖ = {fx(facts.x0)} at the embedding to {fx(facts.xLast)} after block{' '}
+              {nBlocks} (blue); a sublayer that read the raw stream, as in Algorithm 2, would see vectors of these lengths. In the code every sublayer
+              reads a copy whose length stays between {fx(facts.hMin)} and {fx(facts.hMax)} (orange). The updates it adds have lengths from{' '}
+              {fx(facts.dMin)} to {fx(facts.dMax)}
+              {facts.nZero > 0 ? ', and exactly 0 where a sublayer has no key to read' : ''}. The final RMSNorm, <code>norm_out</code>, is the only
+              norm applied to the stream itself: it brings the length to {fx(facts.xOut)} before the decoders read it{' '}
               <Cite kind="code" ref="rt/model.py:229" />.
             </>
           )}
@@ -292,7 +352,7 @@ export default function BlockChapter() {
           The fifth sublayer is a gated MLP. The paper says it uses “gated MLPs with SiLU activation, as found in the LLaMA architecture”, with a
           hidden dimension of 1024 <Cite kind="paper" ref="p.6 §4.1" />. In the code it is three bias-free linear maps <Cite kind="code" ref="rt/model.py:50-59" />:
         </p>
-        <MathBlock tex={SWIGLU_TEX} className="text-[15px] sm:text-[19px]" label={<Cite kind="code" ref="rt/model.py:59" />} />
+        <MathBlock tex={SWIGLU_TEX} className="text-[18px] sm:text-[19px]" label={<Cite kind="code" ref="rt/model.py:59" />} />
         <p>
           <TeX tex="W_1" /> and <TeX tex="W_3" /> map the normalised vector h from d = {d} to d<sub>ff</sub> = {dFF} hidden units; <TeX tex="W_2" />{' '}
           maps back to {d}. The paper model uses 256 → 1024 → 256. In both, d<sub>ff</sub> = 4d: RT does not use LLaMA’s ⅔ sizing of the hidden
@@ -305,7 +365,7 @@ export default function BlockChapter() {
           information moves between tokens only in the four attention sublayers.
         </p>
         <Figure wide title="SiLU, the gate, and the hidden units of a live token">
-          <SwiGLUFigure live={live} follow={follow} setFollow={setFollow} />
+          <SwiGLUFigure live={live} />
         </Figure>
         <Callout variant="note" title="The only gate in the block">
           <p>
@@ -360,14 +420,14 @@ export default function BlockChapter() {
           colour scale. Pick another token to compare.
         </p>
         <Figure wide title="One token through the whole stack">
-          <ResidualStream live={live} follow={follow} setFollow={setFollow} />
+          <ResidualStream live={live} />
         </Figure>
         {facts && (
           <p>
             For the target, the largest single update comes from block {facts.top.block + 1}’s {SUB_NAME[facts.top.kind as keyof typeof SUB_NAME].toLowerCase()}{' '}
             {facts.top.kind === 'ffn' ? 'sublayer' : 'attention'} (‖Δ‖ = {fx(facts.top.updNorm)}).
             {facts.top.kind === 'col' && (
-              <> That is the layer in which the masked label reads the visible labels of its column directly (chapter 9).</>
+              <> That is the layer in which the masked cell reads the visible {forecast ? 'labels' : 'values'} of its column directly (chapter 9).</>
             )}{' '}
             After block 1 the target’s vector has cosine {fx(facts.cos1)} with the output of block {nBlocks}
             {facts.cos1 > 0.8 ? ': here the later blocks refine its direction more than they replace it.' : ': here the later blocks still turn it substantially.'}{' '}
@@ -397,33 +457,56 @@ export default function BlockChapter() {
           In an attention sublayer, query q can receive from key k exactly when the mask allows the pair. The feed-forward sublayer works per token
           and moves nothing between tokens. Read in block order, the masks give a story for the target <Cite kind="spec" ref="§6.4" />:
         </p>
-        <ol>
-          <li>
-            <LayerLabel layer="col" />: the target reads every visible label of its column directly, its own {entity}’s past labels and other
-            entities’ alike. It cannot yet tell which are which.
-          </li>
-          <li>
-            <LayerLabel layer="feat" />: the target and every past task row read their parent {entity}’s cells, so each of them now carries
-            information about which {entity} it concerns.
-          </li>
-          <li>
-            <LayerLabel layer="nbr" />: {entity} cells read their child rows: the labelled task rows
-            {childTables.length > 0 ? ` and the ${childTables.join(' and ')}` : ''} alike. This is where per-entity aggregates can form, “analogously to message-passing in GNNs” <Cite kind="paper" ref="p.5 §3.2" />.
-          </li>
-          <li>
-            <LayerLabel layer="full" />: unrestricted mixing among all non-padding tokens.
-          </li>
-        </ol>
+        {forecast ? (
+          <ol>
+            <li>
+              <LayerLabel layer="col" />: the target reads every visible label of its column directly, its own {entity}’s past labels and other{' '}
+              {entity}s’ alike. It cannot yet tell which are which.
+            </li>
+            <li>
+              <LayerLabel layer="feat" />: the target and every past task row read their parent {entity}’s cells, so each of them now carries
+              information about which {entity} it concerns.
+            </li>
+            <li>
+              <LayerLabel layer="nbr" />: {entity} cells read their child rows, the labelled task rows
+              {childTables.length > 0 ? ` and the ${childTables.join(' and ')} rows` : ''} alike. This is where per-{entity} aggregates can form,
+              “analogously to message-passing in GNNs” <Cite kind="paper" ref="p.5 §3.2" />.
+            </li>
+            <li>
+              <LayerLabel layer="full" />: unrestricted mixing among all non-padding tokens.
+            </li>
+          </ol>
+        ) : (
+          <ol>
+            <li>
+              <LayerLabel layer="col" />: the target reads every visible cell of its column directly: the same column of the other{' '}
+              <span className="font-mono">{seed?.tableName}</span> rows in the context.
+            </li>
+            <li>
+              <LayerLabel layer="feat" />: the target reads the other cells of its own row and the cells of the rows its row points to.
+            </li>
+            <li>
+              <LayerLabel layer="nbr" />: the cells of every row read the rows that point to it. This is where per-row aggregates can form,
+              “analogously to message-passing in GNNs” <Cite kind="paper" ref="p.5 §3.2" />.
+            </li>
+            <li>
+              <LayerLabel layer="full" />: unrestricted mixing among all non-padding tokens.
+            </li>
+          </ol>
+        )}
         <p>
-          Stacking blocks composes these hops: what a {entity} gathered in block 1’s neighbor layer reaches the target in block 2’s feature layer.
-          Pick a source token below and trace it.
+          Stacking blocks composes these hops: what {article(entity)} {entity} gathered in block 1’s neighbor layer reaches the target in block 2’s
+          feature layer. Pick a source token below and trace it.
         </p>
         <Figure wide title="Route tracer: from any token to the masked target">
           <FlowTracer live={live} />
         </Figure>
         {flowFacts.length > 0 && (
           <>
-            <p>Three routes on the live context, through the relational layers only (full attention switched off):</p>
+            <p>
+              {nRoutesWord} route{flowFacts.length > 1 ? 's' : ''} on the live context, through the relational layers only (full attention switched
+              off):
+            </p>
             <ul>
               {flowFacts.map((f) => (
                 <li key={f.id}>

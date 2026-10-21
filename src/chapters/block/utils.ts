@@ -145,10 +145,15 @@ export interface FlowStep {
   layer: AttnLayer;
 }
 
-/** The attention sublayers in execution order across the stack. FFNs act per token and move nothing between tokens. */
-export function flowOrder(nBlocks: number, includeFull: boolean): FlowStep[] {
+/**
+ * The attention sublayers in execution order across the stack. FFNs act per token and move nothing between
+ * tokens. `exclude` drops layers switched off by an inference-time ablation (the forward pass skips them,
+ * so nothing flows through them).
+ */
+export function flowOrder(nBlocks: number, includeFull: boolean, exclude: readonly AttnLayer[] = []): FlowStep[] {
   const out: FlowStep[] = [];
-  for (let b = 0; b < nBlocks; b++) for (const l of ATTN_ORDER) if (includeFull || l !== 'full') out.push({ block: b, layer: l });
+  for (let b = 0; b < nBlocks; b++)
+    for (const l of ATTN_ORDER) if ((includeFull || l !== 'full') && !exclude.includes(l)) out.push({ block: b, layer: l });
   return out;
 }
 

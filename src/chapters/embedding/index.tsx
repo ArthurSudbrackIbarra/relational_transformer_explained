@@ -374,7 +374,7 @@ export default function EmbeddingChapter() {
         <p>
           Stack the x₀ of all {int(ctx.tokens.length)} positions and you get the matrix that enters the first block. Grouped by column, the column-term
           view shows its structure plainly: every token of a column carries the same column term, so the matrix is made of solid blocks. The value-term
-          view is where the tokens of a column differ. The masked target is the one column with a mask vector.
+          view is where the tokens of a column differ; there the masked target, marked “?”, is the one token whose value side is a mask vector.
         </p>
         <ScaleNote paper="X₀: 1024 × 256" ours={`X₀: ${int(ctx.tokens.length)} × ${d}`}>
           The paper’s context holds L = 1024 tokens of d = 256 numbers each; the operations that build every column are the same.

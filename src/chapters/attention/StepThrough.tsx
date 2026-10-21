@@ -14,8 +14,9 @@
  * The only arithmetic done here is re-derivation for display (e.g. Σ q_i k_i shown next to the
  * captured score); every value comes from the engine's capture or the loaded weights.
  */
+import { ChevronDown } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Button,
   Cite,
@@ -38,7 +39,7 @@ import { KeyBars, type BarStage } from './KeyBars';
 import { SelectionBar } from './Controls';
 import { provenanceSentence, useProvenance } from './provenance';
 import { headRow, useQueryView, type AttnLive, type QueryView } from './useAttnLive';
-import { int, maxAbsOf, norm2, pctw, rowName, sgn, texNum, topK } from './utils';
+import { int, maxAbsOf, norm2, pctw, rowName, sgn, texNum, topK, valueOf } from './utils';
 import { KV, MatrixCanvas, SeqStrip, VStrip } from './viz';
 
 const STAGES = [
@@ -55,9 +56,23 @@ export function StepThrough({ live }: { live: AttnLive }) {
   const { fr, assets, block, layer, head, query, ctx, setDisabledLayers } = live;
   const qv = useQueryView(live);
   const player = useStepPlayer(STAGES.length, { intervalMs: 2800 });
+  const { setPlaying, setIndex } = player;
   const [picked, setPicked] = useState<number | null>(null);
+  const narrow = useNarrow();
   const selKey = `${block}|${layer}|${head}|${query}|${ctx.params.seedNode}|${ctx.params.L}|${ctx.params.w}|${ctx.params.rngSeed}`;
-  useEffect(() => setPicked(null), [selKey]);
+  // A new selection resets the inspected key and stops the player, so it never runs past what the reader is studying.
+  useEffect(() => {
+    setPicked(null);
+    setPlaying(false);
+  }, [selKey, setPlaying]);
+  const pickStage = (i: number) => {
+    setPlaying(false);
+    setIndex(i);
+  };
+  const inspect = (k: number) => {
+    setPlaying(false);
+    setPicked(k);
+  };
 
   const auto = useMemo(() => {
     if (!qv || qv === 'skipped') return query;
@@ -78,15 +93,16 @@ export function StepThrough({ live }: { live: AttnLive }) {
           {assets.weightsKind === 'trained' && (
             <span title={prov ? provenanceSentence(prov) : undefined}>
               <StatusBadge status="good">
-                trained mini model ({assets.ckpt}
-                {prov?.kind === 'zero-shot' ? `, zero-shot on ${prov.dbTitle}` : ''})
+                {narrow ? 'trained' : `trained mini model (${assets.ckpt}`}
+                {prov?.kind === 'zero-shot' ? (narrow ? ', zero-shot' : `, zero-shot on ${prov.dbTitle}`) : ''}
+                {narrow ? '' : ')'}
               </StatusBadge>
             </span>
           )}
           {assets.weightsKind === 'init' && <StatusBadge status="warning">untrained weights: values from a random initialisation</StatusBadge>}
         </span>
       }
-      controls={<SelectionBar live={live} />}
+      controls={narrow ? <CompactSelection live={live} /> : <SelectionBar live={live} />}
       caption={
         <>
           Every vector and number is read from the forward pass of the live context, computed in your browser. Use the player or click a
@@ -95,7 +111,7 @@ export function StepThrough({ live }: { live: AttnLive }) {
         </>
       }
     >
-      <StageRail index={player.index} onPick={player.setIndex} />
+      <StageRail index={player.index} onPick={pickStage} compact={narrow} />
       <StepPlayer {...player} unit="stage" className="mt-3" describe={(i) => describe(STAGES[i].id, live, qv)} label="Play through the stages of the attention sublayer" />
       {!fr || !qv ? (
         <p className="mt-5 text-[16.5px] text-ink-2">
@@ -115,7 +131,7 @@ export function StepThrough({ live }: { live: AttnLive }) {
         </div>
       ) : (
         <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-          <StageVisual stage={stage} live={live} qv={qv} inspected={inspected} onInspect={setPicked} />
+          <StageVisual stage={stage} live={live} qv={qv} inspected={inspected} onInspect={inspect} />
           <aside className="min-w-0 rounded-xl bg-surface-2 px-4 py-3.5 text-[15.5px] leading-snug" aria-live="polite">
             <StageMath stage={stage} live={live} qv={qv} inspected={inspected} />
           </aside>
@@ -127,9 +143,60 @@ export function StepThrough({ live }: { live: AttnLive }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function StageRail({ index, onPick }: { index: number; onPick: (i: number) => void }) {
+/** Phone-width layout switch (below Tailwind's sm breakpoint). */
+function useNarrow(): boolean {
+  const q = '(max-width: 639.98px)';
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(q).matches);
+  useEffect(() => {
+    const m = window.matchMedia?.(q);
+    if (!m) return;
+    const on = () => setNarrow(m.matches);
+    on();
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  return narrow;
+}
+
+/** On a phone: one summary line that opens the block / layer / head / query controls. */
+function CompactSelection({ live }: { live: AttnLive }) {
+  const { query, target, labels, ctx } = live;
+  const t = ctx.tokens[query];
   return (
-    <ol className="!m-0 flex flex-wrap gap-1.5 !p-0" style={{ listStyle: 'none' }} aria-label="Stages of the sublayer">
+    <details className="group w-full min-w-0 rounded-lg border border-border bg-surface">
+      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-[15px] focus-visible:outline-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0 truncate text-ink-2">
+          query <span className="num text-ink">#{query}</span> {query === target ? '(masked target)' : `${labels[query]} = ${t ? valueOf(t) : ''}`}
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1 font-medium text-accent-text">
+          change <ChevronDown aria-hidden="true" size={15} className="transition-transform group-open:rotate-180" />
+        </span>
+      </summary>
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-3 border-t border-grid px-3 py-3">
+        <SelectionBar live={live} />
+      </div>
+    </details>
+  );
+}
+
+function StageRail({ index, onPick, compact }: { index: number; onPick: (i: number) => void; compact?: boolean }) {
+  const ref = useRef<HTMLOListElement | null>(null);
+  // In the one-row (phone) rail, keep the current stage in view without scrolling the page.
+  useEffect(() => {
+    const ol = ref.current;
+    if (!compact || !ol) return;
+    const li = ol.children[index] as HTMLElement | undefined;
+    if (!li) return;
+    const left = li.offsetLeft - (ol.clientWidth - li.offsetWidth) / 2;
+    ol.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+  }, [index, compact]);
+  return (
+    <ol
+      ref={ref}
+      className={cx('!m-0 flex gap-1.5 !p-0', compact ? 'scroll-quiet flex-nowrap overflow-x-auto pb-1' : 'flex-wrap')}
+      style={{ listStyle: 'none' }}
+      aria-label="Stages of the sublayer"
+    >
       {STAGES.map((s, i) => {
         const on = i === index;
         const done = i < index;
@@ -184,14 +251,23 @@ function describe(stage: (typeof STAGES)[number]['id'], live: AttnLive, qv: Quer
       return (
         <>
           <strong className="font-semibold">Scores.</strong> The query’s head slice is dotted with every key’s head slice and divided by √{dh}.
-          Nothing is masked yet, as in the paper’s formula; the real FlexAttention kernel never computes the tiles that hold no allowed key,
-          which gives the same result <Cite kind="code" ref="rt/model.py:89-101" />.
+          Nothing is masked yet, as in the paper’s formula. The real FlexAttention kernel never computes the tiles of its block mask that hold no
+          allowed key <Cite kind="code" ref="rt/model.py:89-101" />{' '}
+          <Cite kind="url" ref="https://docs.pytorch.org/docs/2.8/nn.attention.flex_attention.html" title="PyTorch FlexAttention documentation" />,
+          which gives the same weights.
         </>
       );
     case 'mask':
       return (
         <>
-          <strong className="font-semibold">Mask.</strong> The {name} mask allows {n} of the keys. Every other score becomes −∞.
+          <strong className="font-semibold">Mask.</strong>{' '}
+          {n === 0 ? (
+            <>The {name} mask blocks every key of this query: all {live.S} scores become −∞.</>
+          ) : (
+            <>
+              The {name} mask allows {n} of the {live.S} keys. Every other score becomes −∞.
+            </>
+          )}
         </>
       );
     case 'softmax':
@@ -299,9 +375,7 @@ function XVisual({ live, qv, W }: { live: AttnLive; qv: QueryView; W: number }) 
         </div>
       </div>
       <div>
-        <Eyebrow>
-          The query’s column, x<sub>{query}</sub>
-        </Eyebrow>
+        <Eyebrow>The query’s column: x for token #{query}</Eyebrow>
         <VectorStrip values={qv.x} columns={d} cellHeight={18} label={`x (token #${query})`} />
       </div>
     </div>
@@ -316,10 +390,13 @@ function NormVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
     const r = Math.sqrt(ms / d + cfg.eps);
     return Float32Array.from(qv.x, (v) => v / r);
   }, [qv.x, d, cfg.eps]);
+  // One colour scale for x, x / rms(x) and h, so the rescaling shows as a change of colour strength.
+  const dom = useMemo(() => maxAbsOf(qv.x, scaled, qv.h), [qv.x, scaled, qv.h]);
+  const layerName = LAYER_INFO[live.layer].name.toLowerCase();
   const rows: { label: string; values: Float32Array; note: string; gamma?: boolean }[] = [
     { label: 'x', values: qv.x, note: 'the residual stream' },
     { label: 'x / rms(x)', values: scaled, note: `root-mean-square ≈ 1, so ‖v‖ ≈ √${d} = ${Math.sqrt(d).toFixed(Number.isInteger(Math.sqrt(d)) ? 0 : 2)}` },
-    { label: `γ  (blocks.${live.block}.norms.${live.layer}.weight)`, values: qv.gamma, note: 'one learned gain per dimension', gamma: true },
+    { label: `γ of block ${live.block + 1}’s ${layerName} RMSNorm`, values: qv.gamma, note: `blocks.${live.block}.norms.${live.layer}.weight (the code counts blocks from 0)`, gamma: true },
     { label: 'h = (x / rms(x)) ⊙ γ', values: qv.h, note: 'what the attention reads' },
   ];
   return (
@@ -328,11 +405,15 @@ function NormVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
         <div key={r.label}>
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[14.5px]">
             <span className="font-mono text-ink">{r.label}</span>
-            <span className="text-muted">{r.note}</span>
+            <span className={cx('text-muted', r.gamma && 'font-mono')}>{r.note}</span>
           </div>
-          {r.gamma ? <SeqStrip values={r.values} label="γ, the RMSNorm gain" /> : <VectorStrip values={r.values} columns={d} cellHeight={i === 3 ? 18 : 14} showNorm />}
+          {r.gamma ? <SeqStrip values={r.values} label="γ, the RMSNorm gain" /> : <VectorStrip values={r.values} columns={d} cellHeight={i === 3 ? 18 : 14} domain={dom} showNorm />}
         </div>
       ))}
+      <p className="!mb-0 text-[14.5px] text-muted">
+        x, x / rms(x) and h share one colour scale (±{dom.toFixed(2)}), so a stronger colour means a larger number; the readout under each strip gives
+        its length ‖v‖.
+      </p>
     </div>
   );
 }
@@ -530,7 +611,7 @@ function BarsVisual({ live, qv, stage, inspected, onInspect }: { live: AttnLive;
           ))}
         </div>
       )}
-      {tied.n > 0 && (
+      {tied.n > 0 && stage !== 'scores' && (
         <div className="mt-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[15px] leading-snug text-ink-2">
           {block === 0 && layer === 'col' ? (
             <>
@@ -659,11 +740,11 @@ function StageMath({ stage, live, qv, inspected }: { stage: (typeof STAGES)[numb
         <p className="!mb-2 text-ink">
           {before === 0 ? (
             <>
-              This is the first sublayer of the model, so x is the input embedding x<sub>0</sub> from chapter 8 <Cite kind="code" ref="rt/model.py:208-224" />.
+              This is the first sublayer of the model, so x is the input embedding from chapter 8 <Cite kind="code" ref="rt/model.py:208-224" />.
             </>
           ) : (
             <>
-              x = x<sub>0</sub> plus the updates of the {before} {before === 1 ? 'sublayer' : 'sublayers'} before this one: each sublayer adds its output to
+              x is the input embedding plus the updates of the {before} {before === 1 ? 'sublayer' : 'sublayers'} before this one: each sublayer adds its output to
               the stream and passes it on{' '}
               <Cite kind="code" ref="rt/model.py:82-86" />.
             </>
@@ -726,8 +807,8 @@ function StageMath({ stage, live, qv, inspected }: { stage: (typeof STAGES)[numb
         </p>
         <KV k={`head ${head + 1} dims`} v={`${head * dh} … ${(head + 1) * dh - 1}`} />
         <KV k={<T tex={String.raw`\lVert q^{(${head + 1})}\rVert`} />} v={norm2(qv.qh).toFixed(3)} />
-        <KV k={<T tex={String.raw`\lVert k^{(${head + 1})}_{${inspected}}\rVert`} />} v={norm2(kh).toFixed(3)} />
-        <KV k={<T tex={String.raw`\lVert v^{(${head + 1})}_{${inspected}}\rVert`} />} v={norm2(vh).toFixed(3)} />
+        <KV k={<T tex={String.raw`\lVert k^{(${head + 1})}_{\#${inspected}}\rVert`} />} v={norm2(kh).toFixed(3)} />
+        <KV k={<T tex={String.raw`\lVert v^{(${head + 1})}_{\#${inspected}}\rVert`} />} v={norm2(vh).toFixed(3)} />
         <KV k="head width" v={`${d} / ${H} = ${dh}`} />
         <p className="!mb-0 mt-2 text-ink-2">
           For one token written as a column vector, <T tex="q=W_q h" /> is the row form <T tex={String.raw`h\,W_q^{\top}`} /> of the formula
@@ -743,14 +824,24 @@ function StageMath({ stage, live, qv, inspected }: { stage: (typeof STAGES)[numb
     for (let i = 0; i < dh; i++) dot += qv.qh[i] * kh[i];
     const s = dot / Math.sqrt(dh);
     const best = topK(qv.scores, live.keys.order, 1)[0];
+    // Spread of the scores over the real keys, before and after the divisor (display only).
+    const ks = live.keys.order;
+    let mean = 0;
+    for (const k of ks) mean += qv.scores[k];
+    mean /= Math.max(1, ks.length);
+    let vr = 0;
+    for (const k of ks) vr += (qv.scores[k] - mean) ** 2;
+    const sdScaled = Math.sqrt(vr / Math.max(1, ks.length));
     return (
       <>
         {title(`Score of key #${inspected}`)}
         <Formula tex={String.raw`s_k=q^{(${head + 1})}\cdot k^{(${head + 1})}_k\,/\,\sqrt{${dh}}`} />
-        <KV k={<T tex={String.raw`q^{(${head + 1})}\cdot k^{(${head + 1})}_{${inspected}}`} />} v={sgn(dot, 4)} />
+        <KV k={<T tex={String.raw`q^{(${head + 1})}\cdot k^{(${head + 1})}_{\#${inspected}}`} />} v={sgn(dot, 4)} />
         <KV k={<T tex={String.raw`\div\sqrt{${dh}}`} />} v={`= ${sgn(s, 4)}`} />
         <KV k="captured score" v={sgn(qv.scores[inspected], 4)} />
         <KV k="highest score" v={`#${best} · ${sgn(qv.scores[best], 3)}`} />
+        <KV k={`std of q·k over the ${int(ks.length)} keys`} v={(sdScaled * Math.sqrt(dh)).toFixed(3)} />
+        <KV k={`std after ÷√${dh}`} v={sdScaled.toFixed(3)} />
         <p className="!mb-0 mt-2 text-ink-2">
           The scale 1/√{dh} = {(1 / Math.sqrt(dh)).toFixed(4)} is FlexAttention’s default, 1 over the square root of the head width{' '}
           <Cite kind="spec" ref="§6.1" />. In the paper model the head width is 32, so the factor is 1/√32 ≈ 0.1768.
@@ -828,7 +919,7 @@ function StageMath({ stage, live, qv, inspected }: { stage: (typeof STAGES)[numb
         <KV k={<T tex="m = \max s_k" />} v={sgn(m, 4)} />
         <KV k={<T tex="Z" />} v={Z.toFixed(4)} />
         <KV
-          k={<T tex={`p_{${inspected}}`} />}
+          k={<T tex={String.raw`p_{\#${inspected}}`} />}
           v={isAllowed ? (
             <>
               <T tex={String.raw`\exp(${texNum(qv.scores[inspected] - m, 3)})/${texNum(Z, 3)}`} /> = {pctw(qv.probs[inspected])}

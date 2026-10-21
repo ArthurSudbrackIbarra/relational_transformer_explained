@@ -19,6 +19,47 @@ import { int, pctw } from './utils';
 import type { AttnLive } from './useAttnLive';
 
 type ScaleMode = 'sqrt' | 'linear' | 'diff';
+type OrderMode = 'context' | 'grouped';
+
+/**
+ * Display order of the rows and columns. 'grouped' sorts the real tokens by table, then by column, then by
+ * context position (padding stays last). It is a pure permutation of queries and keys: RT has no positional
+ * encoding, so permuting the tokens permutes the outputs the same way (spec §6.5) and nothing is recomputed.
+ */
+function displayOrder(tokens: AttnLive['ctx']['tokens'], groups: AttnLive['keys']['groups'], mode: OrderMode): { perm: Int32Array; inv: Int32Array } | null {
+  if (mode === 'context') return null;
+  const S = tokens.length;
+  const gi = new Map(groups.map((g, i) => [g.name, i]));
+  const colRank = new Map<number, number>();
+  for (const t of tokens) if (!t.isPadding && !colRank.has(t.colNameIdx)) colRank.set(t.colNameIdx, colRank.size);
+  const real = tokens.filter((t) => !t.isPadding).map((t) => t.pos);
+  real.sort((a, b) => {
+    const ta = tokens[a];
+    const tb = tokens[b];
+    return (gi.get(ta.tableName) ?? 0) - (gi.get(tb.tableName) ?? 0) || (colRank.get(ta.colNameIdx) ?? 0) - (colRank.get(tb.colNameIdx) ?? 0) || a - b;
+  });
+  const perm = new Int32Array(S);
+  let i = 0;
+  for (const p of real) perm[i++] = p;
+  for (const t of tokens) if (t.isPadding) perm[i++] = t.pos;
+  const inv = new Int32Array(S);
+  for (let j = 0; j < S; j++) inv[perm[j]] = j;
+  return { perm, inv };
+}
+
+/** Square S×S matrix with rows and columns permuted: out[i, j] = m[perm[i], perm[j]]. */
+function permute2<T extends Float32Array | Uint8Array>(m: T, perm: Int32Array, S: number, make: (n: number) => T): T {
+  const out = make(S * S);
+  for (let i = 0; i < S; i++) {
+    const src = perm[i] * S;
+    const dst = i * S;
+    for (let j = 0; j < S; j++) out[dst + j] = m[src + perm[j]];
+  }
+  return out;
+}
+
+/** Blocked cells in the difference mode: a quiet neutral, distinct from the near-white (light) or near-surface (dark) zero. */
+const DIFF_BLOCKED = { light: '#d6d5cd', dark: '#121211' } as const;
 
 interface CellRef {
   layer: AttnLayer;
@@ -35,14 +76,17 @@ const pp = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(Ma
 export function HeadGrid({ live }: { live: AttnLive }) {
   const { fr, masks, block, layer, head, query, numReal, S, H, setLayer, setHead, setQuery, assets, keys } = live;
   const [scale, setScale] = useState<ScaleMode>('sqrt');
+  const [order, setOrder] = useState<OrderMode>('context');
   const [hover, setHover] = useState<CellRef | null>(null);
   const [pinned, setPinned] = useState<CellRef | null>(null);
   const [ref, size] = useElementSize<HTMLDivElement>();
   const focusRef = useRef<HTMLDivElement | null>(null);
   const reduce = useReducedMotion();
   const mode = useResolvedTheme();
-  // In the difference mode the diverging midpoint is grey too, so blocked cells get a darker neutral.
-  const blockedFill = TOKENS[mode].muted;
+  const blockedFill = DIFF_BLOCKED[mode];
+  const ord = useMemo(() => displayOrder(live.ctx.tokens, keys.groups, order), [live.ctx.tokens, keys.groups, order]);
+  const toPos = useCallback((i: number) => (ord ? ord.perm[i] : i), [ord]);
+  const toRow = (pos: number) => (ord ? ord.inv[pos] : pos);
   const W = Math.max(280, size.width || 900);
   const narrow = W < 640;
   const LABEL_W = narrow ? 0 : 168;
@@ -57,10 +101,10 @@ export function HeadGrid({ live }: { live: AttnLive }) {
       const m = masks[l];
       const b = new Uint8Array(S * S);
       for (let i = 0; i < S * S; i++) b[i] = m[i] ? 0 : 1;
-      out[l] = b;
+      out[l] = ord ? permute2(b, ord.perm, S, (n) => new Uint8Array(n)) : b;
     }
     return out;
-  }, [masks, S]);
+  }, [masks, S, ord]);
 
   /** Mean over heads, per layer (for the difference mode and the per-head Δ). */
   const means = useMemo(() => {
@@ -95,20 +139,23 @@ export function HeadGrid({ live }: { live: AttnLive }) {
       out[l] = Array.from({ length: H }, (_, h) => {
         if (!mean || cap.skipped || cap.probs.length < H * S * S) return null;
         const p = cap.probs.subarray(h * S * S, (h + 1) * S * S);
-        if (scale === 'sqrt') return Float32Array.from(p, Math.sqrt);
-        if (scale === 'linear') return p;
-        const d = new Float32Array(S * S);
-        for (let i = 0; i < S * S; i++) {
-          d[i] = p[i] - mean[i];
-          const a = Math.abs(d[i]);
-          if (a > dm) dm = a;
+        let v: Float32Array;
+        if (scale === 'sqrt') v = Float32Array.from(p, Math.sqrt);
+        else if (scale === 'linear') v = p;
+        else {
+          v = new Float32Array(S * S);
+          for (let i = 0; i < S * S; i++) {
+            v[i] = p[i] - mean[i];
+            const a = Math.abs(v[i]);
+            if (a > dm) dm = a;
+          }
         }
-        return d;
+        return ord ? permute2(v, ord.perm, S, (n) => new Float32Array(n)) : v;
       });
       diffMax[l] = dm || 1e-6;
     }
     return { data: out, diffMax };
-  }, [fr, means, block, H, S, scale]);
+  }, [fr, means, block, H, S, scale, ord]);
 
   const stats = useLayerStats(live);
   const headStats = useHeadStats(live, means);
@@ -126,17 +173,20 @@ export function HeadGrid({ live }: { live: AttnLive }) {
     setPinned(null);
     act.current.scrollToFocus();
   }, []);
-  const onHoverCell = useCallback((l: AttnLayer, h: number, c: HeatmapCell | null) => setHover(c ? { layer: l, head: h, q: c.row, k: c.col } : null), []);
-  const onPickCell = useCallback((l: AttnLayer, h: number, c: HeatmapCell) => {
-    if (isCoarse()) {
-      setPinned({ layer: l, head: h, q: c.row, k: c.col });
-      return;
-    }
-    act.current.setLayer(l);
-    act.current.setHead(h);
-    act.current.setQuery(c.row);
-    act.current.scrollToFocus();
-  }, []);
+  const onHoverCell = useCallback((l: AttnLayer, h: number, c: HeatmapCell | null) => setHover(c ? { layer: l, head: h, q: toPos(c.row), k: toPos(c.col) } : null), [toPos]);
+  const onPickCell = useCallback(
+    (l: AttnLayer, h: number, c: HeatmapCell) => {
+      if (isCoarse()) {
+        setPinned({ layer: l, head: h, q: toPos(c.row), k: toPos(c.col) });
+        return;
+      }
+      act.current.setLayer(l);
+      act.current.setHead(h);
+      act.current.setQuery(toPos(c.row));
+      act.current.scrollToFocus();
+    },
+    [toPos],
+  );
 
   const shown = hover ?? pinned;
   const readout = (() => {
@@ -184,6 +234,15 @@ export function HeadGrid({ live }: { live: AttnLive }) {
               { value: 'sqrt', label: '√weight', title: 'Colour ∝ √weight: makes small weights visible' },
               { value: 'linear', label: 'weight', title: 'Colour ∝ weight' },
               { value: 'diff', label: 'head − mean of heads', title: 'Diverging: where this head puts more (red) or less (blue) weight than the mean of the heads' },
+            ]}
+          />
+          <Segmented
+            label="Order"
+            value={order}
+            onChange={setOrder}
+            options={[
+              { value: 'context' as OrderMode, label: 'context order', title: 'Rows and columns in the order of the context window' },
+              { value: 'grouped' as OrderMode, label: 'by table & column', title: 'Rows and columns grouped by table, then by column (a pure permutation)' },
             ]}
           />
           {narrow && (
@@ -241,7 +300,7 @@ export function HeadGrid({ live }: { live: AttnLive }) {
                         numReal={numReal}
                         cell={cell}
                         panelW={panelW}
-                        query={query}
+                        query={toRow(query)}
                         on={l === layer && h === head}
                         stat={headStats?.[l][h] ?? null}
                         onFocusPanel={onFocusPanel}
@@ -297,7 +356,7 @@ export function HeadGrid({ live }: { live: AttnLive }) {
               the query’s row #{query} is outlined; grey cells are blocked by the {LAYER_INFO[layer].name.toLowerCase()} mask
             </div>
           </div>
-          <FocusMap live={live} data={focusData} blocked={blocked[layer]} scale={scale} diffMax={panels.diffMax[layer]} />
+          <FocusMap live={live} data={focusData} blocked={blocked[layer]} scale={scale} diffMax={panels.diffMax[layer]} ord={ord} />
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-ink-2">
             <span className="text-muted">Table of each token (side strips):</span>
             {keys.groups.map((g) => (
@@ -360,7 +419,7 @@ const SmallPanel = memo(function SmallPanel(p: SmallPanelProps) {
         </span>
         {p.stat && (
           <span className="num font-normal text-muted" title="top: mean largest weight · Δ: share of weight placed differently from the mean of heads">
-            top {pctw(p.stat.top)} · Δ {pctw(p.stat.delta)}
+            <span className="whitespace-nowrap">top {pctw(p.stat.top)}</span> · <span className="whitespace-nowrap">Δ {pctw(p.stat.delta)}</span>
           </span>
         )}
       </button>
@@ -403,7 +462,7 @@ const SmallPanel = memo(function SmallPanel(p: SmallPanelProps) {
 
 function GridLegend({ scale }: { scale: ScaleMode }) {
   const mode = useResolvedTheme();
-  const blockedBg = scale === 'diff' ? TOKENS[mode].muted : TOKENS[mode].surface2;
+  const blockedBg = scale === 'diff' ? DIFF_BLOCKED[mode] : TOKENS[mode].surface2;
   const stops = Array.from({ length: 11 }, (_, i) => i / 10);
   const grad =
     scale === 'diff' ? stops.map((t) => divergingCss(t * 2 - 1, 1, mode)).join(', ') : stops.map((t) => sequentialCss(t, mode)).join(', ');
@@ -427,15 +486,34 @@ function GridLegend({ scale }: { scale: ScaleMode }) {
   );
 }
 
-function FocusMap({ live, data, blocked, scale, diffMax }: { live: AttnLive; data: Float32Array; blocked: Uint8Array; scale: ScaleMode; diffMax: number }) {
-  const { S, numReal, labels, tokenSlots, query, setQuery, fr, block, layer, head, masks } = live;
+function FocusMap({
+  live,
+  data,
+  blocked,
+  scale,
+  diffMax,
+  ord,
+}: {
+  live: AttnLive;
+  data: Float32Array;
+  blocked: Uint8Array;
+  scale: ScaleMode;
+  diffMax: number;
+  ord: { perm: Int32Array; inv: Int32Array } | null;
+}) {
+  const { S, numReal, query, setQuery, fr, block, layer, head, masks } = live;
+  const labels = useMemo(() => (ord ? Array.from(ord.perm, (p) => live.labels[p]) : live.labels), [ord, live.labels]);
+  const tokenSlots = useMemo(() => (ord ? Array.from(ord.perm, (p) => live.tokenSlots[p]) : live.tokenSlots), [ord, live.tokenSlots]);
+  const toPos = (i: number) => (ord ? ord.perm[i] : i);
   const [ref, size] = useElementSize<HTMLDivElement>();
   const mode = useResolvedTheme();
   const [hover, setHover] = useState<HeatmapCell | null>(null);
   const [pinned, setPinned] = useState<HeatmapCell | null>(null);
   const W = Math.max(260, size.width || 800);
   const cell = Math.max(1, Math.min(8, Math.floor((W - 20) / Math.max(1, numReal))));
-  const c = hover ?? pinned;
+  const c0 = hover ?? pinned;
+  // Readout in context positions (the displayed row / column are mapped back through the order).
+  const c = c0 ? { ...c0, row: toPos(c0.row), col: toPos(c0.col) } : null;
   const cap = fr ? fr.blocks[Math.min(block, fr.blocks.length - 1)].attn[layer] : null;
   const p = c && cap ? cap.probs[(head * S + c.row) * S + c.col] : 0;
   const allowed = c ? !!masks[layer][c.row * S + c.col] : false;
@@ -449,13 +527,13 @@ function FocusMap({ live, data, blocked, scale, diffMax }: { live: AttnLive; dat
         blocked={blocked}
         scale={scale === 'diff' ? 'diverging' : 'sequential'}
         domain={scale === 'diff' ? [-diffMax, diffMax] : [0, 1]}
-        blockedFill={scale === 'diff' ? TOKENS[mode].muted : undefined}
+        blockedFill={scale === 'diff' ? DIFF_BLOCKED[mode] : undefined}
         cellSize={cell}
         rowSlots={tokenSlots}
         colSlots={tokenSlots}
         rowLabels={labels}
         colLabels={labels}
-        highlightRows={[query]}
+        highlightRows={[ord ? ord.inv[query] : query]}
         rowName="query"
         colName="key"
         title="Focused attention matrix"
@@ -464,7 +542,7 @@ function FocusMap({ live, data, blocked, scale, diffMax }: { live: AttnLive; dat
         onHover={setHover}
         onCellClick={(cl) => {
           if (isCoarse()) setPinned(cl);
-          else setQuery(cl.row);
+          else setQuery(toPos(cl.row));
         }}
       />
       <div className="mt-2 flex min-h-[1.4em] flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-ink-2" aria-live="polite">
@@ -473,19 +551,19 @@ function FocusMap({ live, data, blocked, scale, diffMax }: { live: AttnLive; dat
             <span className="num">
               <span className="text-muted">query </span>
               <span className="text-ink">
-                #{c.row} {labels[c.row]}
+                #{c.row} {live.labels[c.row]}
               </span>
               <span className="text-muted"> · key </span>
               <span className="text-ink">
-                #{c.col} {labels[c.col]}
+                #{c.col} {live.labels[c.col]}
               </span>
               <span className="text-muted"> → </span>
               <strong className="font-semibold text-ink">{allowed ? pctw(p) : 'blocked by the mask'}</strong>
               {allowed && scale === 'diff' && <span className="text-muted"> ({pp(c.value)} vs the mean of heads)</span>}
             </span>
-            {pinned && !hover && pinned.row !== query && (
-              <Button size="sm" variant="secondary" onClick={() => (setQuery(pinned.row), setPinned(null))}>
-                Make #{pinned.row} the query
+            {pinned && !hover && toPos(pinned.row) !== query && (
+              <Button size="sm" variant="secondary" onClick={() => (setQuery(toPos(pinned.row)), setPinned(null))}>
+                Make #{toPos(pinned.row)} the query
               </Button>
             )}
           </>

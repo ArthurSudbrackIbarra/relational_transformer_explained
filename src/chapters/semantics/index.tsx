@@ -23,12 +23,12 @@ import {
 } from '@/components';
 import type { DbName } from '@/engine/db';
 import { useAssets } from '@/state/hooks';
-import { DbTag, Loading, LoadError, Phrase, Quoted } from './bits';
-import { DB_SHORT, ENCODER, ROLE_LABEL, TABLE11_CLF, TABLE11_REG, TABLE4, f1, f3, int, pcaVarianceKept, signed1, useCatalog, useEmbeddingStore, usePca } from './data';
+import { BreakId, CodeTabs, DbTag, Loading, LoadError, Nw, Phrase, Quoted, useMedia } from './bits';
+import { DB_SHORT, ENCODER, ROLE_LABEL, TABLE11_CLF, TABLE11_REG, TABLE4, f1, f2, f3, int, pcaVarianceKept, signed1, useCatalog, useEmbeddingStore, usePca } from './data';
 import { LearnedProjection, FrozenPipeline } from './FrozenPipeline';
-import { compareTarget, groupMeans, mapStats, topKeyPair, topTokenPair } from './insights';
+import { compareTarget, groupMeans, keyMeans, mapStats, pairCos, topKeyPair, topTokenPair } from './insights';
 import { rowRef, useSemanticsLive } from './live';
-import { AblationDumbbells, OverlapTables, Table4Tiles } from './NamesAblation';
+import { AblationDumbbells, OverlapTables, Table4Grid } from './NamesAblation';
 import { PhraseList, StringTable } from './PhraseList';
 import { PhraseMap } from './PhraseMap';
 import { SimilarityMatrix } from './SimilarityMatrix';
@@ -72,12 +72,12 @@ export default function SemanticsChapter() {
   const varKept = useMemo(() => (pcaPoints && store ? pcaVarianceKept(pcaPoints, store) : null), [pcaPoints, store]);
   const mstats = useMemo(() => (pcaPoints && catalog ? mapStats(pcaPoints, catalog) : null), [pcaPoints, catalog]);
 
-  // default comparison: the pretraining phrase closest to the focus phrase
-  const compareWith = useMemo(() => {
-    if (compare && store?.has(compare)) return compare;
-    if (cmp && focus === live.targetPhrase && cmp.nearest[0]) return cmp.nearest[0].phrase.text;
+  // default comparison (until the reader picks one): for a phrase, the closest phrase of another
+  // database that reaches a token; for any other string, the closest embedded string
+  const [compareWith, compareReason] = useMemo((): [string, string | null] => {
+    if (compare && store?.has(compare)) return [compare, null];
+    if (cmp && focus === live.targetPhrase && cmp.nearest[0]) return [cmp.nearest[0].phrase.text, 'auto: the closest phrase of another database'];
     if (store && catalog && store.has(focus)) {
-      // a phrase: its nearest on-token phrase of another database; any other string: its nearest string
       const fp = catalog.byText.get(focus);
       const pool = fp ? catalog.phrases.filter((p) => p.db !== fp.db && p.onToken).map((p) => p.text) : store.strings;
       let best = live.targetPhrase;
@@ -87,10 +87,10 @@ export default function SemanticsChapter() {
         const c = cosineOf(store, focus, t);
         if (c > bc) (bc = c), (best = t);
       }
-      return best;
+      return [best, fp ? 'auto: the closest phrase of another database' : 'auto: the closest of all embedded strings'];
     }
-    return live.targetPhrase;
-  }, [compare, store, catalog, cmp, focus, live.targetPhrase, live.dbName]);
+    return [live.targetPhrase, 'auto: the live target phrase'];
+  }, [compare, store, catalog, cmp, focus, live.targetPhrase]);
 
   const entityText = live.entityNode?.cells.filter((c) => c.sem === 1) ?? [];
   const sampleValue = entityText.find((c) => c.colName === 'country')?.raw ?? entityText[0]?.raw;
@@ -114,6 +114,19 @@ export default function SemanticsChapter() {
   const clfHurt = clfDrops.filter((r) => r.d < 0).length;
   const regHurt = regDrops.filter((r) => r.d < 0).length;
   const d = assets.weights?.config.dModel ?? 64;
+  const narrow = useMedia('(max-width: 639px)');
+  const km = useMemo(() => (store && catalog ? keyMeans(store, catalog) : null), [store, catalog]);
+  const ageCos = store ? pairCos(store, 'age of customers', 'age of students') : null;
+  const suggestions = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const t of [...presets.map((p) => p.text), ...(catalog?.byDb[live.dbName].map((p) => p.text) ?? [])]) {
+      if (seen.has(t) || (store && !store.has(t))) continue;
+      seen.add(t);
+      out.push(t);
+    }
+    return out;
+  }, [presets, catalog, live.dbName, store]);
 
   return (
     <ChapterPage slug="semantics">
@@ -130,7 +143,7 @@ export default function SemanticsChapter() {
           <>Which strings RT embeds, and the exact phrase “&lt;col&gt; of &lt;table&gt;”</>,
           'What a real 384-dimensional all-MiniLM-L12-v2 vector looks like, and why its length is 1',
           'How close the column phrases of ShopDB are to those of the pretraining databases',
-          'Why a text value is embedded without its column, and why the encoder stays frozen',
+          'What it means that a text value is embedded without its column, and that the encoder is frozen',
           'What the paper’s ablations say about the value of names',
         ]}
       >
@@ -153,29 +166,28 @@ export default function SemanticsChapter() {
       <Section id="phrase" title="Every cell carries the name of its column" kicker="Step 1">
         <p>
           RT describes a cell as a triple <TeX tex="(v, c, t)" />: its value, its column name and its table name{' '}
-          <Cite kind="paper" ref="p.4 §3.1" />. The value is normalised as chapter 4 showed and becomes the token’s value term. The other two are joined into a short
-          English phrase, “&lt;column_name&gt; of &lt;table_name&gt;”, and embedded by a frozen text encoder. The paper’s examples are “price of
-          product” and “age of user”, and it calls this <em>schema semantics</em> <Cite kind="paper" ref="p.5 §3.1" />. In the code, the phrase
-          is one format string <Cite kind="code" ref="rustler/src/pre.rs:432" />.
+          <Nw>
+            <Cite kind="paper" ref="p.4 §3.1" />.
+          </Nw>{' '}
+          The value is normalised (numbers, dates and booleans; chapter 4) or embedded (text; Step 5) and becomes the token’s value term. The
+          other two are joined into a short English phrase, “&lt;column_name&gt; of &lt;table_name&gt;”, and embedded by a frozen text encoder.
+          The paper’s examples are “price of product” and “age of user”, and it calls this{' '}
+          <Nw>
+            <em>schema semantics</em> <Cite kind="paper" ref="p.5 §3.1" />.
+          </Nw>{' '}
+          In the code, the phrase is one format{' '}
+          <Nw>
+            string <Cite kind="code" ref="rustler/src/pre.rs:432" />.
+          </Nw>
         </p>
         <p>
           Every <Term id="cell-token">cell token</Term> carries the vector of its <Term id="column-phrase">column phrase</Term>, whatever its
-          type: a number, a date, a boolean, a string, and the <Term id="target-cell">masked target</Term> too{' '}
-          <Cite kind="spec" ref="§3.6" /> <Cite kind="code" ref="rustler/src/fly.rs:472-477" />. In the live context the target is the cell{' '}
-          <Phrase text={live.targetPhrase} />, so that phrase’s vector is part of the very token the model must fill in.
-        </p>
-        <p>
-          Why a phrase rather than a column id? An integer id means nothing outside its own database. A phrase can be compared across databases:
-          “age of customers” in ShopDB and “age of students” in SchoolDB are different columns, but they share words, and a sentence encoder
-          places them close together. Step 3 measures how close. For its cell encoders the paper took inspiration from PORTAL, a tabular model
-          “which has a similar handling of column names” <Cite kind="paper" ref="p.16 App. B" />, and its Figure 1 sums up the token embedding as “trainable
-          datatype-specific encoding of cell values and frozen language model (LM) embeddings of table/column names”{' '}
-          <Cite kind="paper" ref="p.2 Fig. 1" />.
-        </p>
-        <p>
-          Names also tell columns apart inside a single context. Discussing full attention, the paper notes that some heads “can learn to
-          restrict attention to tokens from the same column by exploiting table and column name embeddings in their query–key construction”{' '}
-          <Cite kind="paper" ref="p.19 App. E" />.
+          type: a number, a date, a boolean, a string, and the <Term id="target-cell">masked target</Term>{' '}
+          <Nw>
+            too <Cite kind="spec" ref="§3.6" /> <Cite kind="code" ref="rustler/src/fly.rs:472-477" />.
+          </Nw>{' '}
+          In the live context the target is the cell <Phrase text={live.targetPhrase} />, so that phrase’s vector is part of the very token the
+          model must fill in.
         </p>
         <Figure
           wide
@@ -200,27 +212,99 @@ export default function SemanticsChapter() {
           />
         </Figure>
         <p>
+          Why a phrase rather than a column id? One of the paper’s three design principles is to “enable zero-shot generalization across
+          heterogeneous{' '}
+          <Nw>
+            schemas” <Cite kind="paper" ref="p.4 §3" />.
+          </Nw>{' '}
+          Our explanation of how a phrase serves it: an integer id means nothing outside its own database, while a phrase can be compared
+          across databases. “age of customers” in ShopDB and “age of students” in SchoolDB are different columns, but they share words
+          {ageCos !== null && gm ? (
+            <>
+              , and the encoder places them {ageCos > 2 * gm.crossDb ? 'close together' : 'only a little closer than average'}: cosine{' '}
+              {f2(ageCos)}, against {f2(gm.crossDb)} for an average pair of phrases from different databases
+            </>
+          ) : null}
+          . Step 3 measures such closeness for every pair.
+        </p>
+        <Callout variant="note" title="What the paper says about names">
+          <p>
+            For its cell encoders the paper took inspiration from PORTAL, a tabular model “which has a similar handling of column{' '}
+            <Nw>
+              names” <Cite kind="paper" ref="p.16 App. B" />.
+            </Nw>{' '}
+            Its Figure 1 sums up the token embedding as “trainable datatype-specific encoding of cell values and frozen language model (LM)
+            embeddings of table/column{' '}
+            <Nw>
+              names” <Cite kind="paper" ref="p.2 Fig. 1" />.
+            </Nw>
+          </p>
+          <p>
+            Names could also tell columns apart inside a single context. Arguing that full attention could emulate column attention, the paper
+            notes, as a possibility in its discussion of expressivity, that some global heads “can learn to restrict attention to tokens from the
+            same column by exploiting table and column name embeddings in their query–key{' '}
+            <Nw>
+              construction” <Cite kind="paper" ref="p.19 App. E" />.
+            </Nw>
+          </p>
+        </Callout>
+        <p>
           The <Term id="primary-key">primary-key</Term> and <Term id="foreign-key">foreign-key</Term> columns get a phrase as well, because
-          pre.rs interns the phrase before it checks the column’s role <Cite kind="code" ref="rustler/src/pre.rs:432-442" />. But a primary key
-          produces no cell, and a foreign key only becomes a link to the parent row <Cite kind="spec" ref="§3.6" />. So{' '}
-          <Phrase text={fkExample} /> has a vector that no token ever uses. The paper lists this among RT’s limitations: it “does not
-          incorporate the names of primary-key and foreign-key columns, which often carry useful semantics”{' '}
-          <Cite kind="paper" ref="p.10 §7" />.
+          pre.rs interns the phrase before it checks the column’s{' '}
+          <Nw>
+            role <Cite kind="code" ref="rustler/src/pre.rs:432-442" />.
+          </Nw>{' '}
+          But a primary key produces no cell, and a foreign key only becomes a link to the parent{' '}
+          <Nw>
+            row <Cite kind="spec" ref="§3.6" />.
+          </Nw>{' '}
+          So <Phrase text={fkExample} /> has a vector that no token ever uses. The paper lists this among RT’s limitations: it “does not
+          incorporate the names of primary-key and foreign-key columns, which often carry useful{' '}
+          <Nw>
+            semantics” <Cite kind="paper" ref="p.10 §7" />.
+          </Nw>
         </p>
         <p>
           The table name reaches a token only through the phrase. Each token also carries <code>table_name_idx</code>, but only as an integer:
-          the column mask compares it, and the sampler uses it to recognise task tables. The sampler never looks up its vector{' '}
-          <Cite kind="spec" ref="§3.6" /> <Cite kind="code" ref="rt/model.py:181-183" />.
+          the column mask compares it <Cite kind="code" ref="rt/model.py:181-183" />, and the sampler uses it to recognise task{' '}
+          <Nw>
+            tables <Cite kind="code" ref="rustler/src/fly.rs:417" />.
+          </Nw>{' '}
+          No vector is ever looked up through <code>table_name_idx</code>; a table name’s vector reaches a token only as the gated-out{' '}
+          <code>text[0]</code> filler of Step{' '}
+          <Nw>
+            5 <Cite kind="spec" ref="§3.6" />.
+          </Nw>
         </p>
 
         <h3>One string table per database</h3>
         <p>
-          Preprocessing collects every string of a database into one list, <code>text.json</code>, in order of first appearance: table names,
-          column phrases and each distinct string value <Cite kind="code" ref="rustler/src/pre.rs:406-437" />{' '}
-          <Cite kind="code" ref="rustler/src/pre.rs:596-597" />. Identical strings share one index, and therefore one vector{' '}
-          <Cite kind="spec" ref="§3.6" />.
+          Preprocessing collects every string of a database into one list in order of first appearance: table names, column phrases and each
+          distinct string value <Cite kind="code" ref="rustler/src/pre.rs:406-437" /> <Cite kind="code" ref="rustler/src/pre.rs:596-597" />. It
+          writes the list out as{' '}
+          <Nw>
+            <code>text.json</code> <Cite kind="code" ref="rustler/src/pre.rs:624-630" />.
+          </Nw>{' '}
+          Identical strings share one index, and therefore one{' '}
+          <Nw>
+            vector <Cite kind="spec" ref="§3.6" />.
+          </Nw>
         </p>
-        <Figure title={`The string table of ${DB_SHORT[view]}`} caption="The first entries of text.json, in index order. Interning walks table by table and column by column, so names, phrases and values interleave.">
+        <Figure
+          title={`The string table of ${DB_SHORT[view]}`}
+          caption={
+            <>
+              The first entries of the string table, in index order. Interning walks table by table and column by column, so names, phrases and
+              values interleave. The order and the index numbers are this site’s: pre.rs visits the tables in hash-map{' '}
+              <Nw>
+                order <Cite kind="code" ref="rustler/src/pre.rs:75" /> <Cite kind="code" ref="rustler/src/pre.rs:415" />,
+              </Nw>{' '}
+              so its <code>text.json</code> lists the same strings in another order. Indices are only ever compared for equality{' '}
+              <Cite kind="code" ref="rt/model.py:181-183" /> or used to fetch a string’s vector{' '}
+              <Cite kind="code" ref="rustler/src/fly.rs:472-486" />, so this changes nothing the model sees.
+            </>
+          }
+        >
           <StringTable catalog={catalog} view={view} />
         </Figure>
         <CodeRef
@@ -241,7 +325,10 @@ export default function SemanticsChapter() {
       {/* ───────────────────────────────────────────────────────────── 2 */}
       <Section id="vector" title="A real 384-dimensional vector" kicker="Step 2">
         <p>
-          The <Term id="text-encoder">text encoder</Term> is <code className="!whitespace-normal break-all">sentence-transformers/all-MiniLM-L12-v2</code>{' '}
+          The <Term id="text-encoder">text encoder</Term> is{' '}
+          <code className="!whitespace-normal">
+            <BreakId text="sentence-transformers/all-MiniLM-L12-v2" />
+          </code>{' '}
           <Cite kind="code" ref="rt/embed.py:14-20" /> <Cite kind="code" ref="rt/embed.py:38" />: a {ENCODER.layers}-layer BERT with hidden size{' '}
           {ENCODER.hidden} and a lower-casing WordPiece tokenizer <Cite kind="spec" ref="§3.6" />. Its pipeline has three modules, Transformer →
           mean pooling → Normalize <Cite kind="url" ref={HF_MODULES} title="all-MiniLM-L12-v2 modules.json" />. In words: split the string into
@@ -258,7 +345,12 @@ export default function SemanticsChapter() {
           }
           code={
             <>
-              <code className="!whitespace-normal break-all">SentenceTransformer("sentence-transformers/all-MiniLM-L12-v2")</code> <Cite kind="code" ref="rt/embed.py:14-20" />{' '}
+              <code className="!whitespace-normal">
+                SentenceTransformer(
+                <br />
+                {'  '}"<BreakId text="sentence-transformers/all-MiniLM-L12-v2" />")
+              </code>{' '}
+              <Cite kind="code" ref="rt/embed.py:14-20" />{' '}
               <Cite kind="code" ref="rt/embed.py:38" />
             </>
           }
@@ -283,7 +375,10 @@ export default function SemanticsChapter() {
               onChange={setFocus}
               compare={compareWith}
               onCompare={setCompare}
+              compareReason={compareReason}
               presets={presets}
+              suggestions={suggestions}
+              dbName={live.dbName}
             />
           ) : storeState.status === 'error' ? (
             <LoadError error={storeState.error} />
@@ -292,8 +387,8 @@ export default function SemanticsChapter() {
           )}
         </Figure>
         <p>
-          Two details are worth seeing in the figure. First, words missing from the {int(ENCODER.vocab)}-entry vocabulary are split into pieces
-          marked “##”
+          Two details in the figure deserve a look. First, words missing from the {int(ENCODER.vocab)}-entry vocabulary are split into smaller
+          pieces, and every piece after the first is marked “##”
           {splitWords.length > 0 ? (
             <>
               ; the target phrase becomes {targetPieces.length} wordpieces, <span className="font-mono">{targetPieces.join(' ')}</span>
@@ -303,26 +398,36 @@ export default function SemanticsChapter() {
           checked that this reproduces all stored vectors, and that leaving the two special tokens out does not.
         </p>
         <p>
-          Because of the final Normalize step, every vector has length 1 <Cite kind="spec" ref="§3.6" />. All the information is in the
-          direction, and the cosine similarity of two strings is simply their dot product. That is the measure Step 3 uses.
+          Because of the final Normalize step, every vector has length{' '}
+          <Nw>
+            1 <Cite kind="spec" ref="§3.6" />.
+          </Nw>{' '}
+          All the information is in the direction, and the cosine similarity of two strings is simply their dot product. That is the measure
+          Step 3 uses.
         </p>
         <ScaleNote paper="d_text = 384, vectors stored as bf16" ours="d_text = 384, vectors stored as float32">
           The encoder and its 384-dimensional output are identical at both scales. Only the stored precision differs: the paper’s code writes
-          the table in bf16 <Cite kind="code" ref="rt/embed.py:71" />.
+          the table in{' '}
+          <Nw>
+            bf16 <Cite kind="code" ref="rt/embed.py:71" />,
+          </Nw>{' '}
+          which rounds every component, so its stored vectors have length 1 only approximately. This site keeps float32, where the length is 1
+          up to float rounding.
         </ScaleNote>
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 3 */}
       <Section id="similarity" title="Similarity across databases" kicker="Step 3">
         <p>
-          If names help a pretrained model on a new database, then phrases of the new database should land near phrases with related meaning in
-          the pretraining databases. Here every {DB_SHORT[live.dbName]} phrase that can reach a token (rows) is compared with those of the other
-          three databases (columns). Each cell is a cosine computed in your browser from the stored vectors.
+          One way names could help a pretrained model on a new database (our hypothesis; the paper does not test it): phrases of the new
+          database would land near phrases with related meaning in the pretraining databases. Here every {DB_SHORT[live.dbName]} phrase that can
+          reach a token (rows) is compared with those of the other three databases (columns). Each cell is a cosine computed in your browser
+          from the stored vectors.
         </p>
         <Figure
           wide
           title={`Cosine similarity: ${DB_SHORT[live.dbName]} phrases vs the ${others} databases`}
-          caption="Colour runs from 0 to the largest cosine shown (legend). The ring marks each row’s best match. Rows are grouped by table, columns by database and table (coloured strip). On a narrow screen the matrix scrolls sideways."
+          caption="Colour runs from 0 to the legend’s maximum: the largest cosine shown, rounded up to 0.1. The ring marks each row’s best match. Rows are grouped by table, columns by database and then by table (named above each group, with the table’s colour). On a narrow screen the cells scroll sideways under fixed row labels."
         >
           {store && catalog ? (
             <SimilarityMatrix store={store} catalog={catalog} home={live.dbName} focus={focus} onFocus={setFocus} />
@@ -356,7 +461,7 @@ export default function SemanticsChapter() {
               )}{' '}
               The average over all {cmp.pool} {others} phrases is {f3(cmp.meanAll)}. Here is where each of their task labels ranks:
             </p>
-            <LabelRanks cmp={cmp} />
+            <LabelRanks cmp={cmp} narrow={narrow} />
           </>
         )}
         <p>
@@ -373,12 +478,16 @@ export default function SemanticsChapter() {
           make of them.
         </p>
         {keyPair && tokenPair && keyPair.cos > tokenPair.cos && (
-          <Callout variant="note" title="The closest pairs are the ones RT never sees">
+          <Callout variant="note" title="The closest cross-database pair uses phrases that never reach a token">
             <p>
               Switch on “Include key columns”. The most similar cross-database pair is then <Phrase text={keyPair.a} /> and{' '}
               <Phrase text={keyPair.b} /> (cosine {f3(keyPair.cos)}), higher than the best pair of phrases that reach a token,{' '}
               <Phrase text={tokenPair.a} /> and <Phrase text={tokenPair.b} /> ({f3(tokenPair.cos)}). Key columns never produce a cell, so this
               resemblance is never used.
+            </p>
+            <p>
+              RT never compares phrases of two databases directly: every context comes from one database. Any benefit from similar vectors comes
+              from applying the same learned projection to both.
             </p>
           </Callout>
         )}
@@ -416,11 +525,26 @@ export default function SemanticsChapter() {
         </Figure>
         {mstats && (
           <p>
-            Two patterns stand out in this map. Along PC 1, the key-column phrases (average {f2s(mstats.keyPc1)}) sit apart from the rest
-            (average {f2s(mstats.otherPc1)}): the encoder groups the “…_id of …” phrases together. Along PC 2 the databases separate, from{' '}
-            {DB_SHORT[mstats.pc2ByDb[0].db]} (average {f2s(mstats.pc2ByDb[0].mean)}) to {DB_SHORT[mstats.pc2ByDb[mstats.pc2ByDb.length - 1].db]}{' '}
-            ({f2s(mstats.pc2ByDb[mstats.pc2ByDb.length - 1].mean)}): the phrases of one database share its table names and its domain words. RT
-            never computes this map; it is only a window onto the vectors it receives.
+            In this projection, the key-column phrases sit at an average PC 1 of {f2s(mstats.keyPc1)}, the other phrases at{' '}
+            {f2s(mstats.otherPc1)}.
+            {km && (
+              <>
+                {' '}
+                The full 384-d vectors {km.keyKey > km.keyOther && km.keyKey > km.otherOther ? 'agree that the “…_id of …” phrases form a group' : 'do not confirm a separate group'}
+                : two key-column phrases average a cosine of {f3(km.keyKey)}, a key-column phrase and another phrase {f3(km.keyOther)}, two
+                other phrases {f3(km.otherOther)}.
+              </>
+            )}{' '}
+            Along PC 2 the databases spread out, from {DB_SHORT[mstats.pc2ByDb[0].db]} (average {f2s(mstats.pc2ByDb[0].mean)}) to{' '}
+            {DB_SHORT[mstats.pc2ByDb[mstats.pc2ByDb.length - 1].db]} ({f2s(mstats.pc2ByDb[mstats.pc2ByDb.length - 1].mean)}).
+            {gm && (
+              <>
+                {' '}
+                In 384-d, two phrases from different tables of one database average {f3(gm.sameDb)}, two phrases from different databases{' '}
+                {f3(gm.crossDb)}{gm.sameDb > gm.crossDb ? '. Our reading: the phrases of a database share its table names and domain words' : ''}.
+              </>
+            )}{' '}
+            RT never computes this map; it is only a window onto the vectors it receives.
           </p>
         )}
       </Section>
@@ -428,11 +552,26 @@ export default function SemanticsChapter() {
       {/* ───────────────────────────────────────────────────────────── 5 */}
       <Section id="text-cells" title="Text cells: the raw value, nothing else" kicker="Step 5">
         <p>
-          String values go through the same encoder, applied to the raw string with nothing added: <TeX tex="\mathbf{r} = \mathcal{E}^{\text{text}}(v)" />{' '}
-          <Cite kind="paper" ref="p.5 §3.1" />. Preprocessing interns the value string itself <Cite kind="code" ref="rustler/src/pre.rs:596-597" />,
-          the encoder embeds that list <Cite kind="code" ref="rt/embed.py:65-68" />, and the sampler copies the row into the token’s{' '}
-          <code>text_values</code> <Cite kind="code" ref="rustler/src/fly.rs:484-486" />. The column never becomes part of the string{' '}
-          <Cite kind="spec" ref="§3.6" />.
+          String values go through the same encoder, applied to the raw string with nothing added:{' '}
+          <Nw>
+            <TeX tex="\mathbf{r} = \mathcal{E}^{\text{text}}(v)" /> <Cite kind="paper" ref="p.5 §3.1" />.
+          </Nw>{' '}
+          Preprocessing interns the value string{' '}
+          <Nw>
+            itself <Cite kind="code" ref="rustler/src/pre.rs:596-597" />,
+          </Nw>{' '}
+          the encoder embeds that{' '}
+          <Nw>
+            list <Cite kind="code" ref="rt/embed.py:65-68" />,
+          </Nw>{' '}
+          and the sampler copies the row into the token’s{' '}
+          <Nw>
+            <code>text_values</code> <Cite kind="code" ref="rustler/src/fly.rs:484-486" />.
+          </Nw>{' '}
+          The column never becomes part of the{' '}
+          <Nw>
+            string <Cite kind="spec" ref="§3.6" />.
+          </Nw>
           {typeof sampleValue === 'string' && live.entityNode && (
             <>
               {' '}
@@ -446,38 +585,63 @@ export default function SemanticsChapter() {
           title="Two vectors per text token"
           caption="Pick a text cell of the live context. The token holds two separate rows of the string table: its column phrase and its raw value."
         >
-          {store ? <TextCells live={live} store={store} /> : storeState.status === 'error' ? <LoadError error={storeState.error} /> : <Loading height={360} />}
+          {store ? <TextCells live={live} store={store} narrow={narrow} /> : storeState.status === 'error' ? <LoadError error={storeState.error} /> : <Loading height={360} />}
         </Figure>
         <p>
-          The column context of a text cell therefore comes only from the separate column term <Cite kind="spec" ref="§3.6" />. Inside the model,
-          each vector passes through its own linear layer and RMSNorm, and the two results are added <Cite kind="code" ref="rt/model.py:209-220" />;
+          The column context of a text cell therefore comes only from the separate column{' '}
+          <Nw>
+            term <Cite kind="spec" ref="§3.6" />.
+          </Nw>{' '}
+          Inside the model, each vector passes through its own linear layer and RMSNorm, and the two results are{' '}
+          <Nw>
+            added <Cite kind="code" ref="rt/model.py:209-220" />;
+          </Nw>{' '}
           chapter 8 follows that sum.
         </p>
         {store && catalog && <SharedValues catalog={catalog} store={store} />}
         <p className="mt-6">
-          What about cells that are not text? Preprocessing stores text index 0 for them <Cite kind="code" ref="rustler/src/pre.rs:559" />, so the
-          sampler copies the vector of <code>text[0]</code> into their <code>text_values</code> as well. In {DB_SHORT[live.dbName]},{' '}
-          <code>text[0]</code> is the string <Quoted text={text0} />. The model multiplies that term by zero, because the token’s{' '}
-          <Term id="sem-type">sem type</Term> is not text <Cite kind="code" ref="rt/model.py:216-220" /> <Cite kind="spec" ref="§3.6" />.
+          What about cells that are not text? Preprocessing stores text index 0 for{' '}
+          <Nw>
+            them <Cite kind="code" ref="rustler/src/pre.rs:559" />,
+          </Nw>{' '}
+          so the sampler copies the vector of <code>text[0]</code> into their <code>text_values</code> as well. <code>text[0]</code> is always a
+          table name, the first one pre.rs interns: in our preprocessing of {DB_SHORT[live.dbName]} it is <Quoted text={text0} />, while pre.rs’s
+          hash order may put another table first. The model multiplies that term by zero, because the token’s <Term id="sem-type">sem type</Term>{' '}
+          is not{' '}
+          <Nw>
+            text <Cite kind="code" ref="rt/model.py:216-220" /> <Cite kind="spec" ref="§3.6" />.
+          </Nw>
         </p>
         <p>
-          Long strings would be cut: the encoder truncates at {ENCODER.maxSeqLength} wordpieces <Cite kind="spec" ref="§3.6" />. The longest
+          Long strings would be cut: the encoder truncates at {ENCODER.maxSeqLength}{' '}
+          <Nw>
+            wordpieces <Cite kind="spec" ref="§3.6" />.
+          </Nw>{' '}
+          The longest
           string in our four databases has {ENCODER.maxWordpieces} wordpieces, [CLS] and [SEP] included, so nothing is cut here.
         </p>
-        <CodeRef
-          title="A string cell stores the index of its raw value"
-          file="rustler/src/pre.rs"
-          lines="595-605"
-          code={PRE_TEXT_595_605}
-          highlightLines={[597, 600]}
-          note="val is the cell’s string as it is: no column name, no table name. col_name_idx (line 603) is stored separately."
-        />
-        <CodeRef
-          title="The sampler copies the phrase vector and the value vector into the batch"
-          file="rustler/src/fly.rs"
-          lines="469-486"
-          code={FLY_COPY_469_486}
-          highlightLines={[472, 473, 474, 475, 476, 477, 484, 485, 486]}
+        <CodeTabs
+          label="Official code for text cells"
+          tabs={[
+            {
+              tab: 'pre.rs: a string cell',
+              title: 'A string cell stores the index of its raw value',
+              file: 'rustler/src/pre.rs',
+              lines: '595-605',
+              code: PRE_TEXT_595_605,
+              highlightLines: [597, 600],
+              note: 'val is the cell’s string as it is: no column name, no table name. col_name_idx (line 603) is stored separately.',
+            },
+            {
+              tab: 'fly.rs: the two copies',
+              title: 'The sampler copies the phrase vector and the value vector into the batch',
+              file: 'rustler/src/fly.rs',
+              lines: '469-486',
+              code: FLY_COPY_469_486,
+              highlightLines: [472, 473, 474, 475, 476, 477, 484, 485, 486],
+              note: 'Lines 484-486 run for every cell; a non-text cell copies row 0.',
+            },
+          ]}
         />
       </Section>
 
@@ -485,22 +649,39 @@ export default function SemanticsChapter() {
       <Section id="why" title="Why names matter" kicker="Step 6">
         <p>
           The paper tests the value of names directly. It shuffles the column and table names in the context and measures performance with the
-          same pretrained checkpoints <Cite kind="paper" ref="p.9 §5.1" />. “For <Term id="zero-shot">zero-shot</Term> evaluation, the ablations
-          are applied directly to the sampled context used as input. For fine-tuning, models are trained to convergence with the same modified
-          contexts” <Cite kind="paper" ref="p.22 App. G" />. The paper does not describe the shuffling procedure in more detail.
+          same pretrained{' '}
+          <Nw>
+            checkpoints <Cite kind="paper" ref="p.9 §5.1" />.
+          </Nw>{' '}
+          “For <Term id="zero-shot">zero-shot</Term> evaluation, the ablations are applied directly to the sampled context used as input. For
+          fine-tuning, models are trained to convergence with the same modified{' '}
+          <Nw>
+            contexts” <Cite kind="paper" ref="p.22 App. G" />.
+          </Nw>{' '}
+          The paper does not describe the shuffling procedure in more detail. In the same table it removes two kinds of labels from the
+          context, which gives a yardstick for the names.
         </p>
-        <Figure title="Mean over RelBench tasks: names intact → names shuffled (paper Table 4, p.9)">
-          <Table4Tiles />
+        <Figure wide title="Mean over the RelBench tasks for each context ablation (paper Table 4, p.9)">
+          <Table4Grid narrow={narrow} />
         </Figure>
         <p>
           In the paper’s words, “the model indeed leverages table/column names for zero-shot transfer, as wrong names lead to consistent
           degradation. After full fine-tuning, context ablations have little effect” (the exception it names is self labels on regression){' '}
           <Cite kind="paper" ref="p.9 §5.1" />. Appendix G adds that shuffling names “also harms transfer, highlighting the importance of semantic
-          signals from schema metadata” <Cite kind="paper" ref="p.22 App. G" />. On average,
-          zero-shot AUROC falls by {f1(TABLE4.none.zsClf - TABLE4.colNames.zsClf)} points and R² by{' '}
-          {f1(TABLE4.none.zsReg - TABLE4.colNames.zsReg)} points. One way to read the asymmetry (ours, not the paper’s): a fine-tuned model has seen
-          many labelled examples of the task and can learn what each column means from its values, while a zero-shot model must rely more on
-          what the names say.
+          signals from schema{' '}
+          <Nw>
+            metadata” <Cite kind="paper" ref="p.22 App. G" />.
+          </Nw>{' '}
+          On average, zero-shot AUROC falls by {f1(TABLE4.none.zsClf - TABLE4.colNames.zsClf)} points and R² by{' '}
+          {f1(TABLE4.none.zsReg - TABLE4.colNames.zsReg)} points. Removing the target entity’s past labels costs{' '}
+          {f1(TABLE4.none.zsClf - TABLE4.selfLabels.zsClf)} and {f1(TABLE4.none.zsReg - TABLE4.selfLabels.zsReg)}: in the paper’s words,
+          “zero-shot transfer is driven primarily by the model’s ability to leverage past labels of the target{' '}
+          <Nw>
+            entity” <Cite kind="paper" ref="p.9 §5.1" />.
+          </Nw>{' '}
+          Names are a consistent but smaller signal. One way to read the zero-shot versus fine-tuned difference (ours, not the paper’s): a
+          fine-tuned model has seen many labelled examples of the task and can learn what each column means from its values, while a zero-shot
+          model must rely more on what the names say.
         </p>
         <Figure wide>
           <AblationDumbbells />
@@ -508,11 +689,17 @@ export default function SemanticsChapter() {
         <p>
           The mean hides spread. In zero-shot, shuffling lowers the score on {clfHurt} of the 10 binary tasks and {regHurt} of the 8 regression
           tasks. The largest drops are {clfDrops[0].name} ({signed1(clfDrops[0].d)} AUROC) and {regDrops[0].name} ({signed1(regDrops[0].d)} R²),
-          while {clfDrops[clfDrops.length - 1].name} gains {signed1(clfDrops[clfDrops.length - 1].d)} <Cite kind="paper" ref="p.22 Table 11" />.
+          while {clfDrops[clfDrops.length - 1].name}{' '}
+          <Nw>
+            gains {signed1(clfDrops[clfDrops.length - 1].d)} <Cite kind="paper" ref="p.22 Table 11" />.
+          </Nw>
         </p>
         <p>
-          The paper’s conclusion ranks what drives zero-shot transfer <Cite kind="paper" ref="p.10 §7" /> <Cite kind="spec" ref="§11.7" />. Names
-          come fourth of five:
+          The paper’s conclusion ranks what drives zero-shot{' '}
+          <Nw>
+            transfer <Cite kind="paper" ref="p.10 §7" /> <Cite kind="spec" ref="§11.7" />.
+          </Nw>{' '}
+          Names come fourth of five, after the target entity’s past labels, which matches the gap between their two rows in Table 4:
         </p>
         <ol>
           <li>forecasting from the target entity’s past task rows;</li>
@@ -525,28 +712,53 @@ export default function SemanticsChapter() {
         </ol>
         <Callout variant="note" title="Where the ablation numbers come from">
           <p>
-            Tables 4 and 11 come from an earlier run than the headline results (arXiv v1, before later sampler fixes), so their “none” column
-            (70.1 AUROC) differs slightly from Table 1 (69.7) <Cite kind="spec" ref="§10 #25" /> <Cite kind="spec" ref="§11" />.
+            Tables 4 and 11 come from an earlier run than the headline results (arXiv v1, before later sampler fixes and before the released
+            attention order), so their “none” column (70.1 AUROC) differs slightly from Table 1{' '}
+            <Nw>
+              (69.7) <Cite kind="spec" ref="§10 #25" /> <Cite kind="spec" ref="§13 #1" />.
+            </Nw>
+          </p>
+          <p>
+            The paper names this ablation in two ways: Table 11’s caption says “we remove column{' '}
+            <Nw>
+              names” <Cite kind="paper" ref="p.22 Table 11" />,
+            </Nw>{' '}
+            while the text describes “shuffling column and table{' '}
+            <Nw>
+              names” <Cite kind="paper" ref="p.9 §5.1" /> <Cite kind="paper" ref="p.22 App. G" />.
+            </Nw>{' '}
+            This chapter follows the text.
           </p>
         </Callout>
 
         <h3>Not lexical copying</h3>
         <p>
-          Could the model simply match identical column names across databases? The paper checks. Exact column-name overlap between RelBench
-          databases is tiny, at most 4.3% (Jaccard, rel-amazon vs rel-hm), and fuzzy string matching gives only 0.47 to 0.59{' '}
-          <Cite kind="paper" ref="p.17-18 App. C.2" />. Its conclusion: “RT’s zero-shot generalization cannot be attributed to lexical
-          similarity. Instead, the model must learn to recognize and exploit structural relational patterns” <Cite kind="paper" ref="p.18 App. C.2" />.
-          This suggests that what names contribute comes through the encoder’s sense of meaning, as in Step 3, rather than through identical
-          strings.
+          Could the model simply match identical column names across databases? The paper checks with the{' '}
+          <Term id="jaccard">Jaccard overlap</Term> of the column names of two databases: the number of shared names divided by the number of
+          distinct names in the two databases together, <TeX tex="|A \cap B| \,/\, |A \cup B|" />. Between RelBench databases it is tiny, at
+          most 0.043 (rel-amazon vs rel-hm), and fuzzy string matching gives only 0.47 to{' '}
+          <Nw>
+            0.59 <Cite kind="paper" ref="p.17-18 App. C.2" />.
+          </Nw>{' '}
+          Its conclusion: “RT’s zero-shot generalization cannot be attributed to lexical similarity. Instead, the model must learn to recognize
+          and exploit structural relational{' '}
+          <Nw>
+            patterns” <Cite kind="paper" ref="p.18 App. C.2" />.
+          </Nw>
+        </p>
+        <p>
+          The paper does not say how names help, then. Two readings fit its results (ours, not the paper’s). Names may carry meaning across
+          databases through the encoder, as Step 3 measures. Or they may mainly tell columns apart within one context, the role App. E
+          describes. The shuffle ablation removes both, so Table 4 cannot separate them.
         </p>
         <Figure
           wide
           title="Column-name overlap (Jaccard) between databases"
           caption={
             <>
-              Left: the paper’s numbers. Right: the same statistic on this site’s four toy databases, computed live. The paper does not say which
-              columns it counted; we count every column of the database tables (keys included, task tables excluded). Hover a cell for the shared
-              names. Our toy databases, designed for this course, share more names than RelBench does.
+              Jaccard overlap = shared column names / distinct column names of the two databases. Left: the paper’s numbers. Right: the same
+              statistic on this site’s four toy databases, computed live. The paper does not say which columns it counted; we count every column
+              of the database tables (keys included, task tables excluded). Hover a cell for the counts and the shared names.
             </>
           }
         >
@@ -558,23 +770,43 @@ export default function SemanticsChapter() {
       <Section id="frozen" title="The encoder is frozen" kicker="Step 7">
         <p>
           RT never runs its text encoder while it trains or predicts. <code>embed.py</code> embeds the whole string table once and writes the
-          vectors to a file <Cite kind="code" ref="rt/embed.py:65-72" />. The sampler memory-maps that file and copies rows by index{' '}
-          <Cite kind="code" ref="rustler/src/fly.rs:263-265" /> <Cite kind="code" ref="rustler/src/fly.rs:528-532" />. So no gradient can reach the
-          encoder. The first trainable parameters on the text path are two linear maps from 384 to d, <code>enc_dict["col_name"]</code> and{' '}
-          <code>enc_dict["text"]</code>, each followed by its own <Term id="rmsnorm">RMSNorm</Term> <Cite kind="code" ref="rt/model.py:115-140" />.
+          vectors to a{' '}
+          <Nw>
+            file <Cite kind="code" ref="rt/embed.py:65-72" />.
+          </Nw>{' '}
+          The sampler memory-maps that file and copies rows by{' '}
+          <Nw>
+            index <Cite kind="code" ref="rustler/src/fly.rs:263-265" /> <Cite kind="code" ref="rustler/src/fly.rs:528-532" />.
+          </Nw>{' '}
+          So no gradient can reach the encoder. The first trainable parameters on the text path are two linear maps from 384 to d,{' '}
+          <code>enc_dict["col_name"]</code> and <code>enc_dict["text"]</code>, each followed by its own <Term id="rmsnorm">RMSNorm</Term>{' '}
+          <Nw>
+            <Cite kind="code" ref="rt/model.py:115-140" />.
+          </Nw>
         </p>
         <Figure wide title="Where the text vectors come from, and where learning starts">
           <FrozenPipeline nStrings={live.pdb.text.length} dbLabel={DB_SHORT[live.dbName]} d={d} />
         </Figure>
         <p>
-          The paper describes the encoder as frozen without discussing the choice: “a frozen text encoder” <Cite kind="paper" ref="p.5 §3.1" />,
-          “frozen language model (LM) embeddings of table/column names” <Cite kind="paper" ref="p.2 Fig. 1" />. Three consequences follow from
+          The paper describes the encoder as frozen without discussing the choice: “a frozen text{' '}
+          <Nw>
+            encoder” <Cite kind="paper" ref="p.5 §3.1" />,
+          </Nw>{' '}
+          “frozen language model (LM) embeddings of table/column{' '}
+          <Nw>
+            names” <Cite kind="paper" ref="p.2 Fig. 1" />.
+          </Nw>{' '}
+          Three consequences follow from
           the design. Training never pays for the encoder: each step reads precomputed rows. A new database
           needs one pass of the encoder over its strings, and no change to RT. And a string has the same vector in every database, so the
           similarities of Step 3 are fixed facts that pretraining can learn to use.
         </p>
         <Figure wide title="The learned part, live">
-          {store ? <LearnedProjection phrase={store.has(focus) && catalog?.byText.has(focus) ? focus : live.targetPhrase} store={store} assets={assets} /> : <Loading height={200} />}
+          {store ? (
+            <LearnedProjection phrase={store.has(focus) && catalog?.byText.has(focus) ? focus : live.targetPhrase} store={store} assets={assets} catalog={catalog} />
+          ) : (
+            <Loading height={200} />
+          )}
         </Figure>
         <Callout
           variant="paper-vs-code"
@@ -596,36 +828,52 @@ export default function SemanticsChapter() {
         <ScaleNote paper={`W_col of shape [256, 384]`} ours={`W_col of shape [${d}, 384]`}>
           The frozen 384-dimensional vectors are the same at both scales; only the width d that they are projected to differs.
         </ScaleNote>
-        <CodeRef
-          title="TextEmbedder: a SentenceTransformer and its encode()"
-          file="rt/embed.py"
-          lines="12-31"
-          code={EMBED_TEXT_EMBEDDER_12_31}
-          highlightLines={[14, 15, 25]}
-          note="Snapshot 2a899c8. The dtype line (bf16 on CUDA) was added after the paper's runs, in 7d564f7; at paper time the encoder ran in fp32 (spec §3.6)."
-        />
-        <CodeRef title="Every string embedded once and stored as a raw bf16 array" file="rt/embed.py" lines="65-72" code={EMBED_MAIN_65_72} highlightLines={[70, 71, 72]} />
-        <CodeRef
-          title="get_text_emb: a row of the memory-mapped table"
-          file="rustler/src/fly.rs"
-          lines="528-532"
-          code={FLY_GET_TEXT_EMB_528_532}
-          highlightLines={[531]}
-        />
-        <CodeRef
-          title="The learned projections from 384 to d_model"
-          file="rt/model.py"
-          lines="115-123"
-          code={MODEL_ENC_DICT_115_123}
-          highlightLines={[118, 120]}
-        />
-        <CodeRef
-          title="The column term and the gated value terms of the input embedding"
-          file="rt/model.py"
-          lines="208-224"
-          code={MODEL_EMBED_208_224}
-          highlightLines={[209, 210, 211, 212, 213]}
-          note="text_values enters through enc_dict['text'] at line 218, gated by sem_types == 1 (text)."
+        <CodeTabs
+          label="Official code for the frozen encoder and the learned projections"
+          tabs={[
+            {
+              tab: 'embed.py: TextEmbedder',
+              title: 'TextEmbedder: a SentenceTransformer and its encode()',
+              file: 'rt/embed.py',
+              lines: '12-31',
+              code: EMBED_TEXT_EMBEDDER_12_31,
+              highlightLines: [14, 15, 25],
+              note: 'Snapshot 2a899c8. The dtype line, the device argument of encode() and the multi-GPU handling were added after the paper’s runs, in 7d564f7; at paper time the encoder ran in fp32 on cuda:0 (spec §3.6).',
+            },
+            {
+              tab: 'embed.py: main',
+              title: 'Every string embedded once and stored as a raw bf16 array',
+              file: 'rt/embed.py',
+              lines: '65-72',
+              code: EMBED_MAIN_65_72,
+              highlightLines: [70, 71, 72],
+            },
+            {
+              tab: 'fly.rs: row lookup',
+              title: 'get_text_emb: a row of the memory-mapped table',
+              file: 'rustler/src/fly.rs',
+              lines: '528-532',
+              code: FLY_GET_TEXT_EMB_528_532,
+              highlightLines: [531],
+            },
+            {
+              tab: 'model.py: projections',
+              title: 'The learned projections from 384 to d_model',
+              file: 'rt/model.py',
+              lines: '115-123',
+              code: MODEL_ENC_DICT_115_123,
+              highlightLines: [118, 120],
+            },
+            {
+              tab: 'model.py: input embedding',
+              title: 'The column term and the gated value terms of the input embedding',
+              file: 'rt/model.py',
+              lines: '208-224',
+              code: MODEL_EMBED_208_224,
+              highlightLines: [209, 210, 211, 212, 213],
+              note: "text_values enters through enc_dict['text'] at line 218, gated by sem_types == 1 (text).",
+            },
+          ]}
         />
       </Section>
 
@@ -660,20 +908,20 @@ export default function SemanticsChapter() {
               ),
               choices: [
                 { text: '“country of customers: DE”, one combined string', why: 'No string ever joins a value to its column.' },
+                { text: 'Only “DE”: text cells have no column term', why: 'Every token carries its column phrase, whatever its type.' },
                 {
                   text: '“country of customers” (column term) and “DE” (value term), separately',
                   correct: true,
                   why: 'The value is embedded raw; the column context comes only from the column phrase (spec §3.6).',
                 },
-                { text: 'Only “DE”: text cells have no column term', why: 'Every token carries its column phrase, whatever its type.' },
               ],
               explanation: 'Two rows of the same string table, projected by two different learned layers and added inside the model.',
             },
             {
               prompt: 'During pretraining, which parameters on the path from a column phrase to the token’s input are updated?',
               choices: [
-                { text: 'All of MiniLM’s layers, plus W_col', why: 'MiniLM never runs during training; its vectors are read from a file.' },
                 { text: 'W_col, its bias and the RMSNorm gain', correct: true, why: 'enc_dict["col_name"] and norm_dict["col_name"] are the first trainable modules (model.py:115-140).' },
+                { text: 'All of MiniLM’s layers, plus W_col', why: 'MiniLM never runs during training; its vectors are read from a file.' },
                 { text: 'None: the phrase vector is added to the token unchanged', why: 'The 384-d vector is first projected to d and normalised by learned layers.' },
               ],
               explanation: 'The encoder is frozen by construction: its output is plain data stored before training starts.',
@@ -706,16 +954,18 @@ function cosineOf(store: { get(t: string): Float32Array }, a: string, b: string)
 const f2s = (v: number) => (v < 0 ? `−${Math.abs(v).toFixed(2)}` : `+${v.toFixed(2)}`);
 
 /** Where each pretraining task label ranks among all pretraining phrases, for the live target phrase. */
-function LabelRanks({ cmp }: { cmp: NonNullable<ReturnType<typeof compareTarget>> }) {
+function LabelRanks({ cmp, narrow }: { cmp: NonNullable<ReturnType<typeof compareTarget>>; narrow: boolean }) {
   return (
-    <div className="my-5 overflow-x-auto">
+    <div className="my-5">
       <table className="w-full border-collapse text-[15.5px]">
-        <caption className="sr-only">Cosine of the live target phrase with each pretraining task label</caption>
+        <caption className="sr-only">Cosine of the live target phrase with each task label of the other databases</caption>
         <thead>
           <tr className="border-b border-grid text-left text-ink-2">
-            <th scope="col" className="py-1.5 pr-3 font-semibold">
-              Database
-            </th>
+            {!narrow && (
+              <th scope="col" className="py-1.5 pr-3 font-semibold">
+                Database
+              </th>
+            )}
             <th scope="col" className="py-1.5 pr-3 font-semibold">
               Task label phrase
             </th>
@@ -723,18 +973,27 @@ function LabelRanks({ cmp }: { cmp: NonNullable<ReturnType<typeof compareTarget>
               cosine
             </th>
             <th scope="col" className="py-1.5 text-right font-semibold">
-              rank of {cmp.pool}
+              {narrow ? 'rank' : `rank of ${cmp.pool}`}
             </th>
           </tr>
         </thead>
         <tbody>
           {cmp.labels.map((l) => (
             <tr key={l.phrase.text} className="border-b border-grid/70">
-              <td className="py-1.5 pr-3 whitespace-nowrap">
-                <DbTag db={l.phrase.db} />
-              </td>
+              {!narrow && (
+                <td className="py-1.5 pr-3 whitespace-nowrap">
+                  <DbTag db={l.phrase.db} neutral />
+                </td>
+              )}
               <td className="py-1.5 pr-3">
-                <Phrase text={l.phrase.text} />
+                {narrow ? (
+                  <span className="inline-flex items-baseline gap-1.5">
+                    <DbTag db={l.phrase.db} showName={false} neutral className="translate-y-[1px]" />
+                    <Phrase text={l.phrase.text} />
+                  </span>
+                ) : (
+                  <Phrase text={l.phrase.text} />
+                )}
               </td>
               <td className="num py-1.5 pr-3 text-right text-ink">{f3(l.cos)}</td>
               <td className="num py-1.5 text-right text-ink-2">{l.rank}</td>
@@ -742,6 +1001,7 @@ function LabelRanks({ cmp }: { cmp: NonNullable<ReturnType<typeof compareTarget>
           ))}
         </tbody>
       </table>
+      {narrow && <p className="mt-1.5 !mb-0 text-[14.5px] text-muted">Rank among all {cmp.pool} phrases of the other databases that reach a token.</p>}
     </div>
   );
 }

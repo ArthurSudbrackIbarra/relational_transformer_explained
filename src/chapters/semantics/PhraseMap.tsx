@@ -7,7 +7,7 @@
  */
 import { Minus, Plus, RotateCcw } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from 'react';
 import { IconButton, cx } from '@/components';
 import { shapeOfSlot, shapePath } from '@/components/viz/shapes';
 import { textWidth } from '@/components/viz/text';
@@ -38,8 +38,11 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
   const drag = useRef<{ x: number; y: number; tx: number; ty: number; moved: boolean } | null>(null);
 
   const W = Math.max(300, size.width || 900);
-  const H = Math.round(Math.min(680, Math.max(340, W * 0.66)));
-  const pad = 28;
+  const narrow = W < 600;
+  const H = Math.round(narrow ? Math.min(560, W * 1.1) : Math.min(640, Math.max(380, W * 0.6)));
+  // ~8% padding on every side, so no marker sits on the frame and the axis names stay clear
+  const padX = Math.round(W * 0.08) + 6;
+  const padY = Math.round(H * 0.08) + 8;
 
   const ext = useMemo(() => {
     const xs = points.map((p) => p.x);
@@ -47,19 +50,22 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
     return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
   }, [points]);
 
-  // equal aspect ratio: one unit on PC1 = one unit on PC2
+  // Each axis fills the frame, but one unit of PC 1 is never drawn more than 1.6× (or less than 1/1.6×)
+  // as long as one unit of PC 2; the ratio used is stated under the map.
   const base = useMemo(() => {
-    const sx = (W - 2 * pad) / (ext.x1 - ext.x0 || 1);
-    const sy = (H - 2 * pad) / (ext.y1 - ext.y0 || 1);
-    const s = Math.min(sx, sy);
-    const ox = pad + (W - 2 * pad - s * (ext.x1 - ext.x0)) / 2;
-    const oy = pad + (H - 2 * pad - s * (ext.y1 - ext.y0)) / 2;
-    return { s, ox, oy };
-  }, [W, H, ext]);
+    const fx = (W - 2 * padX) / (ext.x1 - ext.x0 || 1);
+    const fy = (H - 2 * padY) / (ext.y1 - ext.y0 || 1);
+    const sx = Math.min(fx, fy * 1.6);
+    const sy = Math.min(fy, fx * 1.6);
+    const ox = padX + (W - 2 * padX - sx * (ext.x1 - ext.x0)) / 2;
+    const oy = padY + (H - 2 * padY - sy * (ext.y1 - ext.y0)) / 2;
+    return { sx, sy, ox, oy };
+  }, [W, H, ext, padX, padY]);
+  const stretch = base.sx / base.sy;
 
   const px = (p: { x: number; y: number }) => ({
-    x: (base.ox + (p.x - ext.x0) * base.s) * view.k + view.tx,
-    y: (base.oy + (ext.y1 - p.y) * base.s) * view.k + view.ty,
+    x: (base.ox + (p.x - ext.x0) * base.sx) * view.k + view.tx,
+    y: (base.oy + (ext.y1 - p.y) * base.sy) * view.k + view.ty,
   });
 
   const focusIdx = points.findIndex((p) => p.text === focus);
@@ -97,11 +103,10 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
     window.setTimeout(() => (drag.current = null), 0);
   };
 
-  // labels: pinned phrase + its neighbours + the hovered phrase, nudged to avoid overlaps
+  // text labels: the pinned phrase and the hovered one (neighbours get numbered badges instead)
   const labels = useMemo(() => {
     const ids: { i: number; strong: boolean }[] = [];
     if (focusIdx >= 0) ids.push({ i: focusIdx, strong: true });
-    if (W >= 560) for (const n of neighbors) ids.push({ i: n.i, strong: false });
     if (hover !== null && !ids.some((d) => d.i === hover)) ids.push({ i: hover, strong: false });
     const placed: { x: number; y: number; w: number; h: number; i: number; strong: boolean; anchor: 'start' | 'end'; px: number; py: number; right: boolean }[] = [];
     for (const { i, strong } of ids) {
@@ -123,12 +128,72 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
       placed.push({ x, y, w, h: 18, i, strong, anchor: 'start', px: p.x, py: p.y, right });
     }
     return placed;
-  }, [focusIdx, neighbors, hover, view, base, W, H, hiddenDbs, points]);
+  }, [focusIdx, hover, view, base, W, H, hiddenDbs, points]);
 
-  const zero = px({ x: 0, y: 0 });
   const hp = hover !== null ? points[hover] : null;
   const hpPx = hp ? px(hp) : null;
   const hpInfo = hp ? catalog.byText.get(hp.text) : undefined;
+
+  // the read-out card sits in the corner farthest from the hovered and the pinned point
+  const TIP_W = Math.min(280, W - 16);
+  const TIP_H = 104;
+  const corner = useMemo(() => {
+    if (!hpPx) return { left: 8, top: 8 };
+    const pin = focusIdx >= 0 ? px(points[focusIdx]) : null;
+    const cands = [
+      { left: 8, top: 8 },
+      { left: W - TIP_W - 8, top: 8 },
+      { left: 8, top: H - TIP_H - 8 },
+      { left: W - TIP_W - 8, top: H - TIP_H - 8 },
+    ];
+    const dist = (c: { left: number; top: number }, q: { x: number; y: number }) => {
+      const dx = Math.max(c.left - q.x, 0, q.x - (c.left + TIP_W));
+      const dy = Math.max(c.top - q.y, 0, q.y - (c.top + TIP_H));
+      return Math.hypot(dx, dy);
+    };
+    let best = cands[0];
+    let bd = -1;
+    for (const c of cands) {
+      const d = Math.min(dist(c, hpPx), pin ? dist(c, pin) + 40 : Infinity);
+      if (d > bd) (bd = d), (best = c);
+    }
+    return best;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hpPx?.x, hpPx?.y, focusIdx, W, H, TIP_W, view, base]);
+
+  // keyboard: arrows move to the nearest visible point in that direction, Enter pins it
+  const onKey = (e: KeyboardEvent<SVGSVGElement>) => {
+    const visible = points.map((p, i) => ({ p, i })).filter(({ p }) => !hiddenDbs.has(p.db));
+    if (!visible.length) return;
+    const cur = hover ?? (focusIdx >= 0 && !hiddenDbs.has(points[focusIdx].db) ? focusIdx : null);
+    const dirs: Record<string, [number, number]> = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] };
+    if (e.key in dirs) {
+      e.preventDefault();
+      if (cur === null) {
+        setHover(visible[0].i);
+        return;
+      }
+      const [ux, uy] = dirs[e.key];
+      const a = px(points[cur]);
+      let best: number | null = null;
+      let bs = Infinity;
+      for (const { p, i } of visible) {
+        if (i === cur) continue;
+        const b = px(p);
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const along = dx * ux + dy * uy;
+        if (along <= 0.5) continue;
+        const across = Math.abs(dx * uy - dy * ux);
+        const score = along + 2.5 * across;
+        if (score < bs) (bs = score), (best = i);
+      }
+      if (best !== null) setHover(best);
+    } else if ((e.key === 'Enter' || e.key === ' ') && cur !== null) {
+      e.preventDefault();
+      onFocus(points[cur].text);
+    } else if (e.key === 'Escape') setHover(null);
+  };
 
   return (
     <div>
@@ -183,8 +248,10 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
           width={W}
           height={H}
           role="img"
-          aria-label={`2-D PCA map of ${points.length} column phrases from four databases. Click a point to pin it and see its nearest neighbours.`}
-          className={cx('block select-none', view.k > 1 ? 'cursor-grab active:cursor-grabbing' : '')}
+          aria-label={`2-D PCA map of ${points.length} column phrases from four databases. Arrow keys move between points, Enter pins the point and lists its nearest neighbours.`}
+          tabIndex={0}
+          onKeyDown={onKey}
+          className={cx('block select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent', view.k > 1 ? 'cursor-grab active:cursor-grabbing' : '')}
           style={{ touchAction: view.k > 1 ? 'none' : 'pan-y' }}
           onPointerDown={onDown}
           onPointerMove={onMove}
@@ -196,14 +263,14 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
             zoomAt(1.8, e.clientX - r.left, e.clientY - r.top);
           }}
         >
-          {/* zero axes (hairlines) */}
-          <line x1={0} x2={W} y1={zero.y} y2={zero.y} style={{ stroke: 'var(--grid)' }} strokeWidth={1} />
-          <line x1={zero.x} x2={zero.x} y1={0} y2={H} style={{ stroke: 'var(--grid)' }} strokeWidth={1} />
-          <text x={W - 8} y={Math.min(H - 8, Math.max(16, zero.y - 6))} textAnchor="end" style={{ fontSize: 13.5, fill: 'var(--muted)' }}>
-            PC 1
+          {/* zero axes (hairlines); axis names in the padded margin, clear of the markers */}
+          <line x1={0} x2={W} y1={px({ x: 0, y: 0 }).y} y2={px({ x: 0, y: 0 }).y} style={{ stroke: 'var(--grid)' }} strokeWidth={1} />
+          <line x1={px({ x: 0, y: 0 }).x} x2={px({ x: 0, y: 0 }).x} y1={0} y2={H} style={{ stroke: 'var(--grid)' }} strokeWidth={1} />
+          <text x={W - 10} y={H - 10} textAnchor="end" style={{ fontSize: 13.5, fill: 'var(--muted)' }}>
+            PC 1 →
           </text>
-          <text x={Math.min(W - 40, Math.max(8, zero.x + 6))} y={16} style={{ fontSize: 13.5, fill: 'var(--muted)' }}>
-            PC 2
+          <text x={10} y={20} style={{ fontSize: 13.5, fill: 'var(--muted)' }}>
+            ↑ PC 2
           </text>
 
           {/* neighbour lines */}
@@ -264,6 +331,24 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
             );
           })}
 
+          {/* neighbour badges: the numbers match the list under the map */}
+          {focusIdx >= 0 &&
+            !hiddenDbs.has(points[focusIdx].db) &&
+            neighbors.map((n, j) => {
+              if (hiddenDbs.has(points[n.i].db)) return null;
+              const q = px(points[n.i]);
+              const bx = Math.min(W - 10, q.x + 11);
+              const by = Math.max(10, q.y - 11);
+              return (
+                <g key={`nb-${n.i}`} pointerEvents="none" transform={`translate(${bx},${by})`}>
+                  <circle r={9} style={{ fill: 'var(--ink)', stroke: 'var(--surface)' }} strokeWidth={1.5} />
+                  <text textAnchor="middle" dominantBaseline="central" className="num" style={{ fontSize: 13, fontWeight: 650, fill: 'var(--surface)' }}>
+                    {j + 1}
+                  </text>
+                </g>
+              );
+            })}
+
           {/* labels */}
           {labels.map((l) => (
             <g key={`l-${l.i}`} pointerEvents="none">
@@ -277,14 +362,14 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
             </g>
           ))}
         </svg>
+        <div className="sr-only" aria-live="polite">
+          {hp ? `${hp.text}, ${DB_SHORT[hp.db]}, ${hpInfo ? ROLE_LABEL[hpInfo.role] : ''}${focusIdx >= 0 && hover === focusIdx ? ', pinned' : ''}` : ''}
+        </div>
 
         {hp && hpPx && (
           <div
-            className="pointer-events-none absolute z-10 w-[280px] max-w-[calc(100%-16px)] rounded-lg border border-border bg-surface px-3 py-2 text-[14.5px] shadow-[var(--shadow-pop)]"
-            style={{
-              left: Math.max(8, Math.min(W - 288, hpPx.x + 14)),
-              top: hpPx.y > H / 2 ? Math.max(8, hpPx.y - 118) : Math.min(H - 110, hpPx.y + 14),
-            }}
+            className="pointer-events-none absolute z-10 rounded-lg border border-border bg-surface px-3 py-2 text-[14.5px] shadow-[var(--shadow-pop)]"
+            style={{ left: corner.left, top: corner.top, width: TIP_W, minHeight: TIP_H - 12 }}
           >
             <div className="text-[15px] leading-snug">
               <Phrase text={hp.text} strong />
@@ -304,12 +389,15 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
       {focusIdx >= 0 && (
         <div className="mt-3 rounded-lg bg-surface-2 px-4 py-3">
           <div className="mb-1.5 text-[15.5px] text-ink">
-            Pinned: <Phrase text={points[focusIdx].text} strong />. Its {K_NEIGHBORS} nearest phrases in the full 384-d space (dashed lines):
+            Pinned: <Phrase text={points[focusIdx].text} strong />. Its {K_NEIGHBORS} nearest phrases in the full 384-d space (numbered on the
+            map, joined by dashed lines):
           </div>
           <ol className="!m-0 grid !list-none gap-x-6 gap-y-1 !p-0 sm:grid-cols-2">
             {neighbors.map((n, j) => (
               <li key={n.i} className="!m-0 flex min-w-0 items-center gap-2 !p-0 text-[15px]">
-                <span className="num w-4 text-muted">{j + 1}</span>
+                <span className="num inline-flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-ink text-[13px] font-semibold text-surface">
+                  {j + 1}
+                </span>
                 <DbTag db={points[n.i].db} showName={false} />
                 <span className="min-w-0 truncate" title={points[n.i].text}>
                   <Phrase text={points[n.i].text} />
@@ -321,7 +409,11 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
         </div>
       )}
       <p className="mt-2 text-[14.5px] text-muted">
-        Hover a point to read it, click to pin it. Zoom with the buttons or a double-click, then drag to pan. Both axes use the same scale.
+        Hover a point to read it and click to pin it, or click a phrase in Step 1. With the keyboard, focus the map, move with the arrow keys
+        and press Enter to pin. Zoom with the buttons or a double-click, then drag to pan.{' '}
+        {Math.abs(stretch - 1) < 0.08
+          ? 'Both axes use the same scale.'
+          : `To fill the frame, one unit of PC 1 is drawn ${stretch.toFixed(2)}× as long as one unit of PC 2.`}
       </p>
     </div>
   );

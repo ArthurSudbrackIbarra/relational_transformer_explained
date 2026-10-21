@@ -230,10 +230,12 @@ export const GateGrid = memo(function GateGrid({ live }: { live: EmbeddingStable
     const key = SEM_KEYS[sem];
     if (kind === 'mask')
       return n === 0 ? (
-        <>No token of type {SEM_LABEL[sem]} is masked in this context, so m_{key} is not used here.</>
+        <>
+          No token of type {SEM_LABEL[sem]} is masked in this context, so <span className="font-mono">m_{key}</span> is not used here.
+        </>
       ) : (
         <>
-          {n === 1 ? `One token (${tgt ? rowRef(tgt) : 'masked'}) takes` : `${n} tokens take`} the mask vector m_{key} instead of a value
+          {n === 1 ? `One token (${tgt ? rowRef(tgt) : 'masked'}) takes` : `${n} tokens take`} the mask vector <span className="font-mono">m_{key}</span> instead of a value
           term. Only the seed row’s target cell is ever masked <Cite kind="spec" ref="§4.10" />.
         </>
       );

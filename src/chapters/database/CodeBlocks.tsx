@@ -71,7 +71,8 @@ export const CellsCode = memo(function CellsCode() {
         defaultOpen
         note={
           <>
-            Integer and 32-bit float values are cast to <code>Float64</code> and become numbers. A null matches the empty arm on line 552 and
+            <code>UInt32</code>, <code>Int32</code>, <code>Int64</code> and <code>Float32</code> values are cast to <code>Float64</code> and
+                become numbers. A null matches the empty arm on line 552 and
             leaves no trace. The boolean arm shown here is one of four (number, datetime and text follow in lines 565-605){' '}
             <Cite kind="spec" ref="§3.2" />
             <Cite kind="spec" ref="§3.5" />.

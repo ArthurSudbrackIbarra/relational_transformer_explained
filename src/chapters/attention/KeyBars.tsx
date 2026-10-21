@@ -11,7 +11,7 @@
  * grouped by table (task splits share one group, as they share table_name_idx).
  */
 import { motion, useReducedMotion } from 'motion/react';
-import { useId, useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { cx, sequentialCss } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import type { Token } from '@/engine/types';
@@ -129,7 +129,14 @@ export function KeyBars({ tokens, groups, order, scores, probs, allowed, stage, 
   // Resolved colours (not CSS variables) so motion can blend a score bar into a weight bar.
   const scoreFill = TOKENS[mode].ink2;
   const probFill = sequentialCss(mode === 'dark' ? 0.55 : 0.68, mode);
-  const transition = reduce ? { duration: 0 } : { duration: 0.65, ease: [0.22, 1, 0.36, 1] as const };
+  // Animate only real changes of the data or the stage. A change of width (resize, sidebar, scrollbar) moves the bars at once,
+  // like the plain-SVG labels, outline and marker, so the two never drift apart.
+  const prevW = useRef(W);
+  const resized = prevW.current !== W;
+  useEffect(() => {
+    prevW.current = W;
+  }, [W]);
+  const transition = reduce || resized ? { duration: 0 } : { duration: 0.65, ease: [0.22, 1, 0.36, 1] as const };
 
   const visibleKeys = stage === 'softmax' && collapse ? allowedOrder : order;
   const hitSlot = stage === 'softmax' && collapse ? collapsed : spread;
@@ -258,6 +265,21 @@ export function KeyBars({ tokens, groups, order, scores, probs, allowed, stage, 
             })}
           </g>
         ))}
+
+        {/* even split 1/n over the allowed keys (softmax stage) */}
+        {stage === 'softmax' && nAllowed > 1 && (() => {
+          const even = 1 / nAllowed;
+          if (even > maxP) return null;
+          const y = yBase - (even / maxP) * plotH;
+          return (
+            <g pointerEvents="none">
+              <line x1={M_LEFT} x2={W - M_RIGHT} y1={y} y2={y} style={{ stroke: 'var(--ink-2)' }} strokeWidth={1.2} strokeDasharray="5 4" />
+              <text x={W - M_RIGHT - 2} y={y - 5} textAnchor="end" className="num text-[13px]" style={{ fill: 'var(--ink-2)', paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 3 }}>
+                even split 1/{nAllowed} = {pctw(even)}
+              </text>
+            </g>
+          );
+        })()}
 
         {/* zero line */}
         <line

@@ -27,15 +27,14 @@ const LABEL_PX = 14;
 export function EgoGraph({
   parents,
   row,
-  children,
-  hiddenChildren,
+  children: allChildren,
   seed,
   onPick,
 }: {
   parents: EgoNode[];
   row: EgoNode;
+  /** Every context row that lists `row` as a parent; as many as fit are drawn, the rest counted. */
   children: EgoNode[];
-  hiddenChildren: number;
   /** Node id of the seed row (dashed ring). */
   seed: number;
   onPick: (id: number) => void;
@@ -43,6 +42,10 @@ export function EgoGraph({
   const uid = useId().replace(/:/g, '');
   const [ref, size] = useElementSize<HTMLDivElement>();
   const W = Math.max(240, size.width || 480);
+  // One slot per ~80px so the 14px labels never touch; the last slot says "+N more" when needed.
+  const slots = Math.max(2, Math.min(6, Math.floor(W / 80)));
+  const children = allChildren.length > slots ? allChildren.slice(0, slots - 1) : allChildren;
+  const hiddenChildren = allChildren.length - children.length;
   const xs = (n: number) => Array.from({ length: n }, (_, i) => ((i + 1) * W) / (n + 1));
   const px = xs(parents.length);
   const cxs = xs(children.length + (hiddenChildren > 0 ? 1 : 0));

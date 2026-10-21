@@ -8,14 +8,14 @@
  */
 import { ArrowDown, ArrowRight, X } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { StatusBadge, StepPlayer, VectorStrip, cx, useStepPlayer } from '@/components';
 import type { EmbeddingStore } from '@/engine/embeddings';
 import { MINI_CONFIG, PAPER_CONFIG, linearVec, paramCount, parameterShapes, rmsnormRow, tensor } from '@/engine/model';
 import type { RTConfig } from '@/engine/types';
 import type { AssetsState } from '@/state/hooks';
-import { Phrase } from './bits';
-import { ENCODER, int, norm } from './data';
+import { BreakId, Phrase, useMedia } from './bits';
+import { ENCODER, cosine, f3, int, norm, type Catalog } from './data';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Step-through diagram
@@ -44,7 +44,7 @@ export function FrozenPipeline({ nStrings, dbLabel, d }: { nStrings: number; dbL
     { id: 'strings', title: 'text.json', sub: `${int(nStrings)} strings of ${dbLabel}`, zone: 'offline' },
     { id: 'encoder', title: 'all-MiniLM-L12-v2', sub: `${(ENCODER.parameters / 1e6).toFixed(1)}M parameters, frozen`, zone: 'offline', frozen: true },
     { id: 'table', title: 'text_emb_all-MiniLM-L12-v2.bin', sub: `${int(nStrings)} × ${ENCODER.hidden} table`, zone: 'offline', frozen: true },
-    { id: 'lookup', title: 'Sampler lookup', sub: 'copy row col_name_idx', zone: 'online' },
+    { id: 'lookup', title: 'Sampler lookup', sub: 'copy row col_name_idx (Rust data loader)', zone: 'online' },
     { id: 'linear', title: 'W·e + b', sub: `Linear(384 → ${d}), learned`, zone: 'online', learned: true },
     { id: 'norm', title: 'RMSNorm', sub: 'learned gain γ', zone: 'online', learned: true },
     { id: 'term', title: 'Column term', sub: `${d} numbers, added to x`, zone: 'online' },
@@ -79,8 +79,9 @@ export function FrozenPipeline({ nStrings, dbLabel, d }: { nStrings: number; dbL
       edge: 2,
       text: (
         <>
-          For every token, the sampler copies row <code>col_name_idx</code> into <code>col_name_values</code> (and, for a text cell, row{' '}
-          <code>text_idx</code> into <code>text_values</code>). A memory copy, no neural network.
+          While it builds a batch, the sampler copies, for every token, row <code>col_name_idx</code> into <code>col_name_values</code>, and row{' '}
+          <code>text_idx</code> into <code>text_values</code> (the value string for a text cell, the unused <code>text[0]</code> for every other
+          cell). A memory copy, no neural network.
         </>
       ),
     },
@@ -107,6 +108,24 @@ export function FrozenPipeline({ nStrings, dbLabel, d }: { nStrings: number; dbL
   ];
   const player = useStepPlayer(steps.length, { intervalMs: 2200 });
   const st = steps[player.index];
+  const narrow = useMedia('(max-width: 767px)');
+  const nodeEls = useRef<Record<string, HTMLDivElement | null>>({});
+  const firstRun = useRef(true);
+  // narrow screens: bring the active box into view when the step changes (not on the first render)
+  useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
+    if (!narrow) return;
+    const el = nodeEls.current[st.active[0]];
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const topbar = 56 + 170; // the app bar plus the sticky player above the diagram
+    if (r.top < topbar || r.bottom > window.innerHeight - 8) {
+      window.scrollTo({ top: window.scrollY + r.top - (topbar + window.innerHeight - r.height) / 2, behavior: reduce ? 'auto' : 'smooth' });
+    }
+  }, [player.index, narrow, reduce, st.active]);
   const offline = nodes.filter((n) => n.zone === 'offline');
   const online = nodes.filter((n) => n.zone === 'online');
 
@@ -118,6 +137,9 @@ export function FrozenPipeline({ nStrings, dbLabel, d }: { nStrings: number; dbL
         return (
           <div key={n.id} className="contents">
             <motion.div
+              ref={(el: HTMLDivElement | null) => {
+                nodeEls.current[n.id] = el;
+              }}
               animate={{ scale: on && !reduce ? 1.03 : 1 }}
               transition={{ duration: 0.25 }}
               className={cx(
@@ -126,7 +148,9 @@ export function FrozenPipeline({ nStrings, dbLabel, d }: { nStrings: number; dbL
                 n.frozen && 'border-dashed',
               )}
             >
-              <div className={cx('text-[15.5px] leading-tight font-semibold break-all text-ink', n.id === 'table' || n.id === 'strings' ? 'font-mono' : '')}>{n.title}</div>
+              <div className={cx('text-[15.5px] leading-tight font-semibold text-ink [overflow-wrap:anywhere]', n.id === 'table' || n.id === 'strings' ? 'font-mono' : '')}>
+                <BreakId text={n.title} />
+              </div>
               <div className="mt-1 text-[14px] leading-snug text-ink-2">{n.sub}</div>
               {n.learned && <span className="mt-1.5 inline-flex rounded bg-surface-3 px-1.5 text-[13px] text-ink">trained</span>}
               {n.frozen && <span className="mt-1.5 inline-flex rounded border border-dashed border-border-strong px-1.5 text-[13px] text-ink-2">fixed</span>}
@@ -141,16 +165,19 @@ export function FrozenPipeline({ nStrings, dbLabel, d }: { nStrings: number; dbL
   );
 
   return (
-    <div>
-      <div className="grid gap-1">
+    <div className="flex flex-col">
+      {/* below md the chain stacks into a tall column: the player goes on top and stays in view */}
+      <div className="sticky top-[calc(var(--topbar-h)+4px)] z-20 order-1 -mx-1 mb-3 rounded-xl border border-border bg-surface px-1 shadow-[var(--shadow-pop)] md:static md:order-2 md:mx-0 md:mt-4 md:mb-0 md:rounded-none md:border-0 md:px-0 md:shadow-none">
+        <StepPlayer {...player} unit="step" describe={() => <span className="text-[16px] leading-snug text-ink">{st.text}</span>} label="Frozen-encoder walkthrough" />
+      </div>
+      <div className="order-2 grid gap-1 md:order-1">
         <Zone title="Offline, once per database">{renderChain(offline, 0)}</Zone>
         <div className="flex items-center justify-center gap-3">
           <Connector active={st.edge === 2} backward={false} reduce={!!reduce} big vertical />
           <span className="text-[14.5px] text-ink-2">rows read by index</span>
         </div>
-        <Zone title="Every forward pass (training and inference)">{renderChain(online, 3)}</Zone>
+        <Zone title="Every batch: the sampler, then the model’s forward pass (training and inference)">{renderChain(online, 3)}</Zone>
       </div>
-      <StepPlayer {...player} className="mt-4" unit="step" describe={() => <span className="text-[16px] leading-snug text-ink">{st.text}</span>} label="Frozen-encoder walkthrough" />
     </div>
   );
 }
@@ -222,20 +249,44 @@ function textParams(cfg: RTConfig): number {
   return n;
 }
 
-export function LearnedProjection({ phrase, store, assets }: { phrase: string; store: EmbeddingStore; assets: AssetsState }) {
+export function LearnedProjection({ phrase, store, assets, catalog }: { phrase: string; store: EmbeddingStore; assets: AssetsState; catalog: Catalog | null }) {
   const w = assets.weights;
   const res = useMemo(() => {
     if (!w || !store.has(phrase)) return null;
-    const e = store.get(phrase);
     const d = w.config.dModel;
     const W = tensor(w, 'enc_dict.col_name.weight');
     const b = tensor(w, 'enc_dict.col_name.bias');
     const g = tensor(w, 'norm_dict.col_name.weight');
-    const pre = linearVec(e, W, d, b); // model.py:211 enc_dict["col_name"]
-    const out = new Float32Array(d);
-    rmsnormRow(pre, 0, d, g, w.config.eps, out, 0); // model.py:210 norm_dict["col_name"]
-    return { e, pre, out, d, shape: w.tensors['enc_dict.col_name.weight'].shape };
-  }, [w, store, phrase]);
+    // the column term of one phrase: RMSNorm_γ(W·e + b) (model.py:209-213)
+    const term = (text: string) => {
+      const e = store.get(text);
+      const pre = linearVec(e, W, d, b);
+      const out = new Float32Array(d);
+      rmsnormRow(pre, 0, d, g, w.config.eps, out, 0);
+      return { e, pre, out };
+    };
+    const me = term(phrase);
+    // partners: the closest on-token phrase of another database, the closest task label of another
+    // database, and another phrase of the same table (all chosen live by cosine of the frozen vectors)
+    const info = catalog?.byText.get(phrase);
+    const partners: { why: string; text: string }[] = [];
+    if (catalog && info) {
+      const others = catalog.phrases.filter((p) => p.db !== info.db && p.onToken && store.has(p.text));
+      const byCos = others.map((p) => ({ p, c: cosine(me.e, store.get(p.text)) })).sort((x, y) => y.c - x.c);
+      if (byCos[0]) partners.push({ why: 'closest phrase of another database', text: byCos[0].p.text });
+      const lab = byCos.find((x) => x.p.role === 'label' && x.p.text !== byCos[0]?.p.text);
+      if (lab) partners.push({ why: 'closest task label of another database', text: lab.p.text });
+      const mate = catalog.byDb[info.db].find((p) => p.table === info.table && p.onToken && p.text !== phrase && store.has(p.text));
+      if (mate) partners.push({ why: 'another column of the same table', text: mate.text });
+    }
+    const rows = partners.map((pt) => {
+      const t = term(pt.text);
+      return { ...pt, before: cosine(me.e, t.e), after: cosine(me.out, t.out) };
+    });
+    let ms = 0;
+    for (let i = 0; i < d; i++) ms += me.out[i] * me.out[i];
+    return { ...me, d, shape: w.tensors['enc_dict.col_name.weight'].shape, rows, rms: Math.sqrt(ms / d) };
+  }, [w, store, phrase, catalog]);
 
   const mini = { text: textParams(MINI_CONFIG), total: paramCount(MINI_CONFIG) };
   const paper = { text: textParams(PAPER_CONFIG), total: paramCount(PAPER_CONFIG) };
@@ -251,24 +302,69 @@ export function LearnedProjection({ phrase, store, assets }: { phrase: string; s
         {assets.status === 'loading' && <StatusBadge status="info">loading weights…</StatusBadge>}
       </div>
       {res ? (
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="min-w-0">
-            <div className="mb-1 text-[15px] text-ink-2">
-              e: 384 frozen numbers · ‖e‖ = <span className="num text-ink">{norm(res.e).toFixed(3)}</span>
+        <>
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="min-w-0">
+              <div className="mb-1 text-[15px] text-ink-2">
+                e: 384 frozen numbers · ‖e‖ = <span className="num text-ink">{norm(res.e).toFixed(3)}</span>
+              </div>
+              <VectorStrip values={res.e} columns={48} cellHeight={9} showReadout={false} />
             </div>
-            <VectorStrip values={res.e} columns={48} cellHeight={9} showReadout={false} />
-          </div>
-          <div className="min-w-0">
-            <div className="mb-1 text-[15px] text-ink-2">
-              W·e + b, W of shape [{res.shape.join(', ')}]
+            <div className="min-w-0">
+              <div className="mb-1 text-[15px] text-ink-2">
+                W·e + b, W of shape [{res.shape.join(', ')}]
+              </div>
+              <VectorStrip values={res.pre} columns={32} cellHeight={16} showNorm={false} />
             </div>
-            <VectorStrip values={res.pre} columns={32} cellHeight={16} showNorm={false} />
+            <div className="min-w-0">
+              <div className="mb-1 text-[15px] text-ink-2">
+                RMSNorm → column term ({res.d}-d) · RMS <span className="num text-ink">{res.rms.toFixed(2)}</span>
+              </div>
+              <VectorStrip values={res.out} columns={32} cellHeight={16} showNorm={false} />
+            </div>
           </div>
-          <div className="min-w-0">
-            <div className="mb-1 text-[15px] text-ink-2">RMSNorm → column term ({res.d}-d)</div>
-            <VectorStrip values={res.out} columns={32} cellHeight={16} showNorm={false} />
-          </div>
-        </div>
+
+          {res.rows.length > 0 && (
+            <div className="mt-5 rounded-lg border border-border px-4 py-3">
+              <div className="mb-2 text-[15.5px] font-semibold text-ink">Does the learned map keep the encoder’s similarities?</div>
+              <div className="scroll-quiet overflow-x-auto">
+                <table className="w-full border-collapse text-[15px]">
+                  <caption className="sr-only">Cosine of the frozen vectors and of the column terms, for three partner phrases</caption>
+                  <thead>
+                    <tr className="border-b border-grid text-left text-ink-2">
+                      <th scope="col" className="py-1.5 pr-3 font-semibold">
+                        Partner phrase
+                      </th>
+                      <th scope="col" className="py-1.5 pr-3 text-right font-semibold whitespace-nowrap">
+                        cos, frozen e
+                      </th>
+                      <th scope="col" className="py-1.5 text-right font-semibold whitespace-nowrap">
+                        cos, column term
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {res.rows.map((r) => (
+                      <tr key={r.text} className="border-b border-grid/70 align-top">
+                        <td className="py-1.5 pr-3">
+                          <Phrase text={r.text} />
+                          <div className="text-[14px] text-muted">{r.why}</div>
+                        </td>
+                        <td className="num py-1.5 pr-3 text-right text-ink">{f3(r.before)}</td>
+                        <td className="num py-1.5 text-right font-semibold text-ink">{f3(r.after)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-2 !mb-0 text-[14.5px] leading-snug text-ink-2">
+                The encoder fixes where every phrase starts. On the way into the token, training can reshape that geometry only through this one
+                affine map (W, b) and the gain γ, the same for every phrase of every database. The right column is what the model actually adds to
+                each token as its column term{assets.weightsKind === 'init' ? ' (here with untrained weights)' : ''}.
+              </p>
+            </div>
+          )}
+        </>
       ) : (
         <div className="flex min-h-[90px] items-center justify-center rounded-lg bg-surface-2 text-[15px] text-ink-2">
           {assets.status === 'error' ? `Weights unavailable (${assets.error ?? 'error'})` : 'Loading the checkpoint…'}
@@ -277,7 +373,7 @@ export function LearnedProjection({ phrase, store, assets }: { phrase: string; s
 
       <div className="mt-5 grid gap-2.5 sm:grid-cols-3">
         <div className="rounded-lg border border-dashed border-border-strong px-3.5 py-3">
-          <div className="text-[15px] text-ink-2">Text encoder (frozen, never trained)</div>
+          <div className="text-[15px] text-ink-2">Text encoder (pretrained, frozen: never updated by RT)</div>
           <div className="num mt-1 text-[21px] font-semibold text-ink">{int(ENCODER.parameters)}</div>
           <div className="text-[14px] text-muted">
             {ENCODER.layers} layers, hidden {ENCODER.hidden}, {ENCODER.heads} heads

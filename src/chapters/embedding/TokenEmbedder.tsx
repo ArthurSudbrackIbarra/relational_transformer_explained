@@ -43,7 +43,9 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
   const tok = ctx.tokens[inspected];
   const reduce = useReducedMotion();
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const inView = useInView(rootRef, { once: true, amount: 0.35 });
+  // The figure is taller than a phone screen, so an area threshold would never be reached there: start
+  // once its top has scrolled into the upper part of the viewport.
+  const inView = useInView(rootRef, { once: true, amount: 'some', margin: '0px 0px -45% 0px' });
   const player = useStepPlayer(STEPS, { intervalMs: 1700 });
   // Stages the reader steps to (buttons, scrubber, keys) are scrolled into view if hidden; autoplay never scrolls.
   const stageRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -508,7 +510,7 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
                 >
                   {masked ? (
                     <SkipNote>
-                      m_{data.key} is added to the sum as it is, times its gate, which is 1 here (model.py:221-224).
+                      <span className="font-mono">m_{data.key}</span> is added to the sum as it is, times its gate, which is 1 here (model.py:221-224).
                     </SkipNote>
                   ) : (
                     <VectorStrip

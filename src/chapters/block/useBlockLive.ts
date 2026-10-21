@@ -3,7 +3,7 @@
  * (full capture, cached by the engine pipeline: computed once and shared with every chapter), the
  * table colours and the token presets used by the figures. Nothing here recomputes the model.
  */
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { MINI_CONFIG } from '@/engine/model/config';
 import type { Token } from '@/engine/types';
@@ -37,8 +37,17 @@ export function useBlockLive() {
   const inCtx = useInContextLabels();
   const assets = useAssets();
   const fr = useForward();
-  const { disabledLayers, setDisabledLayers, setBlock, setLayer } = useSim(
-    useShallow((s) => ({ disabledLayers: s.disabledLayers, setDisabledLayers: s.setDisabledLayers, setBlock: s.setBlock, setLayer: s.setLayer })),
+  const { disabledLayers, setDisabledLayers, block: storeBlock, setBlock, setLayer, selectedPos, setSelectedPos, setTask } = useSim(
+    useShallow((s) => ({
+      disabledLayers: s.disabledLayers,
+      setDisabledLayers: s.setDisabledLayers,
+      block: s.block,
+      setBlock: s.setBlock,
+      setLayer: s.setLayer,
+      selectedPos: s.selectedPos,
+      setSelectedPos: s.setSelectedPos,
+      setTask: s.setTask,
+    })),
   );
 
   const cfg = assets.weights?.config ?? MINI_CONFIG;
@@ -53,6 +62,12 @@ export function useBlockLive() {
   const labels = useMemo(() => ctx.tokens.map((t) => tokenLabel(t, prefixes)), [ctx, prefixes]);
 
   const presets = useMemo(() => tokenPresets(ctx.tokens, target, inCtx.self.map((l) => l.pos), inCtx.other.map((l) => l.pos), task.entityTable), [ctx, target, inCtx, task]);
+
+  // The followed token is the store's selected token, shared with chapters 7-10 (chapter 10 reads its query
+  // from it): null = the masked target.
+  const follow = selectedPos !== null && selectedPos >= 0 && selectedPos < S && !ctx.tokens[selectedPos].isPadding ? selectedPos : target;
+  const setFollow = useCallback((pos: number) => setSelectedPos(pos === target ? null : pos), [setSelectedPos, target]);
+  const block = Math.max(0, Math.min(nBlocks - 1, storeBlock));
 
   return {
     db,
@@ -76,8 +91,12 @@ export function useBlockLive() {
     presets,
     disabledLayers,
     setDisabledLayers,
+    follow,
+    setFollow,
+    block,
     setBlock,
     setLayer,
+    setTask,
   };
 }
 

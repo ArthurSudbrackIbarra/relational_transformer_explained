@@ -136,8 +136,9 @@ export function SimilarityMatrix({ store, catalog, home, focus, onFocus }: Simil
   const tableLabels = useMemo(() => {
     const x0s = colGroups.map((g) => g.j0 * cell + colGaps.g[g.j0]);
     const x1s = colGroups.map((g) => g.j1 * cell + colGaps.g[g.j1] + cell - 1);
-    // the last labels may run past the last column (the SVG widens to hold them)
-    const limit = (k: number, n: number) => (k + n < colGroups.length ? x0s[k + n] - 6 : Infinity);
+    // the last labels may run past the last column, into free width (the SVG widens to hold them)
+    const room = Math.max(C * cell + colGaps.total + 2, avail);
+    const limit = (k: number, n: number) => (k + n < colGroups.length ? x0s[k + n] - 6 : room - 2);
     const need = (k: number) => textWidth(colGroups[k].table, TABLE_PX) + 14;
     let n = 1;
     while (n < 4 && colGroups.some((_, k) => x0s[k] + need(k) > limit(k, n))) n++;
@@ -150,11 +151,13 @@ export function SimilarityMatrix({ store, catalog, home, focus, onFocus }: Simil
     }));
     const extent = Math.max(0, ...out.map((o) => o.x0 + textWidth(o.text, TABLE_PX) + 16));
     return { out, n, extent };
-  }, [colGroups, cell, colGaps]);
+  }, [colGroups, cell, colGaps, C, avail]);
+  // the tail labels may use the free width to the right of the cells, but never cause a scroll
+  const cellsW = C * cell + colGaps.total + 2;
   const tableBandH = tableLabels.n * TABLE_ROW_H + 6;
 
   const plotY = dbHeaderH + tableBandH + colLabelH + stripH + 4;
-  const Wm = Math.max(C * cell + colGaps.total + 2, tableLabels.extent);
+  const Wm = Math.max(cellsW, Math.min(tableLabels.extent, Math.max(cellsW, avail)));
   const H = plotY + R * cell + (rowOff[R - 1] ?? 0) + 2;
   const cy0 = (i: number) => plotY + i * cell + rowOff[i];
 
