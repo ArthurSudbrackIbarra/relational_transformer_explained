@@ -4,19 +4,23 @@
  */
 import { Clock, Crosshair, Layers, Ruler, Scissors } from 'lucide-react';
 import { useMemo, type ReactNode } from 'react';
-import { Button, Cite } from '@/components';
+import { Button, Callout, Cite } from '@/components';
 import { useExplore } from './explore';
 import { useTrace } from './player';
 import { cutRow, iterationEvents, plural, rowName, tsDate, type Iteration } from './trace';
 
-function Card({ n, icon, title, rule, cite, example, onShow, showLabel = 'Show me' }: {
+function Card({ n, icon, title, rule, cite, example, paper, code, onShow, showLabel = 'Show me' }: {
   n: number;
   icon: ReactNode;
   title: string;
   rule: ReactNode;
   cite: ReactNode;
   example: ReactNode;
-  onShow?: () => void;
+  /** Paper vs code (BUILD_PLAN §0.3): what the paper says, and how the code differs. */
+  paper: ReactNode;
+  code: ReactNode;
+  /** Receives the card element (offered back as "Back to rule n" in the figure). */
+  onShow?: (card: HTMLElement) => void;
   showLabel?: string;
 }) {
   return (
@@ -31,13 +35,31 @@ function Card({ n, icon, title, rule, cite, example, onShow, showLabel = 'Show m
       <p className="mt-2 text-[17px] leading-[1.55] text-ink">
         {rule} {cite}
       </p>
+      <Callout variant="paper-vs-code" title="Paper vs code" className="!mb-0 !mt-3 !px-3 !py-2.5">
+        <p className="!mb-1 text-[16px] leading-[1.5] text-ink-2">
+          <span className="font-semibold text-ink">Paper: </span>
+          {paper}
+        </p>
+        <p className="text-[16px] leading-[1.5] text-ink">
+          <span className="font-semibold">Code: </span>
+          {code}
+        </p>
+      </Callout>
       <div className="mt-3 flex-1 rounded-lg bg-surface-2 px-3 py-2.5 text-[16px] leading-snug text-ink-2">
         <div className="eyebrow mb-1 !text-[13px]">In this context</div>
         {example}
       </div>
       {onShow && (
         <div className="mt-3">
-          <Button size="sm" variant="secondary" icon={<Crosshair size={13} />} onClick={onShow}>
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<Crosshair size={13} />}
+            onClick={(e: React.MouseEvent<HTMLElement>) => {
+              const card = e.currentTarget.closest('article');
+              if (card) onShow(card as HTMLElement);
+            }}
+          >
             {showLabel}
           </Button>
         </div>
@@ -84,9 +106,9 @@ export function RuleCards() {
   const cut = useMemo(() => cutRow(ctx, ctx.params.dropColNameIdxs, pdb), [ctx, pdb]);
   const ended = ctx.events.find((e) => e.kind === 'frontier-empty');
 
-  const at = (it: Iteration | undefined, kind: string) => () => {
+  const at = (n: number, it: Iteration | undefined, kind: string) => (card: HTMLElement) => {
     if (!it) return;
-    jumpTo((s) => s.iter === it.iter && s.kind === kind);
+    jumpTo((s) => s.iter === it.iter && s.kind === kind, { label: `rule ${n}`, el: card });
   };
 
   const mp = facts.multiParent ?? facts.anyParent;
@@ -111,6 +133,18 @@ export function RuleCards() {
             <Cite kind="spec" ref="§4.4" />
           </>
         }
+        paper={
+          <>
+            among rows added via an F→P link, <span className="font-mono">r ← RandomSelect(R)</span> <Cite kind="paper" ref="p.15 Alg. 1" />; “F→P links are
+            immediately followed” <Cite kind="paper" ref="p.16 App. A" />.
+          </>
+        }
+        code={
+          <>
+            no random pick: a LIFO pop. Each parent’s own parents go on top, so foreign-key chains are followed depth-first, completely, before any child
+            row <Cite kind="spec" ref="§4.4" />.
+          </>
+        }
         example={
           <>
             {plural(facts.parentPushes, 'parent push', 'parent pushes')}, {plural(facts.stackPops, 'stack pop')} ({facts.stackSkips} of them already visited).
@@ -128,7 +162,7 @@ export function RuleCards() {
             ) : null}
           </>
         }
-        onShow={mp ? at(mp.it, 'visit') : undefined}
+        onShow={mp ? at(1, mp.it, 'visit') : undefined}
       />
       <Card
         n={2}
@@ -146,6 +180,19 @@ export function RuleCards() {
             <Cite kind="spec" ref="§4.6" />
           </>
         }
+        paper={
+          <>
+            the prose says “rows with timestamps later than the seed row are excluded” <Cite kind="paper" ref="p.4 §3.1" />, and training uses database rows
+            “only up to the training cutoff timestamps” <Cite kind="paper" ref="p.6 §4.1" />; Algorithm 1 itself applies <span className="font-mono">T(q) ≤ T(s)</span> only
+            to P→F neighbours <Cite kind="paper" ref="p.15 Alg. 1" />.
+          </>
+        }
+        code={
+          <>
+            the same scope as Algorithm 1 (parents are never tested), but the test needs both timestamps, so a child or a seed without one passes{' '}
+            <Cite kind="code" ref="rustler/src/fly.rs:406-424" />, and no global cutoff exists <Cite kind="spec" ref="§10" />.
+          </>
+        }
         example={
           seed.ts === null ? (
             <>This seed has no timestamp, so the filter is disabled for the whole context.</>
@@ -158,7 +205,7 @@ export function RuleCards() {
             <>No child of a visited row was later than the seed ({tsDate(seed.ts)}).</>
           )
         }
-        onShow={facts.firstFuture ? at(facts.firstFuture.it, 'filter') : undefined}
+        onShow={facts.firstFuture ? at(2, facts.firstFuture.it, 'filter') : undefined}
       />
       <Card
         n={3}
@@ -176,6 +223,16 @@ export function RuleCards() {
             <Cite kind="spec" ref="§4.7" />
           </>
         }
+        paper={
+          <>
+            <span className="font-mono">N ← RandomSample(N, w)</span> on all P→F neighbours <Cite kind="paper" ref="p.15 Alg. 1" />.
+          </>
+        }
+        code={
+          <>
+            only DB children are subsampled, and children that are already visited still count toward w <Cite kind="spec" ref="§4.7" />.
+          </>
+        }
         example={
           <>
             {facts.biggest ? (
@@ -191,7 +248,7 @@ export function RuleCards() {
               : 'Autocomplete: no task rows are ever pushed (the seed is a DB row).'}
           </>
         }
-        onShow={facts.biggest ? at(facts.biggest.it, 'width') : facts.firstTask ? at(facts.firstTask.it, 'filter') : undefined}
+        onShow={facts.biggest ? at(3, facts.biggest.it, 'width') : facts.firstTask ? at(3, facts.firstTask.it, 'filter') : undefined}
       />
       <Card
         n={4}
@@ -204,6 +261,13 @@ export function RuleCards() {
             <Cite kind="spec" ref="§4.11" />
           </>
         }
+        paper={
+          <>
+            “Once a row is selected, all of its non-missing feature cells are added” <Cite kind="paper" ref="p.4 §3.1" />, and the traversal “stops when the total
+            number of cells reaches the context length” <Cite kind="paper" ref="p.16 App. A" />.
+          </>
+        }
+        code={<>the last row can be partial: the loop does not finish the row it is writing.</>}
         example={
           ended && ended.kind === 'frontier-empty' ? (
             <>
@@ -217,7 +281,7 @@ export function RuleCards() {
             <>Full at L = {ctx.params.L}, exactly at the end of a row (nothing cut this time).</>
           )
         }
-        onShow={() => jumpTo((s) => s.kind !== 'start' && s.end === ctx.events.length)}
+        onShow={(card) => jumpTo((s) => s.kind !== 'start' && s.end === ctx.events.length, { label: 'rule 4', el: card })}
         showLabel="Show the last step"
       />
     </div>

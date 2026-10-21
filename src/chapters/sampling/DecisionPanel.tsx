@@ -393,10 +393,10 @@ export function DecisionPanel({ step, iters, ctx, db, pdb, task, slots, before, 
         </div>
       )}
 
-      {showVisit && kind === 'visit' && (
+      {showVisit && (
         <div>
           <Heading aside="fly.rs:399-408">Visit · push parents</Heading>
-          <RowCard db={db} pdb={pdb} node={it.node} task={task} seed={seed} slots={slots} />
+          <RowCard db={db} pdb={pdb} node={it.node} task={task} seed={seed} slots={slots} compact={kind === 'row'} />
           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[14.5px] text-ink-2">
             {ie.parents.length === 0 ? (
               <span>No foreign key, so nothing goes onto the stack.</span>

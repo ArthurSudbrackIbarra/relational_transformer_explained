@@ -20,13 +20,13 @@ export function renderAlgText(text: string) {
     if (p === 'N_F→P' || p === 'N_P→F')
       return (
         <span key={i}>
-          𝒩<sub className="text-[13px]">{p.slice(2)}</sub>
+          𝒩<sub className="text-[13.5px]">{p.slice(2)}</sub>
         </span>
       );
     if (p === 'argmin_{r∈F}')
       return (
         <span key={i}>
-          argmin<sub className="text-[13px]">r∈F</sub>
+          argmin<sub className="text-[13.5px]">r∈F</sub>
         </span>
       );
     if (p === 'RandomSelect' || p === 'RandomSample' || p === 'HopDistance')
@@ -56,7 +56,7 @@ const CodeLine = memo(function CodeLine({ i, active }: { i: number; active: bool
   const l = CODE_LINES[i];
   return (
     <li aria-current={active ? 'step' : undefined} className={cx('flex gap-3 rounded-[5px] pr-2 transition-colors', active ? 'bg-accent-soft text-ink' : 'text-ink-2')}>
-      <span className="w-[54px] shrink-0 text-right text-[13.5px] text-muted select-none">{l.lines}</span>
+      <span className="w-[4.6rem] shrink-0 text-right text-[13.5px] whitespace-nowrap text-muted select-none">{l.lines}</span>
       <span style={{ paddingLeft: `${l.indent * 1.4}em` }} className="min-w-0">
         {l.text}
       </span>
@@ -73,9 +73,9 @@ const PaperHeader = memo(function PaperHeader() {
         </span>
         <span className="text-[14px] text-muted">as printed</span>
       </figcaption>
-      <div className="mb-2 rounded-md bg-surface-2 px-2.5 py-1.5 text-[14.5px] leading-snug text-ink-2">
+      <div className="mb-2 rounded-md bg-surface-2 px-2.5 py-1.5 text-[15px] leading-snug text-ink-2">
         <strong className="font-semibold text-ink">Input:</strong> seed row s, context length L, width bound w, and, for each row r: non-missing feature cells
-        C(r), P→F neighbors 𝒩<sub className="text-[13px]">P→F</sub>(r), F→P neighbors 𝒩<sub className="text-[13px]">F→P</sub>(r) and timestamp 𝒯(r). <strong className="font-semibold text-ink">Output:</strong> the set
+        C(r), P→F neighbors 𝒩<sub className="text-[13.5px]">P→F</sub>(r), F→P neighbors 𝒩<sub className="text-[13.5px]">F→P</sub>(r) and timestamp 𝒯(r). <strong className="font-semibold text-ink">Output:</strong> the set
         of database cells C in the context window.
       </div>
     </>

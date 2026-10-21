@@ -85,7 +85,12 @@ export function BucketsPanel({ db, pdb, slots, state, before, step, ctx, hover, 
   const reduce = usePrefersReducedMotion();
   const ev = step.kind === 'select' || step.kind === 'row' ? ctx.events[step.start] : undefined;
   const draw = ev && ev.kind === 'pop' && ev.from === 'bucket' ? ev : undefined;
-  const depths = state.buckets.map((b, d) => ({ d, b })).filter((x) => x.b.length > 0 || (draw && draw.depth === x.d));
+  // every depth from the lowest to the highest non-empty bucket (empty ones too, so the reader sees why
+  // "the lowest non-empty bucket" skips them), plus the bucket just drawn from
+  const nonEmpty = state.buckets.map((b, d) => (b.length > 0 || (draw && draw.depth === d) ? d : -1)).filter((d) => d >= 0);
+  const dLo = nonEmpty.length ? Math.min(...nonEmpty) : 0;
+  const dHi = nonEmpty.length ? Math.max(...nonEmpty) : -1;
+  const depths = Array.from({ length: Math.max(0, dHi - dLo + 1) }, (_, i) => ({ d: dLo + i, b: state.buckets[dLo + i] ?? [] }));
   const lowest = state.buckets.findIndex((b) => b.length > 0);
   const total = state.buckets.reduce((s, b) => s + b.length, 0);
   return (
@@ -93,14 +98,21 @@ export function BucketsPanel({ db, pdb, slots, state, before, step, ctx, hover, 
       <PanelTitle aside={plural(total, 'entry', 'entries')}>P→F depth buckets</PanelTitle>
       <div className="scroll-quiet flex max-h-[220px] min-h-[88px] flex-col gap-2 overflow-y-auto rounded-lg border border-border bg-surface-2/60 p-2">
         {depths.length === 0 && <div className="px-1 py-1 text-[14.5px] text-muted">empty</div>}
+        {state.finished?.kind === 'full' && total > 0 && <div className="text-[14px] text-muted">L reached: these entries are never drawn.</div>}
         {depths.map(({ d, b }) => {
           const drawnHere = draw && draw.depth === d;
+          if (b.length === 0 && !drawnHere)
+            return (
+              <div key={d} className="text-[14px] text-muted">
+                <span className="font-semibold text-ink-2">depth {d}</span> · empty
+              </div>
+            );
           return (
             <div key={d} className="min-w-0">
               <div className="mb-1 flex flex-wrap items-center gap-x-2 text-[14px] text-ink-2">
                 <span className="font-semibold text-ink">depth {d}</span>
                 <span className="num">{b.length}</span>
-                {d === lowest && state.stack.length === 0 && <span className="text-accent-text">next draw comes from here</span>}
+                {d === lowest && state.stack.length === 0 && !state.finished && <span className="text-accent-text">next draw comes from here</span>}
                 {drawnHere && draw && (
                   <span className="inline-flex items-center gap-1 text-accent-text">
                     <Dice5 aria-hidden="true" size={12} /> drew index {draw.draw} of {draw.bucketSize}: {rowName(db, pdb, draw.node).short}

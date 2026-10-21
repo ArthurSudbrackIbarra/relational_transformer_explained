@@ -193,77 +193,11 @@ function RulesSection() {
         <Term id="bfs-width">width bound w</Term>. Each card shows its rule at work in the context above; “Show me” moves the replay
         to that moment.
       </p>
-      <RuleCards />
       <p>
-        Each rule differs in a detail from the paper’s description. The code is what produced the released model, so this course follows the code{' '}
-        <Cite kind="spec" ref="§10" />.
+        Each rule differs in a detail from the paper’s description, and each card says how. The code is what produced the released model, so this course
+        follows the code <Cite kind="spec" ref="§10" />.
       </p>
-      <Callout
-        variant="paper-vs-code"
-        title="Parents: a LIFO stack, not a random pick"
-        paper={
-          <>
-            Among rows added via an F→P link, <span className="font-mono">r ← RandomSelect(R)</span> <Cite kind="paper" ref="p.15 Alg. 1" />; “F→P links are
-            immediately followed” <Cite kind="paper" ref="p.16 App. A" />.
-          </>
-        }
-        code={
-          <>
-            A deterministic stack pop <Cite kind="code" ref="rustler/src/fly.rs:378-379" />. Parents are pushed in foreign-key column order, so the last FK is
-            followed first, and each parent’s own parents go on top: FK chains are followed depth-first, completely, before any child row{' '}
-            <Cite kind="spec" ref="§4.4" />.
-          </>
-        }
-      />
-      <Callout
-        variant="paper-vs-code"
-        title="What the temporal filter covers"
-        paper={
-          <>
-            The prose says “rows with timestamps later than the seed row are excluded” <Cite kind="paper" ref="p.4 §3.1" />, and the database is used “only up to
-            the training cutoff timestamps” <Cite kind="paper" ref="p.6 §4.1" />. Algorithm 1 itself applies <span className="font-mono">T(q) ≤ T(s)</span> only to
-            P→F neighbours <Cite kind="paper" ref="p.15 Alg. 1" />.
-          </>
-        }
-        code={
-          <>
-            Like Algorithm 1, only P→F children are tested, against the seed’s timestamp, and parents never are. The differences: the test runs only when both
-            timestamps exist, so a child without one passes and a seed without one disables the filter <Cite kind="code" ref="rustler/src/fly.rs:406-424" />, and no
-            global cutoff exists anywhere <Cite kind="spec" ref="§4.6" /> <Cite kind="spec" ref="§10" />.
-          </>
-        }
-      />
-      <Callout
-        variant="paper-vs-code"
-        title="The width bound applies to DB children only"
-        paper={
-          <>
-            <span className="font-mono">N ← RandomSample(N, w)</span> on all P→F neighbours <Cite kind="paper" ref="p.15 Alg. 1" />.
-          </>
-        }
-        code={
-          <>
-            Only DB children are subsampled. Every child from the seed’s task table (any split) that passes the time filter is pushed{' '}
-            <Cite kind="code" ref="rustler/src/fly.rs:421-452" />.
-            Children that are already visited still count toward w <Cite kind="spec" ref="§4.7" />.
-          </>
-        }
-      />
-      <Callout
-        variant="paper-vs-code"
-        title="A row can be cut at L"
-        paper={
-          <>
-            “Once a row is selected, all of its non-missing feature cells are added” <Cite kind="paper" ref="p.4 §3.1" />; the traversal “stops when the total
-            number of cells reaches the context length” <Cite kind="paper" ref="p.16 App. A" />.
-          </>
-        }
-        code={
-          <>
-            The loop breaks after exactly L tokens, even in the middle of a row, so the last row can be partial <Cite kind="code" ref="rustler/src/fly.rs:502-509" />.
-          </>
-        }
-      />
+      <RuleCards />
       {task.kind === 'autocomplete' ? (
         <Callout variant="note" title="Autocomplete adds one more filter">
           <p>
@@ -487,8 +421,26 @@ function CodeSection() {
         The full comparison, from the specification <Cite kind="spec" ref="§4.15" />. The paper sources are Algorithm 1 <Cite kind="paper" ref="p.15 Alg. 1" />,
         Appendix A <Cite kind="paper" ref="p.16 App. A" /> and Section 3.1 <Cite kind="paper" ref="p.4 §3.1" />.
       </p>
-      <div className="wide my-6 overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-[16.5px]">
+      {/* narrow screens: one card per aspect, so the Code and Where columns are never scrolled away */}
+      <dl className="wide my-6 grid gap-3 sm:hidden">
+        {COMPARISON.map((r) => (
+          <div key={r.aspect} className="rounded-xl border border-border bg-surface px-3.5 py-3">
+            <dt className="text-[16.5px] font-semibold text-ink">{r.aspect}</dt>
+            <dd className="mt-1.5 grid gap-1 text-[16px] leading-snug">
+              <div className="text-ink-2">
+                <span className="eyebrow mr-1.5 !text-[13px]">Paper</span>
+                {r.paper}
+              </div>
+              <div className="text-ink">
+                <span className="eyebrow mr-1.5 !text-[13px]">Code</span>
+                {r.code} <Cite kind="code" ref={r.ref} />
+              </div>
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <div className="wide my-6 hidden overflow-x-auto sm:block">
+        <table className="w-full min-w-[600px] border-collapse text-[16.5px]">
           <thead>
             <tr className="border-b border-grid text-left text-[15px] text-ink-2">
               <th scope="col" className="py-2 pr-4 font-medium">Aspect</th>

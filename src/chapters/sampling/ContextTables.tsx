@@ -133,6 +133,7 @@ export function ContextTables({ db, pdb, task, slots, state, ctx, cursor, seed, 
             mutedKey={mutedByKey.get(key) ?? ''}
             targetRow={seedNode.tableKey === key ? seedNode.rowPos : null}
             targetCol={targetCol}
+            labelFirst={pdb.nodes[nodes[0]].tableName === seedNode.tableName}
             onHover={onHover}
           />
         );
@@ -155,6 +156,7 @@ const TableGroup = memo(function TableGroup({
   mutedKey,
   targetRow,
   targetCol,
+  labelFirst,
   onHover,
 }: {
   tableKey: string;
@@ -170,6 +172,8 @@ const TableGroup = memo(function TableGroup({
   mutedKey: string;
   targetRow: number | null;
   targetCol: string;
+  /** Rows of the seed's own table: show the target / label column first, so it never scrolls out of a narrow pane. */
+  labelFirst: boolean;
   onHover: (n: number | null) => void;
 }) {
   const nodes = useMemo(() => nodesKey.split(',').map(Number), [nodesKey]);
@@ -191,6 +195,11 @@ const TableGroup = memo(function TableGroup({
     return m;
   }, [mutedKey]);
   const nMuted = muted?.size ?? 0;
+  const columns = useMemo(() => {
+    if (!labelFirst || !table) return undefined;
+    const names = table.schema.columns.map((c) => c.name);
+    return names.includes(targetCol) ? [targetCol, ...names.filter((c) => c !== targetCol)] : undefined;
+  }, [labelFirst, table, targetCol]);
   if (!table) return null;
   return (
     <div data-key={tableKey} className="min-w-0">
@@ -199,6 +208,7 @@ const TableGroup = memo(function TableGroup({
         rows={table.rows}
         slot={slots[first.tableName] ?? 0}
         title={first.tableType === 'Db' ? first.tableName : `${first.tableName} (${first.tableType})`}
+        columns={columns}
         rowFilter={rows}
         highlightRows={highlightRows}
         highlightCells={cells}

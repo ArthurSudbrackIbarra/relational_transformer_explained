@@ -10,7 +10,7 @@
  * Positions come from `buildLayout` over the WHOLE trace, so nothing moves while the replay runs.
  */
 import { motion } from 'motion/react';
-import { memo, useId, useMemo, useState } from 'react';
+import { memo, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ShapeGlyph, shapeOfSlot, shapePath, TableSwatch, cx, textWidth } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import type { PreprocessedDB, RawDatabase } from '@/engine/types';
@@ -70,9 +70,17 @@ export function BfsGraph({
   const reduce = usePrefersReducedMotion();
   const [wrapRef, size] = useElementSize<HTMLDivElement>();
   const [focus, setFocus] = useState<number | null>(null);
-  const R = layout.radius;
-  const vb = { x: -R - PAD, y: -R - PAD, w: 2 * (R + PAD), h: 2 * (R + PAD) };
   const width = size.width || 560;
+  // On narrow screens the view zooms to the rings reached so far (all positions stay fixed), so the early
+  // steps are not crammed into the middle of a 300px figure.
+  const narrow = width < 480;
+  const maxShownDepth = useMemo(() => {
+    let m = 1;
+    for (const n of state.discovered) m = Math.max(m, layout.nodes.get(n)?.depth ?? 0);
+    return m;
+  }, [state.discovered, layout]);
+  const R = narrow ? Math.max(layout.ring(1), layout.ring(Math.min(layout.maxDepth, maxShownDepth))) : layout.radius;
+  const vb = { x: -R - PAD, y: -R - PAD, w: 2 * (R + PAD), h: 2 * (R + PAD) };
   const height = Math.min(width, maxHeight);
   const scale = Math.min(width / vb.w, height / vb.h);
   const offX = (width - vb.w * scale) / 2;
@@ -82,6 +90,34 @@ export function BfsGraph({
   const k = Math.max(1, 0.62 / scale);
   // text: user units per screen pixel, so `px * t` renders at `px` CSS pixels whatever the scale
   const t = 1 / scale;
+  // marks never shrink below these on-screen radii (px): visited rows 5, frontier entries 2.5
+  const rVisited = Math.max(R_VISITED, (5 * t) / k);
+  const rFrontierMin = (2.5 * t) / k;
+
+  // animate the zoom (viewBox) between steps; React renders the target, the effect tweens the attribute
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const shownVb = useRef(vb);
+  const vbKey = `${vb.x} ${vb.y} ${vb.w} ${vb.h}`;
+  useEffect(() => {
+    const el = svgRef.current;
+    const from = shownVb.current;
+    const to = vb;
+    shownVb.current = to;
+    if (!el || reduce || (from.w === to.w && from.x === to.x)) return;
+    let raf = 0;
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      // rAF timestamps can precede t0 (frame start): clamp, or the ease would overshoot backwards
+      const u = Math.max(0, Math.min(1, (now - t0) / 380));
+      const e = 1 - (1 - u) ** 3;
+      const lerp = (a: number, b: number) => a + (b - a) * e;
+      el.setAttribute('viewBox', `${lerp(from.x, to.x)} ${lerp(from.y, to.y)} ${lerp(from.w, to.w)} ${lerp(from.h, to.h)}`);
+      if (u < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vbKey, reduce]);
 
   // frontier marks shrink on crowded rings
   const frontierR = useMemo(() => {
@@ -89,10 +125,10 @@ export function BfsGraph({
     for (let d = 0; d < layout.perDepth.length; d++) {
       const circ = 2 * Math.PI * Math.max(1, layout.ring(d));
       const per = circ / Math.max(1, layout.perDepth[d]);
-      out[d] = Math.max(1.6, Math.min(3.6, per * 0.38));
+      out[d] = Math.max(1.6, rFrontierMin, Math.min(3.6, per * 0.38));
     }
     return out;
-  }, [layout]);
+  }, [layout, rFrontierMin]);
 
   const nodes = useMemo(() => [...layout.nodes.values()], [layout]);
   const shown = nodes.filter((n) => state.discovered.has(n.node));
@@ -117,7 +153,8 @@ export function BfsGraph({
   return (
     <div ref={wrapRef} className={cx('relative w-full min-w-0', className)}>
       <svg
-        role="img"
+        ref={svgRef}
+        role="group"
         aria-label={`Breadth-first search around the seed row: ${state.visitedOrder.length} rows visited, ${shown.length - state.visitedOrder.length} waiting in the frontier.`}
         width={width}
         height={height}
@@ -135,7 +172,7 @@ export function BfsGraph({
 
         {/* depth rings */}
         <g aria-hidden="true">
-          {Array.from({ length: layout.maxDepth }, (_, i) => i + 1).map((d) => (
+          {Array.from({ length: narrow ? Math.min(layout.maxDepth, maxShownDepth) : layout.maxDepth }, (_, i) => i + 1).map((d) => (
             <g key={d}>
               <circle r={layout.ring(d)} fill="none" style={{ stroke: d === curRing ? 'var(--accent)' : 'var(--grid)', opacity: d === curRing ? 0.45 : 1 }} strokeWidth={1 * k} />
               {(d - 1) % ringLabelEvery === 0 && (
@@ -180,6 +217,7 @@ export function BfsGraph({
                 bothVisited={state.visitedDepth.has(n.node) && state.visitedDepth.has(from)}
                 animate={isFresh && !reduce}
                 k={k}
+                rTip={rVisited}
                 uid={uid}
               />
             );
@@ -200,7 +238,7 @@ export function BfsGraph({
                 x={n.x}
                 y={n.y}
                 slot={slots[g.tableName] ?? 0}
-                r={isSeed ? Math.max(8.5, 9.5 / scale / k) : visited ? R_VISITED : (frontierR[n.depth] ?? 2.4)}
+                r={isSeed ? Math.max(8.5, 9.5 / scale / k) : visited ? rVisited : (frontierR[n.depth] ?? 2.4)}
                 visited={visited}
                 isSeed={isSeed}
                 isCur={current === n.node}
@@ -280,6 +318,7 @@ export function BfsGraph({
         </div>
       )}
 
+      <Key narrow={narrow}>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[14.5px] text-ink-2" aria-label="Legend">
         {tablesShown.map(([t, slot]) => (
           <TableSwatch key={t} slot={slot} shape label={t} size={10} />
@@ -310,7 +349,24 @@ export function BfsGraph({
           rings d1, d2, …: depth labels (visit depth)
         </span>
       </div>
+      </Key>
+      {narrow && maxShownDepth < layout.maxDepth && (
+        <p className="mt-1 text-[14px] text-muted">
+          Zoomed to the rings reached so far (d1–d{maxShownDepth} of {layout.maxDepth}).
+        </p>
+      )}
     </div>
+  );
+}
+
+/** The legend; on narrow screens it folds into a "Key" disclosure so the graph keeps the room. */
+function Key({ narrow, children }: { narrow: boolean; children: React.ReactNode }) {
+  if (!narrow) return <>{children}</>;
+  return (
+    <details className="mt-1">
+      <summary className="cursor-pointer text-[15px] font-medium text-ink-2 select-none">Key</summary>
+      {children}
+    </details>
   );
 }
 
@@ -318,7 +374,7 @@ export function BfsGraph({
 // Memoised marks: only the rows whose state changes re-render on a step
 // ─────────────────────────────────────────────────────────────────────────────
 
-const Link = memo(function Link({ x1, y1, x2, y2, f2p, on, bothVisited, animate, k, uid }: {
+const Link = memo(function Link({ x1, y1, x2, y2, f2p, on, bothVisited, animate, k, rTip, uid }: {
   x1: number;
   y1: number;
   x2: number;
@@ -328,12 +384,14 @@ const Link = memo(function Link({ x1, y1, x2, y2, f2p, on, bothVisited, animate,
   bothVisited: boolean;
   animate: boolean;
   k: number;
+  /** Radius of a visited mark (the arrow stops at its edge). */
+  rTip: number;
   uid: string;
 }) {
   const dx = x2 - x1;
   const dy = y2 - y1;
   const len = Math.hypot(dx, dy) || 1;
-  const shrink = (f2p ? R_VISITED + 2 : 2) * k;
+  const shrink = (f2p ? rTip + 2 : 2) * k;
   const ex = x2 - (dx / len) * shrink;
   const ey = y2 - (dy / len) * shrink;
   const d = `M${x1},${y1}L${ex},${ey}`;
@@ -400,7 +458,7 @@ const Node = memo(function Node({
   const filled = visited || isSeed;
   const body = (
     <>
-      <circle r={11 * k} fill="transparent" />
+      <circle r={Math.max(11 * k, 12 * t)} fill="transparent" />
       {isCand && !isCur && <circle r={(r + 3.2) * k} fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth={1 * k} strokeDasharray={`${1.5 * k} ${1.5 * k}`} />}
       {(isCur || isActive) && <circle r={(r + 4.5) * k} fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth={2 * k} />}
       {isCur && pulse && (

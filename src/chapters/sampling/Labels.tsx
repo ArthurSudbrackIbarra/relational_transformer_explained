@@ -380,6 +380,10 @@ export function LabelTimeline({ view }: { view?: LabelView }) {
         </span>
         {skipped && <span className="text-muted">Values are printed where they fit; hover a mark for its value.</span>}
       </div>
+      <p className="mt-1.5 text-[14.5px] leading-snug text-ink-2">
+        <span className="font-mono text-ink">{task.targetCol}</span>: {task.description}
+        {task.targetType === 'binary' ? ' Printed as 1 = true, 0 = false.' : ' Printed as the raw value.'}
+      </p>
     </div>
   );
 }
@@ -479,10 +483,19 @@ export function LabelPaths({ view }: { view?: LabelView }) {
     rings.set(ctx.params.seedNode, 'target');
     for (const l of labels.self) rings.set(l.nodeIdx, 'accent');
     for (const l of labels.other.slice(0, MAX_OTHER)) rings.set(l.nodeIdx, 'dashed');
+    // depth badges sit just above a node; on a hub (many arrows converge on it) the badge would sit among the
+    // arrowheads, so its depth goes into the node's label instead
+    const indeg = new Map<NodeId, number>();
+    for (const e of edges) indeg.set(e.target, (indeg.get(e.target) ?? 0) + 1);
     const badges = new Map<NodeId, string>();
     for (const n of keep) {
       const d = ctx.visited.find((v) => v.node === n)?.depth;
-      if (d !== undefined && !rings.has(n)) badges.set(n, `d${d}`);
+      if (d === undefined) continue;
+      const spec = nodes.find((x) => x.id === n);
+      if (spec) spec.title = `${spec.title}, visited at depth ${d}`;
+      if (rings.has(n)) continue;
+      if ((indeg.get(n) ?? 0) > 6 && spec) spec.label = `${spec.label} · d${d}`;
+      else badges.set(n, `d${d}`);
     }
     return { nodes, edges, rings, badges };
   }, [ctx, labels, layout, pdb, db, slots]);
@@ -520,7 +533,8 @@ export function LabelPaths({ view }: { view?: LabelView }) {
 
 export function SplitVisibility() {
   const { task, split, pdb, ctx } = useExplore();
-  if (task.kind !== 'forecast' || !task.tables) return null;
+  const [wrap, size] = useElementSize<HTMLDivElement>();
+  if (task.kind !== 'forecast' || !task.tables) return <div ref={wrap} />;
   const tsBySplit: Record<Split, number[]> = { Train: [], Val: [], Test: [] };
   for (const s of ['Train', 'Val', 'Test'] as Split[]) {
     const set = new Set<number>();
@@ -528,7 +542,7 @@ export function SplitVisibility() {
     for (const r of task.tables[s].rows) if (typeof r[col] === 'number') set.add(Math.trunc((r[col] as number) / 1000));
     tsBySplit[s] = [...set].sort((a, b) => a - b);
   }
-  const cols = [
+  const allCols = [
     ...tsBySplit.Train.map((t) => ({ t, s: 'Train' as Split })),
     ...tsBySplit.Val.map((t) => ({ t, s: 'Val' as Split })),
     ...tsBySplit.Test.map((t) => ({ t, s: 'Test' as Split })),
@@ -541,18 +555,35 @@ export function SplitVisibility() {
     { s: 'Test', t: tsBySplit.Test[0], label: `Test seed at ${tsDate(tsBySplit.Test[0])}` },
   ];
   const cell = (seedT: number, t: number) => (t < seedT ? 'past' : t === seedT ? 'same' : 'future');
+  // On narrow screens, consecutive timestamps of one split whose cells agree in all three rows are merged
+  // into one column ("T×9"): nothing is lost, and the Val / Test columns stay in view.
+  const narrow = (size.width || 800) < 560;
+  const cols: { t: number; s: Split; n: number; last: number }[] = [];
+  for (const c of allCols) {
+    const prev = cols[cols.length - 1];
+    const same = prev && narrow && prev.s === c.s && rows.every((r) => cell(r.t, prev.t) === cell(r.t, c.t));
+    if (same) {
+      prev.n++;
+      prev.last = c.t;
+    } else cols.push({ ...c, n: 1, last: c.t });
+  }
+  const abbr = (s: Split) => (s === 'Train' ? 'T' : s === 'Val' ? 'V' : 'Te');
+  const when = (c: { t: number; n: number; last: number }) => (c.n > 1 ? `${c.n} timestamps, ${tsDate(c.t)} to ${tsDate(c.last)}` : tsDate(c.t));
   return (
-    <div className="min-w-0">
+    <div ref={wrap} className="min-w-0">
       <div className="scroll-quiet overflow-x-auto">
         <table className="border-separate border-spacing-[3px] text-[14.5px]" aria-label="Which task rows a seed of each split can see">
           <thead>
             <tr>
               <th scope="col" className="sticky left-0 bg-surface pr-2 text-left font-medium text-ink-2">
-                seed ↓ · task rows at →
+                {narrow ? 'seed ↓ · rows at →' : 'seed ↓ · task rows at →'}
               </th>
               {cols.map((c, i) => (
-                <th key={i} scope="col" className="px-0 text-center font-normal text-muted" title={`${c.s} rows at ${tsDate(c.t)}`}>
-                  <span className={cx('inline-block w-[18px] font-mono text-[13px]', c.s !== 'Train' && 'font-semibold text-ink')}>{c.s === 'Train' ? 'T' : c.s === 'Val' ? 'V' : 'Te'}</span>
+                <th key={i} scope="col" className="px-0 text-center align-bottom font-normal text-muted" title={`${c.s} rows at ${when(c)}`}>
+                  <span className={cx('inline-block min-w-[18px] font-mono text-[13px] leading-tight', c.s !== 'Train' && 'font-semibold text-ink')}>
+                    {abbr(c.s)}
+                    {c.n > 1 && <span className="block text-[13px] font-normal text-muted">×{c.n}</span>}
+                  </span>
                 </th>
               ))}
             </tr>
@@ -560,20 +591,29 @@ export function SplitVisibility() {
           <tbody>
             {rows.map((r) => (
               <tr key={r.s} className={cx(r.s === split && 'outline-1 outline-accent')}>
-                <th scope="row" className={cx('sticky left-0 bg-surface pr-2 text-left font-normal whitespace-nowrap', r.s === split ? 'font-semibold text-ink' : 'text-ink-2')}>
-                  {r.label}
-                  {r.s === split ? ' (yours)' : ''}
+                <th scope="row" className={cx('sticky left-0 bg-surface pr-2 text-left font-normal', narrow ? 'leading-tight' : 'whitespace-nowrap', r.s === split ? 'font-semibold text-ink' : 'text-ink-2')}>
+                  {narrow ? (
+                    <>
+                      {r.s} seed{r.s === split ? ' (yours)' : ''}
+                      <span className="block font-mono text-[13px] text-muted">{tsDate(r.t)}</span>
+                    </>
+                  ) : (
+                    <>
+                      {r.label}
+                      {r.s === split ? ' (yours)' : ''}
+                    </>
+                  )}
                 </th>
                 {cols.map((c, i) => {
                   const k = cell(r.t, c.t);
                   return (
                     <td
                       key={i}
-                      title={`${c.s} rows at ${tsDate(c.t)}: ${k === 'past' ? 'can appear (any entity)' : k === 'same' ? 'same horizon: other entities’ rows can appear; the seed’s own row is the target' : 'later than the seed: never'}`}
+                      title={`${c.s} rows at ${when(c)}: ${k === 'past' ? 'can appear (any entity)' : k === 'same' ? 'same horizon: other entities’ rows can appear; the seed’s own row is the target' : 'later than the seed: never'}`}
                       className="p-0"
                     >
                       <span
-                        className={cx('block h-[18px] w-[18px] rounded-[4px]', k === 'future' && 'border border-dashed border-axis', k === 'same' && 'ring-2 ring-accent ring-inset')}
+                        className={cx('block h-[18px] rounded-[4px]', c.n > 1 ? 'w-[26px]' : 'w-[18px]', k === 'future' && 'border border-dashed border-axis', k === 'same' && 'ring-2 ring-accent ring-inset')}
                         style={{ background: k === 'past' ? 'var(--cat-5)' : k === 'same' ? 'color-mix(in srgb, var(--cat-5) 45%, transparent)' : 'transparent' }}
                       />
                     </td>
@@ -595,7 +635,10 @@ export function SplitVisibility() {
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded-[3px] border border-dashed border-axis" /> never (later than the seed)
         </span>
-        <span className="text-muted">T = Train, V = Val, Te = Test timestamps of {task.name}</span>
+        <span className="text-muted">
+          T = Train, V = Val, Te = Test timestamps of {task.name}
+          {cols.some((c) => c.n > 1) ? '; ×n = n timestamps that agree in every row' : ''}
+        </span>
       </div>
     </div>
   );
@@ -637,38 +680,47 @@ const T12: { group: string; rows: [string, string, string, string, string][] }[]
 ];
 
 export function Table12() {
+  const title = 'Paper Table 12: in-context labels per 1024-cell context (mean ± sd)';
   return (
-    <div className="scroll-quiet overflow-x-auto">
-      <table className="w-full min-w-[520px] border-collapse text-[15.5px]">
-        <caption className="mb-2 text-left text-[16px] font-semibold text-ink">Paper Table 12: in-context labels per 1024-cell context (mean ± sd)</caption>
-        <thead>
-          <tr className="border-b border-grid text-left text-ink-2">
-            <th scope="col" className="py-1.5 pr-3 font-medium">Dataset</th>
-            <th scope="col" className="py-1.5 pr-3 font-medium">Task</th>
-            <th scope="col" className="py-1.5 pr-3 text-right font-medium">Target-entity labels</th>
-            <th scope="col" className="py-1.5 pr-3 text-right font-medium">Other-entity labels</th>
-            <th scope="col" className="py-1.5 text-right font-medium">Unique labeled entities</th>
-          </tr>
-        </thead>
-        {T12.map((g) => (
-          <tbody key={g.group}>
-            <tr>
-              <th colSpan={5} scope="colgroup" className="pt-3 pb-1 text-left text-[14.5px] font-semibold text-muted">
-                {g.group}
-              </th>
+    <div className="min-w-0">
+      <div aria-hidden="true" className="mb-2 text-[16px] font-semibold text-ink">
+        {title}
+      </div>
+      <div className="scroll-quiet overflow-x-auto">
+        <table className="w-full border-collapse text-[15.5px] sm:min-w-[520px]">
+          <caption className="sr-only">{title}</caption>
+          <thead>
+            <tr className="border-b border-grid text-left align-bottom text-ink-2">
+              <th scope="col" className="hidden py-1.5 pr-3 font-medium sm:table-cell">Dataset</th>
+              <th scope="col" className="py-1.5 pr-3 font-medium">Task</th>
+              <th scope="col" className="py-1.5 pr-3 text-right font-medium">Target-entity labels</th>
+              <th scope="col" className="py-1.5 pr-3 text-right font-medium">Other-entity labels</th>
+              <th scope="col" className="py-1.5 text-right font-medium">Unique labeled entities</th>
             </tr>
-            {g.rows.map((r) => (
-              <tr key={r[0] + r[1]} className={cx('border-b border-grid/60', r[2] === '0 ± 0' && 'text-ink-2')}>
-                <td className="py-1 pr-3 font-mono text-[14.5px]">{r[0]}</td>
-                <td className="py-1 pr-3 font-mono text-[14.5px]">{r[1]}</td>
-                <td className="num py-1 pr-3 text-right">{r[2]}</td>
-                <td className="num py-1 pr-3 text-right">{r[3]}</td>
-                <td className="num py-1 text-right">{r[4]}</td>
+          </thead>
+          {T12.map((g) => (
+            <tbody key={g.group}>
+              <tr>
+                <th colSpan={5} scope="colgroup" className="pt-3 pb-1 text-left text-[14.5px] font-semibold text-muted">
+                  {g.group}
+                </th>
               </tr>
-            ))}
-          </tbody>
-        ))}
-      </table>
+              {g.rows.map((r) => (
+                <tr key={r[0] + r[1]} className={cx('border-b border-grid/60', r[2] === '0 ± 0' && 'text-ink-2')}>
+                  <td className="hidden py-1 pr-3 font-mono text-[14.5px] sm:table-cell">{r[0]}</td>
+                  <td className="py-1 pr-3 font-mono text-[14.5px]">
+                    <span className="block text-[14px] text-muted sm:hidden">{r[0]}</span>
+                    {r[1]}
+                  </td>
+                  <td className="num py-1 pr-3 text-right whitespace-nowrap">{r[2]}</td>
+                  <td className="num py-1 pr-3 text-right whitespace-nowrap">{r[3]}</td>
+                  <td className="num py-1 text-right whitespace-nowrap">{r[4]}</td>
+                </tr>
+              ))}
+            </tbody>
+          ))}
+        </table>
+      </div>
     </div>
   );
 }

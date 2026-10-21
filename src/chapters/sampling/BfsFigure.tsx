@@ -9,7 +9,7 @@
  *   the context as per-table mini tables
  *   progress meter │ token strip filling up to L
  */
-import { Globe2, RotateCcw, Shuffle } from 'lucide-react';
+import { ArrowDown, Dice5, Globe2, Ruler, RotateCcw, Shuffle, SkipForward } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { Button, Cite, IconButton, NumberField, Segmented, Select, Slider, StepPlayer, TokenStrip, cx } from '@/components';
 import type { Split } from '@/engine/types';
@@ -223,9 +223,38 @@ export function BfsFigure() {
 
   const common = { db, pdb, slots, state, before, step, ctx, hover, onHover: setHover };
 
+  // Keyboard anywhere in the figure (not only inside the player): Space, ← →, Home / End. The player's own
+  // handler runs first and marks the event as handled.
+  const onFigureKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    const t = e.target as HTMLElement;
+    const tag = t.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || t.isContentEditable || t.getAttribute('role') === 'radio') return;
+    const p = player;
+    if (e.key === ' ' && tag !== 'BUTTON') {
+      e.preventDefault();
+      p.setPlaying(!p.playing);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      p.step(1);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      p.step(-1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      p.setIndex(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      p.setIndex(p.count - 1);
+    }
+  };
+
+  const back = pl.origin;
+
   return (
     <div className="wide my-8 min-w-0">
-      <div className="card px-3 py-4 sm:px-5 sm:py-5">
+      {/* tabIndex −1: a click anywhere in the figure keeps keyboard focus here, so the shortcuts keep working */}
+      <div className="card px-3 py-4 outline-none sm:px-5 sm:py-5" role="group" aria-label="Sampler replay figure" tabIndex={-1} onKeyDown={onFigureKey}>
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h3 className="text-[17.5px] font-semibold text-ink">
             fly.rs, live: the context of <span className="font-mono">{rowName(db, pdb, ctx.params.seedNode).long}</span>
@@ -237,51 +266,80 @@ export function BfsFigure() {
 
         <SamplerControls />
 
-        <div className="mt-4 mb-2 flex flex-wrap items-center justify-between gap-2">
-          <Segmented
-            label="Replay granularity"
-            value={granularity}
-            onChange={setGranularity}
-            options={[
-              { value: 'decisions', label: 'Each decision', title: 'select, visit, filter, width, emit' },
-              { value: 'rows', label: 'Each row', title: 'one loop iteration per step' },
-            ]}
-          />
-          <span className="num text-[14.5px] text-ink-2">
-            {step.kind === 'start' ? 'before the first pop' : step.kind === 'end' ? 'after the last pop' : `loop iteration ${step.iter + 1} of ${iterCount}`}
-            <span className="ml-3 hidden text-[14px] text-muted md:inline">Space play/pause · ← → step · Home / End</span>
-          </span>
-        </div>
-
-        {/* the player and its narration stay in view while the figure scrolls (wide screens) */}
         {/* scroll target of "Show me" (a static marker: the sticky player itself moves) */}
         <div ref={pl.figureRef} aria-hidden="true" className="h-0" />
+        <div className="mt-4 mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Segmented
+              label="Replay granularity"
+              value={granularity}
+              onChange={setGranularity}
+              options={[
+                { value: 'decisions', label: 'Each decision', title: 'select, visit, filter, width, emit' },
+                { value: 'rows', label: 'Each row', title: 'one loop iteration per step' },
+              ]}
+            />
+            <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Skip ahead">
+              <span className="mr-0.5 text-[14.5px] text-ink-2">Next:</span>
+              <Button size="sm" variant="ghost" icon={<SkipForward size={13} />} disabled={!pl.canSkip('row')} onClick={() => pl.skip('row')} title="Next loop iteration (the next pop)">
+                row
+              </Button>
+              <Button size="sm" variant="ghost" icon={<Dice5 size={13} />} disabled={!pl.canSkip('draw')} onClick={() => pl.skip('draw')} title="Next uniform draw from a depth bucket">
+                bucket draw
+              </Button>
+              <Button size="sm" variant="ghost" icon={<Ruler size={13} />} disabled={!pl.canSkip('width')} onClick={() => pl.skip('width')} title="Next time the width bound keeps w of more children">
+                width cut
+              </Button>
+            </div>
+          </div>
+          <span className="num text-[14.5px] text-ink-2">
+            {step.kind === 'start' ? 'before the first pop' : step.kind === 'end' ? 'after the last pop' : `loop iteration ${step.iter + 1} of ${iterCount}`}
+            <span className="ml-3 hidden text-[14px] text-muted xl:inline">Space play/pause · ← → step · Home / End</span>
+          </span>
+        </div>
+        {back && (
+          <div className="mb-2 flex justify-end">
+            <Button
+              size="sm"
+              variant="secondary"
+              iconRight={<ArrowDown size={13} />}
+              onClick={() => {
+                const el = back.el;
+                pl.clearOrigin();
+                const r = el.getBoundingClientRect();
+                const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                window.scrollTo({ top: window.scrollY + r.top - 88, behavior: reduce ? 'auto' : 'smooth' });
+                el.querySelector<HTMLElement>('button')?.focus({ preventScroll: true });
+              }}
+            >
+              Back to {back.label}
+            </Button>
+          </div>
+        )}
+
+        {/* the player and its narration stay in view while the figure scrolls (wide screens) */}
         <div className="z-20 lg:sticky lg:top-[calc(var(--topbar-h)+8px)]">
-          <StepPlayer
-            {...player}
-            unit=""
-            label="BFS replay controls"
-            className="shadow-[var(--shadow-card)]"
-            describe={() => (
-              <div className="flex flex-col gap-1.5">
-                <div>{narration.text}</div>
-                {(algIdx.length > 0 || chip) && (
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-muted">
-                    {algIdx.length > 0 && (
-                      <span>
-                        Alg. 1 line{algIdx.length > 1 ? 's' : ''} {algIdx.join(', ')} <Cite kind="paper" ref="p.15 Alg. 1" />
-                      </span>
-                    )}
-                    {chip && (
-                      <span>
-                        code <Cite kind="code" ref={`rustler/src/fly.rs:${chip}`} />
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          />
+          <div className="rounded-xl border border-border bg-surface shadow-[var(--shadow-card)]">
+            <StepPlayer {...player} unit={granularity === 'rows' ? 'step' : 'decision'} label="BFS replay controls" className="!rounded-b-none !border-0 !bg-transparent" />
+            {/* the narration: announced when the reader steps, silent while it autoplays (one sentence every second would flood a screen reader) */}
+            <div className="mx-3 flex flex-col gap-1.5 border-t border-grid pt-2 pb-2.5 text-[17px] leading-snug text-ink" aria-live={player.playing ? 'off' : 'polite'}>
+              <div>{narration.text}</div>
+              {(algIdx.length > 0 || chip) && (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-muted">
+                  {algIdx.length > 0 && (
+                    <span>
+                      Alg. 1 line{algIdx.length > 1 ? 's' : ''} {algIdx.join(', ')} <Cite kind="paper" ref="p.15 Alg. 1" />
+                    </span>
+                  )}
+                  {chip && (
+                    <span>
+                      code <Cite kind="code" ref={`rustler/src/fly.rs:${chip}`} />
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         <div className="mt-2">
           <ActiveLines alg={narration.alg} code={narration.code} />
