@@ -1,11 +1,12 @@
 /**
  * Figure: the regression task product-sales (units ordered in (t, t+30d]). Top lane: the product's
  * orders as spikes (height = quantity). Bottom lane: one bar per prediction timestamp spanning its
- * window, height = the stored label. Hover a bar to see which orders it sums.
+ * window, height = the stored label. Hover, tap or focus a bar to see which orders it sums (the
+ * window is shaded on the orders lane too); click / Enter pins it, arrow keys move between windows.
  * Labels and Train stats come from the engine (task table, PreprocessedDB.colStats).
  */
 import { scaleLinear } from 'd3';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChartFrame, DataTable, Select, StatusBadge, formatNumber, formatSigned } from '@/components';
 import { TooltipBox, vBarPath } from '@/components/viz/chartParts';
 import { useElementSize } from '@/components/viz/useSize';
@@ -69,7 +70,22 @@ export function SalesFigure({
     return node?.cells.find((c) => c.colName === task.targetCol)?.number ?? null;
   }, [valRow, pdb, task]);
 
-  const [hover, setHover] = useState<(typeof rows)[number] | null>(null);
+  // hover previews a window; click / tap / Enter pins it; focus (keyboard) shows it too
+  const [hoverT, setHoverT] = useState<number | null>(null);
+  const [focusT, setFocusT] = useState<number | null>(null);
+  const [pinnedT, setPinnedT] = useState<number | null>(null);
+  useEffect(() => setPinnedT(null), [product]);
+  const activeT = hoverT ?? focusT ?? pinnedT;
+  const hover = activeT === null ? null : (rows.find((r) => r.t === activeT && r.stored !== null) ?? null);
+  const barRefs = useRef(new Map<number, SVGGElement>());
+  const presentTs = present.map((r) => r.t);
+  const moveFocus = (from: number, dir: 1 | -1) => {
+    const i = presentTs.indexOf(from);
+    const j = Math.max(0, Math.min(presentTs.length - 1, i + dir));
+    const t = presentTs[j];
+    setPinnedT(t);
+    barRefs.current.get(t)?.focus();
+  };
   const [ref, size] = useElementSize<HTMLDivElement>();
   const W = Math.max(300, size.width || 760);
   const narrow = W < 560;
@@ -82,6 +98,15 @@ export function SalesFigure({
   const ymax = Math.max(1, ...present.map((r) => r.stored as number));
   const y = scaleLinear().domain([0, ymax]).nice(4).range([Y.salesBase, Y.salesTop]);
   const H = Y.axis + 30;
+  // beside the bar, on the side with more room, so it never covers the bar it describes
+  const TIP_W = 236;
+  const tipStyle = (t: number): React.CSSProperties => {
+    const a = x(new Date(t));
+    const b = x(new Date(t + delta));
+    const right = W - b >= TIP_W + 12 || a < W / 2;
+    const left = right ? Math.min(W - TIP_W - 4, b + 8) : Math.max(4, a - 8 - TIP_W);
+    return { left, top: Y.salesTop - 30, width: TIP_W };
+  };
 
   const table = (
     <DataTable
@@ -119,10 +144,27 @@ export function SalesFigure({
         table={table}
       >
         <div ref={ref} className="relative w-full">
-          <svg width={W} height={H} role="img" aria-label={`Orders and product-sales labels of product ${product}`} className="block">
+          <svg
+            width={W}
+            height={H}
+            role="group"
+            aria-label={`Orders and product-sales labels of product ${product}. Each label bar is a button: select it to see the orders it sums; arrow keys move between windows.`}
+            className="block"
+          >
             <LaneLabel x={10} y={Y.orderLabel}>
               {narrow ? `Orders of #${product}, height = quantity` : `Orders of product #${product} (spike height = quantity)`}
             </LaneLabel>
+            {hover && (
+              <rect
+                x={x(new Date(hover.t))}
+                y={Y.orderBase - spikeH - 6}
+                width={Math.max(2, x(new Date(hover.t + delta)) - x(new Date(hover.t)))}
+                height={spikeH + 6}
+                rx={3}
+                style={{ fill: 'var(--accent-soft)' }}
+                aria-hidden="true"
+              />
+            )}
             <line x1={10} x2={W - 10} y1={Y.orderBase} y2={Y.orderBase} style={{ stroke: 'var(--grid)' }} />
             {events.map((e) => {
               const inHover = hover ? e.t > hover.t && e.t <= hover.t + delta : false;
@@ -162,7 +204,45 @@ export function SalesFigure({
               const b = x(new Date(r.t + delta)) - 1;
               const isHover = hover?.t === r.t;
               return (
-                <g key={r.t} onPointerEnter={() => setHover(r)} onPointerLeave={() => setHover(null)}>
+                <g
+                  key={r.t}
+                  ref={(el) => {
+                    if (el) barRefs.current.set(r.t, el);
+                    else barRefs.current.delete(r.t);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={pinnedT === r.t}
+                  aria-label={`${r.split} window (${isoDay(r.t)}, ${isoDay(r.t + delta)}]: ${formatNumber(r.stored)} units from ${r.inWin.length} order${r.inWin.length === 1 ? '' : 's'}`}
+                  className="cursor-pointer outline-none"
+                  onPointerEnter={(e) => e.pointerType === 'mouse' && setHoverT(r.t)}
+                  onPointerLeave={() => setHoverT(null)}
+                  onClick={() => setPinnedT((p) => (p === r.t ? null : r.t))}
+                  onFocus={() => setFocusT(r.t)}
+                  onBlur={() => setFocusT(null)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setPinnedT((p) => (p === r.t ? null : r.t));
+                    } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                      e.preventDefault();
+                      moveFocus(r.t, e.key === 'ArrowRight' ? 1 : -1);
+                    } else if (e.key === 'Escape') {
+                      setPinnedT(null);
+                    }
+                  }}
+                >
+                  {focusT === r.t && (
+                    <rect
+                      x={a - 2}
+                      y={Math.min(y(r.stored), y(0) - 4) - 3}
+                      width={Math.max(2, b - a) + 4}
+                      height={y(0) - Math.min(y(r.stored), y(0) - 4) + 5}
+                      rx={4}
+                      style={{ fill: 'none', stroke: 'var(--accent)' }}
+                      strokeWidth={2}
+                    />
+                  )}
                   <rect x={a} y={Y.salesTop - 8} width={Math.max(2, b - a)} height={Y.salesBase - Y.salesTop + 8} fill="transparent" />
                   {r.stored > 0 ? (
                     <path
@@ -185,25 +265,34 @@ export function SalesFigure({
                       strokeWidth={3}
                     />
                   )}
-                  {r.split !== 'Train' && (
-                    <text
-                      x={(a + b) / 2}
-                      y={y(r.stored) - 5}
-                      textAnchor="middle"
-                      className="fill-[var(--ink-2)] text-[13px]"
-                      style={{ fontVariantNumeric: 'tabular-nums' }}
-                    >
-                      {narrow ? '' : r.split === 'Val' ? 'val ' : 'test '}
-                      {formatNumber(r.stored)}
-                    </text>
-                  )}
+                  {r.split !== 'Train' &&
+                    (narrow ? (
+                      // narrow: the split name on its own line above the number, so neighbouring labels never collide
+                      <text x={(a + b) / 2} y={y(r.stored) - 19} textAnchor="middle" className="fill-[var(--ink-2)] text-[13px]">
+                        <tspan x={(a + b) / 2}>{r.split === 'Val' ? 'val' : 'test'}</tspan>
+                        <tspan x={(a + b) / 2} dy={14} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {formatNumber(r.stored)}
+                        </tspan>
+                      </text>
+                    ) : (
+                      <text
+                        x={(a + b) / 2}
+                        y={y(r.stored) - 5}
+                        textAnchor="middle"
+                        className="fill-[var(--ink-2)] text-[13px]"
+                        style={{ fontVariantNumeric: 'tabular-nums' }}
+                      >
+                        {r.split === 'Val' ? 'val ' : 'test '}
+                        {formatNumber(r.stored)}
+                      </text>
+                    ))}
                 </g>
               );
             })}
             <TimeAxis x={x} y={Y.axis} narrow={narrow} />
           </svg>
           {hover && hover.stored !== null && (
-            <TooltipBox style={{ left: Math.max(4, Math.min(W - 230, x(new Date(hover.t)) + 12)), top: Y.salesTop - 30 }}>
+            <TooltipBox style={tipStyle(hover.t)}>
               <div className="text-[13.5px] text-muted">
                 {hover.split} · t = {isoDay(hover.t)}
               </div>
@@ -224,19 +313,24 @@ export function SalesFigure({
       {stats && (
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-border bg-surface-2 px-3.5 py-2.5">
-            <div className="text-[14.5px] text-ink-2">Train mean μ of sales</div>
+            <div className="text-[14.5px] text-ink-2">Train μ of sales (all products’ rows)</div>
             <div className="num mt-0.5 text-[20px] font-semibold text-ink">{formatNumber(stats.mean, 3)}</div>
           </div>
           <div className="rounded-xl border border-border bg-surface-2 px-3.5 py-2.5">
-            <div className="text-[14.5px] text-ink-2">Train std σ (sample)</div>
+            <div className="text-[14.5px] text-ink-2">Train σ of sales (sample, all rows)</div>
             <div className="num mt-0.5 text-[20px] font-semibold text-ink">{formatNumber(stats.std, 3)}</div>
           </div>
           <div className="rounded-xl border border-border bg-surface-2 px-3.5 py-2.5">
-            <div className="text-[14.5px] text-ink-2">Val label as stored</div>
+            <div className="text-[14.5px] text-ink-2">Val label of #{product}, as stored for the model</div>
             <div className="num mt-0.5 text-[20px] font-semibold text-ink">
               {valRow ? formatNumber(valRow.stored as number) : '—'}
               {valZ !== null && <span className="ml-2 text-[15.5px] font-normal text-ink-2">z = {formatSigned(valZ)}</span>}
             </div>
+            {valRow && valZ !== null && (
+              <div className="num mt-0.5 text-[14.5px] text-ink-2">
+                = ({formatNumber(valRow.stored as number)} − {formatNumber(stats.mean, 3)}) / {formatNumber(stats.std, 3)}
+              </div>
+            )}
           </div>
         </div>
       )}

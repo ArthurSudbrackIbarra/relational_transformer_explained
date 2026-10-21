@@ -33,7 +33,7 @@ import { NumberNormFigure } from './NumberNorm';
 import { PrecisionTable } from './Precision';
 import { RowToCellsFigure, type RowPick } from './RowToCells';
 import { SemTypeFigure } from './SemTypes';
-import { signed, useChapterData, usePhone, type ChapterData } from './shared';
+import { CODE_FLOOR, Sub, signed, useChapterData, usePhone, type ChapterData } from './shared';
 import {
   COMMON_SEMTYPE_38_44,
   FLY_BF16_482_490,
@@ -93,8 +93,11 @@ function findPicks(data: ChapterData): Picks {
     }
   }
 
-  if (child) rows.push({ label: `one of its ${child.f.tableName}`, key: child.f.key, row: child.row });
-  if (ent) rows.push({ label: `its ${singular(ent.f.tableName)}`, key: ent.f.key, row: ent.row });
+  // name the rows with live data: "the seed’s customer (Anna Müller)", "one of Anna Müller’s orders (orders[28])"
+  const entName = ent ? pdb.nodes[entityNode!]?.cells.find((c) => c.sem === SemType.Text)?.raw : undefined;
+  const entLabel = ent ? (typeof entName === 'string' ? entName : `${ent.f.tableName}[${ent.row}]`) : null;
+  if (ent) rows.push({ label: `the seed’s ${singular(ent.f.tableName)} (${entLabel})`, key: ent.f.key, row: ent.row });
+  if (child) rows.push({ label: `one of ${entLabel ? `${entLabel}’s` : 'the seed row’s'} ${child.f.tableName} (${child.f.tableName}[${child.row}])`, key: child.f.key, row: child.row });
   if (seed) rows.push({ label: 'the seed row', key: seed.f.key, row: seed.row });
   if (missing && !(ent && missing.f.key === ent.f.key && missing.row === ent.row)) rows.push({ label: 'a row with a missing value', key: missing.f.key, row: missing.row });
 
@@ -130,14 +133,29 @@ function findPicks(data: ChapterData): Picks {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PASSES = [
-  { n: 1, title: 'Read the tables', lines: 'pre.rs:79-307', what: 'Every parquet file, DB tables then task splits. Each row gets a global node index.', to: 'index' },
-  { n: 2, title: 'Compute column statistics', lines: 'pre.rs:310-396', what: 'Mean and standard deviation per number and boolean column; one global pair for all datetimes.', to: 'normalization' },
+  {
+    n: 1,
+    title: 'Read the tables',
+    lines: 'pre.rs:79-307',
+    what: 'Every parquet file, DB tables then task splits. Each file gets its node_idx_offset, which fixes every row’s global index.',
+    to: 'index',
+    order: 'read 1st here',
+  },
+  {
+    n: 2,
+    title: 'Compute column statistics',
+    lines: 'pre.rs:310-396',
+    what: 'Mean and standard deviation per number and boolean column; one global pair for all datetimes.',
+    to: 'normalization',
+    order: 'read 3rd here',
+  },
   {
     n: 3,
     title: 'Build the node vector',
     lines: 'pre.rs:399-615',
     what: 'Per table, column by column over all rows: links and edges from foreign keys, one typed cell per non-missing feature value (z-scored with the pass-2 stats), and the string table.',
     to: 'cells',
+    order: 'read 2nd here',
   },
 ];
 
@@ -160,7 +178,10 @@ function PassesMap() {
               <span className="text-[17px] font-semibold text-ink">{p.title}</span>
             </span>
             <span className="mt-2 text-[16px] leading-snug text-ink-2">{p.what}</span>
-            <span className="mt-auto pt-2 font-mono text-[14px] text-muted">{p.lines}</span>
+            <span className="mt-auto flex flex-wrap items-baseline justify-between gap-x-3 pt-2">
+              <span className="font-mono text-[14px] text-muted">{p.lines}</span>
+              <span className="text-[14px] font-medium text-accent-text">{p.order}</span>
+            </span>
             {i < PASSES.length - 1 && (
               <span aria-hidden="true" className="absolute top-1/2 -right-[11px] z-10 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-page text-[14.5px] text-muted md:flex">
                 →
@@ -221,11 +242,16 @@ export default function PreprocessingChapter() {
     const c = boolCols.find((x) => x.id === boolDefault);
     if (!c || c.values.length < 4) return null;
     const n = c.values.length;
-    return { n, zTrue: booleanStats(n, Math.round(n / 4)).zTrue };
+    const kq = Math.round(n / 4);
+    // the pure n − 1 effect at exactly p = 0.25, to separate it from the rounding of k
+    const zExact = 0.75 / Math.sqrt((0.1875 * n) / (n - 1));
+    return { n, k: kq, exact: kq * 4 === n, pct: (100 * kq) / n, zTrue: booleanStats(n, kq).zTrue, zExact };
   })();
+  // a task in this DB that drops leakage columns (the live task first), for the "cells are not tokens yet" paragraph
+  const leakTask = task.columnsToDrop.length > 0 ? task : db.tasks.find((t) => t.columnsToDrop.length > 0);
 
   return (
-    <ChapterPage slug={SLUG}>
+    <ChapterPage slug={SLUG} className={CODE_FLOOR}>
       <ChapterHeader
         slug={SLUG}
         lede={
@@ -255,11 +281,9 @@ export default function PreprocessingChapter() {
           We take the passes in the order that is easiest to learn: the index space first, then which values become cells, then the statistics that normalize them.
         </p>
         <p>
-          Everything below is computed live in your browser, on {db.title}, by a TypeScript mirror of <code>pre.rs</code> that reproduces every value the model and the sampler
-          see. It differs only in bookkeeping: it stores datetimes in milliseconds instead of nanoseconds (the z-scores are the same), and it numbers the string table in file
-          order, while <code>pre.rs</code> walks its tables in hash-map order <Cite kind="code" ref="rustler/src/pre.rs:415" />, so the text indices shown here are arbitrary
-          labels that differ from the official ones. The figures follow the simulation settings in the top bar, so the seed row you see here is the same one every other chapter
-          uses
+          Everything below is computed live in your browser, on {db.title}, by a TypeScript mirror of <code>pre.rs</code>: the same rows, links, cells and statistics. Its few
+          bookkeeping differences are listed <a href={`#/${SLUG}?section=mirror`}>at the end of the chapter</a>. The figures follow the simulation settings in the top bar, so the
+          seed row you see here is the same one every other chapter uses
           {seed ? (
             <>
               : row {seed.rowPos} of <code>{seed.tableKey}</code>
@@ -357,16 +381,33 @@ export default function PreprocessingChapter() {
           <RowToCellsFigure key={k} data={data} picks={picks.rows} />
         </Figure>
         <p>
-          These cell records are not tokens yet. A cell becomes a <Term id="cell-token">token</Term> only when the sampler picks its row for a context window (Chapter 6). Across
-          the whole database the rules add up as follows.
+          These cell records are not tokens yet. A cell becomes a <Term id="cell-token">token</Term> only when the sampler picks its row for a context window (Chapter 6).
+          Even then one rule can skip it, and it belongs to the task, not to preprocessing: a task may name <strong>leakage columns</strong>, and the sampler leaves those cells
+          out for the seed row and for every row with the seed’s timestamp <Cite kind="code" ref="rustler/src/fly.rs:457-460" /> <Cite kind="spec" ref="§4.9" />
+          {leakTask ? (
+            <>
+              {' '}
+              (in {dbShort}, <code>{leakTask.kind === 'autocomplete' ? `${leakTask.table}.${leakTask.targetCol}` : leakTask.name}</code> drops{' '}
+              {leakTask.columnsToDrop.map((c, i) => (
+                <span key={c}>
+                  {i > 0 && (i === leakTask.columnsToDrop.length - 1 ? ' and ' : ', ')}
+                  <code>{c}</code>
+                </span>
+              ))}
+              )
+            </>
+          ) : null}
+          . <code>pre.rs</code> keeps those cells like any other. Across the whole database the rules add up as follows.
         </p>
         <Figure wide>
           <CellFatesChart data={data} />
         </Figure>
         <Callout variant="note" title="Key names are thrown away">
           <p>
-            Only the parent’s node index survives from a foreign key; the column’s name does not. The paper lists this as a limitation: RT “does not incorporate the names of
-            primary-key and foreign-key columns” and cannot tell two foreign keys to the same table apart <Cite kind="paper" ref="p.10 §7" />. <code>pre.rs</code> keeps every
+            A foreign key survives only as links: the parent’s node index in <code>f2p_nbr_idxs</code>, plus two edges for the sampler, one on the child (F→P) and one on the
+            parent (P→F) <Cite kind="code" ref="rustler/src/pre.rs:515-529" />. Its column name is interned in the string table like every column’s, but it never reaches a token{' '}
+            <Cite kind="code" ref="rustler/src/pre.rs:432-437" />. The paper lists this as a limitation: RT “does not incorporate the names of primary-key and foreign-key
+            columns” and cannot tell two foreign keys to the same table apart <Cite kind="paper" ref="p.10 §7" />. <code>pre.rs</code> keeps every
             parent, but the sampler’s batch has room for five per token (<code>MAX_F2P_NBRS = 5</code>) and asserts it, so a row should have at most five non-null foreign keys{' '}
             <Cite kind="code" ref="rustler/src/fly.rs:25" /> <Cite kind="code" ref="rustler/src/fly.rs:464" /> <Cite kind="spec" ref="§1.2" />.
           </p>
@@ -375,7 +416,7 @@ export default function PreprocessingChapter() {
         <CodeRef title="Every other column: cast, and null → no cell" file="rustler/src/pre.rs" lines="535-552" code={PRE_CELLS_535_552} highlightLines={[552]} />
       </Section>
 
-      <Section id="types" title="Four semantic types, read off the dtype">
+      <Section id="types" kicker="Pass 3, continued" title="Four semantic types, read off the dtype">
         <p>
           Every cell carries a <Term id="sem-type">semantic type</Term>. There are four, with fixed codes from the <code>SemType</code> enum: Number = 0, Text = 1, DateTime = 2,
           Boolean = 3 <Cite kind="code" ref="rustler/src/common.rs:38-44" />. The model later loops over the types in exactly this order to pick an encoder, a mask vector and a
@@ -405,17 +446,15 @@ export default function PreprocessingChapter() {
           code={
             <>
               Boolean is a sem type of its own, code 3 <Cite kind="code" ref="rustler/src/common.rs:38-44" />, with its own entries in the encoder, normalization, mask-vector and
-              decoder dictionaries <Cite kind="code" ref="rt/model.py:115-146" />. The same normalization formula as numbers, computed separately.
+              decoder dictionaries <Cite kind="code" ref="rt/model.py:115-146" />. It uses the same z-score formula as numbers, but without the number branch’s σ guards (see the
+              warning below) <Cite kind="code" ref="rustler/src/pre.rs:320-341" />.
             </>
           }
         >
           <p>
-            So the code settles what the paper leaves loose: four types, not three <Cite kind="spec" ref="§10" note="Row 17 of the discrepancy table." />. The type matters beyond
-            the input: the sem type of the masked cell picks the loss, binary cross-entropy for a boolean and Huber for a number <Cite kind="code" ref="rt/model.py:250-255" />{' '}
-            <Cite kind="spec" ref="§2.6" />. Accordingly, <code>pre.rs</code> hard-codes casts to Boolean for the RelBench label columns it knows, such as{' '}
-            <code>did_not_finish</code> <Cite kind="code" ref="rustler/src/pre.rs:208-289" />; an integer label column that is not on that list stays a Number and is trained with
-            Huber. One quirk: rel-event’s <code>user-attendance</code> is listed as a regression task, yet its label is cast to Boolean, so it is trained with BCE{' '}
-            <Cite kind="code" ref="rustler/src/pre.rs:272-278" /> <Cite kind="spec" ref="§2.6" />.
+            So the code settles what the paper leaves loose: four types, not three <Cite kind="spec" ref="§10" note="Row 17 of the discrepancy table." />. It matters beyond the
+            input: the sem type of the masked cell picks the loss, binary cross-entropy for a boolean and Huber for a number (Chapter 12){' '}
+            <Cite kind="code" ref="rt/model.py:250-255" /> <Cite kind="spec" ref="§2.6" />.
             {binTask && binIsBool ? (
               <>
                 {' '}
@@ -423,6 +462,15 @@ export default function PreprocessingChapter() {
               </>
             ) : null}
           </p>
+          <details className="group mt-1 text-[16.5px]">
+            <summary className="cursor-pointer font-medium text-ink-2 hover:text-ink">On the RelBench datasets: which label columns become booleans</summary>
+            <p className="!mt-2">
+              <code>pre.rs</code> hard-codes casts to Boolean for the RelBench label columns it knows, such as <code>did_not_finish</code>{' '}
+              <Cite kind="code" ref="rustler/src/pre.rs:208-289" />; an integer label column that is not on that list stays a Number and is trained with Huber. One quirk:
+              rel-event’s <code>user-attendance</code> is listed as a regression task, yet its label is cast to Boolean, so it is trained with BCE{' '}
+              <Cite kind="code" ref="rustler/src/pre.rs:272-278" /> <Cite kind="spec" ref="§2.6" />.
+            </p>
+          </details>
         </Callout>
         <CodeRef title="SemType: the four codes" file="rustler/src/common.rs" lines="38-44" code={COMMON_SEMTYPE_38_44} />
       </Section>
@@ -455,13 +503,13 @@ export default function PreprocessingChapter() {
           <NumberNormFigure key={k} data={data} cols={numCols} defaultId={numDefault} defaultProbe={numProbe} />
         </Figure>
         <p>
-          The paper does not spell out why, but the code makes the effect clear. One shared encoder per type, a <code>Linear(1, d)</code> with d = 256 in the paper and 64 here{' '}
-          <ScaleNote inline />, reads every number column of every database <Cite kind="code" ref="rt/model.py:115-123" />. Standardizing first means it sees “how unusual is this
-          value within its column” on a common scale, whether the column holds prices or ages.
+          The paper does not spell out why. Here is our reading, not a claim of the paper: one shared encoder per type, a <code>Linear(1, d)</code> with d = 256 in the paper and
+          64 here <ScaleNote inline />, reads every number column of every database <Cite kind="code" ref="rt/model.py:115-123" />. Standardizing first means it sees “how unusual
+          is this value within its column” on a common scale, whether the column holds prices or ages.
         </p>
 
         <h3 id="booleans" className="mt-8 mb-2 text-[21px] font-semibold tracking-[-0.01em] text-ink">
-          Booleans: true always lands above zero
+          Booleans: true lands above zero (when both values occur)
         </h3>
         <p>
           Booleans use the same formula after casting true → 1 and false → 0 <Cite kind="code" ref="rustler/src/pre.rs:320-329" />. With a share p of trues, μ = p, so true becomes
@@ -470,15 +518,17 @@ export default function PreprocessingChapter() {
         </p>
         <p>
           The sign is what the rest of the code relies on. The loss for a boolean target is binary cross-entropy against 1{'{'}z &gt; 0{'}'}, and evaluation turns labels into{' '}
-          <code>int(z &gt; 0)</code> <Cite kind="code" ref="rt/model.py:252-255" /> <Cite kind="code" ref="rt/main.py:336" /> <Cite kind="paper" ref="p.6 §3.3" />. So “true ⇔ z
-          &gt; 0” must hold for every column, and it does whenever both values occur <Cite kind="spec" ref="§3.3" />.
+          <code>int(z &gt; 0)</code> <Cite kind="code" ref="rt/model.py:252-255" /> <Cite kind="code" ref="rt/main.py:336" /> <Cite kind="paper" ref="p.6 §3.3" />. Both read
+          only the masked target cell <Cite kind="code" ref="rt/model.py:241" /> <Cite kind="code" ref="rt/main.py:284-285" />, so “true ⇔ z &gt; 0” must hold for every boolean column that can be a prediction target, and it
+          does whenever both values occur <Cite kind="spec" ref="§3.3" />. For the other boolean columns the sign has no special role: they are simply inputs.
         </p>
         <Figure
           wide
+          title="Where true and false land on the z axis"
           caption={
             <>
-              Filled dot: true; hollow dot: false. Move the slider to change how many values are true (n stays fixed); the dashed dots keep the real column for comparison. Push it to
-              0 or to n to see what a constant column does.
+              Filled dot: true; hollow dot: false. Move the slider, or use the chips, to change how many values are true (n stays fixed); the dashed dots keep the real column for
+              comparison. “All true” and “all false” show what a constant column does.
             </>
           }
         >
@@ -500,7 +550,7 @@ export default function PreprocessingChapter() {
         </h3>
         <p>
           Datetimes get no per-column statistics. Instead <code>pre.rs</code> pools every datetime value of every table, task splits included, into one count, one sum and one sum
-          of squares. From them it derives a single mean μ<sub>T</sub> and a <strong>population</strong> standard deviation σ<sub>T</sub>, which divides by n (ddof = 0) and has
+          of squares. From them it derives a single mean μ<Sub>T</Sub> and a <strong>population</strong> standard deviation σ<Sub>T</Sub>, which divides by n (ddof = 0) and has
           no zero guard <Cite kind="code" ref="rustler/src/pre.rs:342-376" /> <Cite kind="spec" ref="§3.3" />.
         </p>
         <MathBlock
@@ -511,18 +561,17 @@ export default function PreprocessingChapter() {
           }
           label={<Cite kind="code" ref="rustler/src/pre.rs:375-376" />}
         />
-        <Figure wide caption="Each row is one datetime column of one table file. The accent triangle on the z ruler is the seed row’s timestamp.">
+        <Figure wide caption="Each row is one datetime column of one table file. The accent triangle marked “seed” on the z ruler is the seed row’s timestamp.">
           <DatetimeNormFigure key={k} data={data} />
         </Figure>
         <p>
           The paper says to “normalize globally” but does not say why <Cite kind="paper" ref="p.5 §3.1" />. One consequence follows from the code (our reading, not a claim of
-          the paper): the same
-          instant gets the same value in every column. A task row’s timestamp and an order’s time are on one scale, so the model can compare them directly.
+          the paper): the same instant gets the same value in every column. A task row’s timestamp and an order’s time are on one scale, so the model can compare them directly.
         </p>
         <Callout variant="note" title="Seconds, nanoseconds, milliseconds">
           <p>
             The paper converts timestamps to seconds <Cite kind="paper" ref="p.5 §3.1" />; the code uses nanoseconds <Cite kind="code" ref="rustler/src/pre.rs:586" />; this site
-            stores milliseconds. All three give the same z-score: changing the unit scales t, μ<sub>T</sub> and σ<sub>T</sub> by the same factor <Cite kind="spec" ref="§3.3" />.
+            stores milliseconds. All three give the same z-score: changing the unit scales t, μ<Sub>T</Sub> and σ<Sub>T</Sub> by the same factor <Cite kind="spec" ref="§3.3" />.
             Note the two kinds of standard deviation in this section: sample (n − 1) for numbers and booleans, population (n) for datetimes.
           </p>
         </Callout>
@@ -548,7 +597,7 @@ export default function PreprocessingChapter() {
           title="Which rows feed the statistics"
           paper={
             <>
-              μ<sub>c</sub> and σ<sub>c</sub> are “computed on the training split”, and μ<sub>T</sub>, σ<sub>T</sub> are the mean and standard deviation “of timestamps in the
+              μ<Sub>c</Sub> and σ<Sub>c</Sub> are “computed on the training split”, and μ<Sub>T</Sub>, σ<Sub>T</Sub> are the mean and standard deviation “of timestamps in the
               training split” <Cite kind="paper" ref="p.4 §3.1" /> <Cite kind="paper" ref="p.5 §3.1" />.
             </>
           }
@@ -599,10 +648,37 @@ export default function PreprocessingChapter() {
           The table below applies the same rounding rule (round to nearest, ties to even) only to show its size <Cite kind="spec" ref="§3.7" />. The simulation itself never
           applies it.
         </ScaleNote>
-        <Figure wide title="The seed row and its entity, as a batch would carry them">
+        <Figure wide title={entityNode !== null ? 'The seed row and its entity, as this context window carries them' : 'The seed row, as this context window carries it'}>
           <PrecisionTable data={data} />
         </Figure>
         <CodeRef title="Values become bf16 when the batch is built" file="rustler/src/fly.rs" lines="482-490" code={FLY_BF16_482_490} />
+      </Section>
+
+      <Section id="mirror" title="Where this site’s mirror differs from pre.rs">
+        <p>
+          Every cell value, link, timestamp and statistic in this chapter comes from a TypeScript mirror of <code>pre.rs</code>. It changes four pieces of bookkeeping, none of
+          which changes what a token carries:
+        </p>
+        <ul>
+          <li>
+            <strong>Time unit.</strong> Datetimes are stored in milliseconds instead of nanoseconds; the z-scores are the same (see the note in the datetime section).
+          </li>
+          <li>
+            <strong>String-table numbering.</strong> <code>pre.rs</code> walks its tables in hash-map order <Cite kind="code" ref="rustler/src/pre.rs:415" />; the mirror walks
+            them in file order. So the text indices shown here (column phrases, table names, text values) are arbitrary labels that differ from the official ones. The model only
+            compares them or looks up their embeddings, so the numbering carries no meaning <Cite kind="spec" ref="§3.6" />.
+          </li>
+          <li>
+            <strong>Order of a parent’s child links.</strong> For the same reason, the P→F edges inside each parent’s list come in a different order{' '}
+            <Cite kind="code" ref="rustler/src/pre.rs:523-529" />. That changes only which random draw of the sampler picks which child (Chapter 6), not which children can be
+            picked.
+          </li>
+          <li>
+            <strong>Empty rows.</strong> A row with no non-null foreign key and no non-key column keeps <code>pre.rs</code>’s default header (node index 0){' '}
+            <Cite kind="code" ref="rustler/src/pre.rs:408-410" />; the mirror fills in its real index so the figures can label it. Such a row has no cells and no links, so it never
+            yields a token.
+          </li>
+        </ul>
       </Section>
 
       <div className="page-grid">
@@ -646,8 +722,18 @@ export default function PreprocessingChapter() {
                 {quarter && (
                   <>
                     {' '}
-                    Try “25% true” in the boolean figure above: with that column’s n = {quarter.n} it shows {signed(quarter.zTrue, 3)}, slightly less, because the sample standard
-                    deviation divides by n − 1.
+                    {quarter.exact ? (
+                      <>
+                        Try “25% true” in the boolean figure above: with that column’s n = {quarter.n} it shows {signed(quarter.zTrue, 3)}, slightly less, because the sample
+                        standard deviation divides by n − 1.
+                      </>
+                    ) : (
+                      <>
+                        Try the “{quarter.pct.toFixed(1)}% true” chip in the boolean figure above: with that column’s n = {quarter.n} it sets k = {quarter.k} trues, so it shows{' '}
+                        {signed(quarter.zTrue, 3)}. Two things move it away from +1.732: the share is not exactly 25%, and the sample standard deviation divides by n − 1 (that
+                        alone would give {signed(quarter.zExact, 3)}).
+                      </>
+                    )}
                   </>
                 )}
               </>
@@ -665,7 +751,7 @@ export default function PreprocessingChapter() {
             ],
             explanation: (
               <>
-                pre.rs accumulates one count, sum and sum of squares over every datetime value in the database and derives a single μ<sub>T</sub> and σ<sub>T</sub> (population
+                pre.rs accumulates one count, sum and sum of squares over every datetime value in the database and derives a single μ<Sub>T</Sub> and σ<Sub>T</Sub> (population
                 std) <Cite kind="code" ref="rustler/src/pre.rs:342-376" />.
               </>
             ),

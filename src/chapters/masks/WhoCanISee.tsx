@@ -4,7 +4,7 @@
  * right), in a mini entity graph and in the token strip. Hovering a cell never changes the query: it
  * names the cell and says, for each mask, whether the query may read it.
  */
-import { Check, X } from 'lucide-react';
+import { Check, Eye, X } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import {
   Button,
@@ -16,6 +16,7 @@ import {
   TableSwatch,
   TokenStrip,
   cx,
+  edgeKey,
   formatRaw,
   tokenValueText,
   type GraphEdgeSpec,
@@ -38,7 +39,7 @@ function valueText(t: Token): string {
 }
 
 export function WhoCanISee({ live }: { live: LiveMasks }) {
-  const { ctx, masks, S, slots, grouping, prefixes, pinned, setPinned, target } = live;
+  const { ctx, masks, S, slots, grouping, prefixes, pinned, setPinned, target, db } = live;
   const task = useTask();
   const [hoverK, setHoverK] = useState<number | null>(null);
   const [layer, setLayer] = useState<AttnLayer>('col');
@@ -73,6 +74,21 @@ export function WhoCanISee({ live }: { live: LiveMasks }) {
     return out;
   }, [rows, S, ctx, slots]);
 
+  // tables with at least one foreign key (task tables always have one: the entity key)
+  const fkTables = useMemo(() => new Set(db.tables.filter((t) => Object.keys(t.schema.fkeys).length > 0).map((t) => t.schema.name)), [db]);
+  // splits of the other task rows whose label cells the query reads in the column mask
+  const colSplits = useMemo(() => {
+    const m = new Map<string, Set<number>>();
+    for (let k = 0; k < S; k++) {
+      const t = ctx.tokens[k];
+      if (!rows.col[k] || t.isPadding || !t.tableType || t.tableType === 'Db' || t.nodeIdx === qTok?.nodeIdx) continue;
+      let e = m.get(t.tableType);
+      if (!e) m.set(t.tableType, (e = new Set()));
+      e.add(t.nodeIdx);
+    }
+    return [...m.entries()].map(([k, v]) => `${v.size} ${k}`).join(', ');
+  }, [rows, S, ctx, qTok]);
+
   const presetList = useMemo(() => presets(ctx.tokens, ctx.targetPos), [ctx]);
   const holeKinds = useMemo(() => {
     const s = new Set<HoleKind>();
@@ -100,6 +116,19 @@ export function WhoCanISee({ live }: { live: LiveMasks }) {
     for (let k = 0; k < S; k++) if (rows[layer][k]) s.add(ctx.tokens[k].nodeIdx);
     return s;
   }, [rows, layer, S, ctx]);
+
+  // Accent only the links the mask actually uses: feature reads parents (query row → parent), neighbor
+  // reads children (child → query row). Column and full do not follow foreign keys at all.
+  const accentEdges = useMemo(() => {
+    const s = new Set<string>();
+    const qn = qTok?.nodeIdx;
+    if (qn === undefined || (layer !== 'feat' && layer !== 'nbr')) return s;
+    for (const e of graph.edges) {
+      if (layer === 'feat' && e.source === qn && litRows.has(e.target)) s.add(edgeKey(e.source, e.target));
+      if (layer === 'nbr' && e.target === qn && litRows.has(e.source)) s.add(edgeKey(e.source, e.target));
+    }
+    return s;
+  }, [graph, layer, litRows, qTok]);
 
   // With no allowed key, nothing may light up: mute every row except the query's own (no fallback to
   // the graph neighbours, which would wrongly suggest they are keys).
@@ -145,20 +174,32 @@ export function WhoCanISee({ live }: { live: LiveMasks }) {
       wide
       title="Who can I see? One query, four masks"
       controls={
-        <div className="flex w-full flex-wrap items-center gap-2">
-          <span className="text-[15px] font-medium text-ink-2">Query presets</span>
-          {presetList.map((p) => (
-            <Button key={p.id} size="sm" variant={pinned === p.pos ? 'primary' : 'secondary'} aria-pressed={pinned === p.pos} onClick={() => setPinned(p.pos)}>
-              {p.label}
-            </Button>
-          ))}
-        </div>
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[15px] font-medium text-ink-2">Query presets</span>
+            {presetList.map((p) => (
+              <Button key={p.id} size="sm" variant={pinned === p.pos ? 'primary' : 'secondary'} aria-pressed={pinned === p.pos} onClick={() => setPinned(p.pos)}>
+                {p.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[15px] font-medium text-ink-2">Mask in the strip and graph</span>
+            <Segmented
+              label="Mask shown in the strip, the graph and (on a narrow screen) the panel"
+              value={layer}
+              onChange={setLayer}
+              options={LAYER_ORDER.map((l) => ({ value: l, label: <LayerLabel layer={l} size={13} /> }))}
+            />
+          </div>
+        </>
       }
       caption={
         <>
           Click any token (a chip in the strip, a table cell or a graph node) to make it the query. Hover a cell to name it and see which masks
           let the query read it. Each panel fills the keys the query may attend to under one mask. The strip and the graph follow the mask picked
-          above the graph, or click a panel’s title. All four masks are the engine’s, computed from ids only{' '}
+          in the controls (or click a panel’s title); on a narrow screen only that mask’s panel is shown. All four masks are the engine’s,
+          computed from ids only{' '}
           <Cite kind="code" ref="rt/model.py:164-191" />.
         </>
       }
@@ -218,17 +259,29 @@ export function WhoCanISee({ live }: { live: LiveMasks }) {
           const s = summary[l];
           const active = l === layer;
           return (
-            <div key={l} className={cx('min-w-0 rounded-xl border px-3.5 pt-3 pb-3.5 transition-colors', active ? 'border-accent bg-accent-soft' : 'border-border')}>
-              <div className="flex items-start justify-between gap-3">
+            <div
+              key={l}
+              className={cx('min-w-0 rounded-xl border px-3.5 pt-3 pb-3.5 transition-colors', active ? 'border-accent bg-accent-soft' : 'hidden border-border md:block')}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
                 <button
                   type="button"
                   onClick={() => setLayer(l)}
                   aria-pressed={active}
-                  className="rounded-md text-left text-[16px] hover:text-accent-text"
+                  className="group inline-flex items-center gap-1.5 rounded-md text-left text-[16px] hover:text-accent-text"
                   title="Show this mask in the strip and the graph"
                 >
                   <LayerLabel layer={l} />
                   <span className="text-muted"> mask</span>
+                  <span
+                    className={cx(
+                      'ml-1 inline-flex items-center gap-1 text-[14px] underline decoration-dotted underline-offset-[3px]',
+                      active ? 'text-accent-text' : 'text-muted group-hover:text-accent-text',
+                    )}
+                  >
+                    <Eye aria-hidden="true" size={14} />
+                    {active ? 'in strip & graph' : 'show in strip'}
+                  </span>
                 </button>
                 <span className="num shrink-0 text-right text-[15px] text-ink-2">
                   {s.keys === 0 ? (
@@ -241,7 +294,16 @@ export function WhoCanISee({ live }: { live: LiveMasks }) {
                 </span>
               </div>
               <p className="mt-1 mb-2.5 text-[15px] leading-snug text-ink-2">
-                <PanelReading layer={l} q={qTok} keys={s.keys} tokens={ctx.tokens} numReal={ctx.numReal} prefixes={prefixes} byTable={s.byTable} />
+                <PanelReading
+                  layer={l}
+                  q={qTok}
+                  keys={s.keys}
+                  tokens={ctx.tokens}
+                  numReal={ctx.numReal}
+                  prefixes={prefixes}
+                  byTable={s.byTable}
+                  hasFk={!!qTok && (fkTables.has(qTok.tableName) || (!!qTok.tableType && qTok.tableType !== 'Db'))}
+                />
               </p>
               <ContextTables
                 tokens={ctx.tokens}
@@ -268,7 +330,7 @@ export function WhoCanISee({ live }: { live: LiveMasks }) {
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
             <span className="text-[16px] font-medium text-ink">Rows of the context as a graph</span>
             <Segmented
-              label="Mask shown in the strip and graph"
+              label="Mask shown in the strip and graph (same control as above the figure)"
               value={layer}
               onChange={setLayer}
               options={LAYER_ORDER.map((l) => ({ value: l, label: <LayerLabel layer={l} size={13} /> }))}
@@ -281,6 +343,8 @@ export function WhoCanISee({ live }: { live: LiveMasks }) {
             muted={muted}
             dimOthers
             rings={rings}
+            highlightEdges={accentEdges}
+            accentActiveEdges={false}
             selected={qTok ? qTok.nodeIdx : null}
             onNodeClick={(id) => pin(firstPosOfNode(id))}
             labels={litRows.size <= 10 ? 'highlighted' : 'none'}
@@ -291,10 +355,19 @@ export function WhoCanISee({ live }: { live: LiveMasks }) {
           />
         </div>
         <div className="min-w-0 text-[17px] leading-relaxed text-ink">
-          <LayerReading layer={layer} keys={summary[layer].keys} rows={summary[layer].rows} isTarget={q === ctx.targetPos} forecast={task.kind === 'forecast'} />
+          <LayerReading
+            layer={layer}
+            keys={summary[layer].keys}
+            rows={summary[layer].rows}
+            isTarget={q === ctx.targetPos}
+            forecast={task.kind === 'forecast'}
+            splits={colSplits}
+          />
           <p className="mt-3 text-[15.5px] text-ink-2">
             A node lights up when at least one of its cells is an allowed key; when the mask row is empty, every node but the query’s own is
-            dimmed. Arrows point from a child row (it holds the foreign key) to its parent. Row tags:{' '}
+            dimmed. Arrows point from a child row (it holds the foreign key) to its parent. In the feature view the violet links are the ones
+            the query reads along, against the arrows (parent → child); in the neighbor view information flows along them (child → parent).
+            Column and full attention do not follow links, so no link is accented there. Row tags:{' '}
             {Object.entries(prefixes).map(([t, p], i) => `${i ? ', ' : ''}${p} = ${t}`)}; train/val/test = task rows of that split.
           </p>
         </div>
@@ -330,6 +403,7 @@ function PanelReading({
   numReal,
   prefixes,
   byTable,
+  hasFk,
 }: {
   layer: AttnLayer;
   q: Token | undefined;
@@ -338,6 +412,8 @@ function PanelReading({
   numReal: number;
   prefixes: Record<string, string>;
   byTable: { name: string; slot: number; cells: number; rows: number }[];
+  /** The query's table has at least one foreign key. */
+  hasFk: boolean;
 }) {
   if (!q || q.isPadding) return null;
   const tag = rowTag(q, prefixes);
@@ -365,13 +441,23 @@ function PanelReading({
         .map((p) => tokens.find((t) => !t.isPadding && t.nodeIdx === p))
         .filter((t): t is Token => !!t)
         .map((t) => rowTag(t, prefixes));
-      return parents.length ? (
-        <>
-          Own row {tag} + {parents.length === 1 ? 'parent' : 'parents'} {listAnd(parents)}: {counts}
-        </>
-      ) : (
-        <>Own row {tag} only: no parent of it is in the context.</>
-      );
+      if (parents.length)
+        return (
+          <>
+            Own row {tag} + {parents.length === 1 ? 'parent' : 'parents'} {listAnd(parents)}: {counts}
+          </>
+        );
+      if (q.f2pNbrIdxs.every((p) => p < 0))
+        return hasFk ? (
+          <>
+            All foreign keys of {tag} are null, so OutLinks is empty: the query reads only its own row ({keys} {keys === 1 ? 'cell' : 'cells'}).
+          </>
+        ) : (
+          <>
+            {q.tableName} has no foreign key, so OutLinks is empty: the query reads only its own row ({keys} {keys === 1 ? 'cell' : 'cells'}).
+          </>
+        );
+      return <>Own row {tag} only: its parent rows are not in this context, so they cannot be read.</>;
     }
     case 'nbr':
       return keys === 0 ? (
@@ -386,7 +472,22 @@ function PanelReading({
   }
 }
 
-function LayerReading({ layer, keys, rows, isTarget, forecast }: { layer: AttnLayer; keys: number; rows: number; isTarget: boolean; forecast: boolean }) {
+function LayerReading({
+  layer,
+  keys,
+  rows,
+  isTarget,
+  forecast,
+  splits,
+}: {
+  layer: AttnLayer;
+  keys: number;
+  rows: number;
+  isTarget: boolean;
+  forecast: boolean;
+  /** Splits of the other task rows read in the column mask, e.g. "12 Train". */
+  splits: string;
+}) {
   switch (layer) {
     case 'col':
       return (
@@ -394,7 +495,7 @@ function LayerReading({ layer, keys, rows, isTarget, forecast }: { layer: AttnLa
           <strong>Column.</strong> {keys} cells share the query’s column (same column name, same table), spread over {rows} rows.{' '}
           {isTarget
             ? forecast
-              ? 'For the masked target these are the visible labels of the task, from every split, plus the target itself.'
+              ? `For the masked target these are the visible labels of the task, whatever split they come from (the mask never looks at the split${splits ? `; here: ${splits}` : ''}), plus the target itself.`
               : 'For the masked target these are the visible values of the target column in other rows, plus the target itself.'
             : 'The query compares itself with the other values of its column.'}
         </p>

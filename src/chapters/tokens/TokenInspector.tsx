@@ -9,8 +9,8 @@
  * Hover previews a token everywhere; click pins it (the store's selectedPos, shared with the masks
  * and attention chapters).
  */
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   EntityGraph,
   Figure,
@@ -21,6 +21,7 @@ import {
   TableView,
   TokenStrip,
   TokenTable,
+  type TokenField,
   cx,
   formatRaw,
   formatSigned,
@@ -32,7 +33,56 @@ import {
 } from '@/components';
 import { SemType, type Token } from '@/engine/types';
 import { FieldList } from './fields';
-import { INSPECTOR_ID, nodeLabel, pickVisibleLabel, rowTags, sourceTable, tokenRowRef, type TokensLive } from './live';
+import { INSPECTOR_ID, nodeLabel, nodeRef, pickVisibleLabel, rowTags, sourceTable, tokenRowRef, type TokensLive } from './live';
+
+/** TokenTable columns: the flags this chapter is about right after the cell, then the batch order. */
+const TABLE_FIELDS: TokenField[] = [
+  'pos',
+  'cell',
+  'masks',
+  'is_targets',
+  'is_padding',
+  'node_idxs',
+  'f2p_nbr_idxs',
+  'table_name_idxs',
+  'col_name_idxs',
+  'sem_types',
+  'number_values',
+  'text_values',
+  'datetime_values',
+  'boolean_values',
+  'is_task_nodes',
+  'class_value_idxs',
+];
+/** Children shown in the ego view of the context graph (the rest are counted). */
+const MAX_CHILDREN = 5;
+const EGO_DX = 82;
+const EGO_DY = 70;
+
+/**
+ * True when `el` fits in the viewport below the top bar, so it can stay sticky without an inner
+ * scroll area (wide screens only).
+ */
+function useFitsViewport(ref: React.RefObject<HTMLDivElement | null>, minWidth: number): boolean {
+  const [fits, setFits] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof window === 'undefined') return;
+    const check = () => {
+      const topbar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) || 56;
+      setFits(window.innerWidth >= minWidth && el.offsetHeight + topbar + 32 <= window.innerHeight);
+    };
+    check();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(check) : null;
+    ro?.observe(el);
+    window.addEventListener('resize', check);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', check);
+    };
+  }, [ref, minWidth]);
+  return fits;
+}
 
 function storedLine(t: Token): string {
   switch (t.sem) {
@@ -48,8 +98,18 @@ function storedLine(t: Token): string {
 }
 
 export function TokenInspector({ live }: { live: TokensLive }) {
-  const { db, pdb, ctx, S, slots, assets, inspected, setInspected, tokensByNode, labels, target } = live;
+  const { db, pdb, ctx, S, slots, assets, inspected, setInspected, tokensByNode, labels, target, jump, hoverAllowed } = live;
   const [hover, setHover] = useState<number | null>(null);
+  // Hover previews are paused after an "inspect in Step 1" jump until the pointer really moves.
+  const preview = (p: number | null) => {
+    if (p !== null && !hoverAllowed()) return;
+    setHover(p);
+  };
+  useEffect(() => setHover(null), [jump]);
+  const [showTable, setShowTable] = useState(false);
+  const leftRef = useRef<HTMLDivElement | null>(null);
+  const sticky = useFitsViewport(leftRef, 1280);
+  const tableWrap = useRef<HTMLDivElement | null>(null);
   const shownPos = hover ?? inspected;
   const t = ctx.tokens[shownPos] ?? ctx.tokens[target];
   const rowPositions = useMemo(() => (t && !t.isPadding ? tokensByNode.get(t.nodeIdx) ?? [] : []), [t, tokensByNode]);
@@ -89,20 +149,37 @@ export function TokenInspector({ live }: { live: TokensLive }) {
     return info ? info.nodeIdxOffset + row : undefined;
   };
 
-  // Mini entity graph of the context rows (child → parent arrows), cross-highlighted with the strip.
+  // Ego view of the context graph: the token's row, its parents (f2p_nbr_idxs) above, and the rows of
+  // the context that list it as a parent below. Arrows go child → parent, as foreign keys do.
   const tags = useMemo(() => rowTags(pdb, ctx), [pdb, ctx]);
-  const graph = useMemo(() => {
-    const nodes: GraphNodeSpec[] = [];
-    const edges: GraphEdgeSpec[] = [];
-    for (const [n] of tokensByNode) {
-      const node = pdb.nodes[n];
-      nodes.push({ id: n, label: tags.get(n) ?? String(n), table: node.tableName, slot: slots[node.tableName] ?? 0, title: nodeLabel(pdb, n) });
-    }
-    for (const [n] of tokensByNode) for (const p of new Set(pdb.nodes[n].f2pNbrIdxs)) if (tokensByNode.has(p)) edges.push({ source: n, target: p });
-    return { nodes, edges };
-  }, [pdb, tokensByNode, tags, slots]);
   const rowNode = t && !t.isPadding ? t.nodeIdx : null;
   const parentsIn = useMemo(() => (t && !t.isPadding ? [...new Set(t.f2pNbrIdxs)].filter((p) => p >= 0 && tokensByNode.has(p)) : []), [t, tokensByNode]);
+  const children = useMemo(() => {
+    if (rowNode === null) return [];
+    const out: number[] = [];
+    for (const v of ctx.visited) if (tokensByNode.has(v.node) && pdb.nodes[v.node].f2pNbrIdxs.includes(rowNode)) out.push(v.node);
+    return out;
+  }, [rowNode, ctx, pdb, tokensByNode]);
+  const ego = useMemo(() => {
+    if (rowNode === null) return null;
+    const shownKids = children.slice(0, MAX_CHILDREN);
+    const nodes: GraphNodeSpec[] = [];
+    const edges: GraphEdgeSpec[] = [];
+    const positions = new Map<NodeId, { x: number; y: number }>();
+    const add = (n: number, x: number, y: number) => {
+      const node = pdb.nodes[n];
+      nodes.push({ id: n, label: tags.get(n) ?? String(n), table: node.tableName, slot: slots[node.tableName] ?? 0, title: nodeLabel(pdb, n) });
+      positions.set(n, { x, y });
+    };
+    const rowY = parentsIn.length ? EGO_DY : 0;
+    parentsIn.forEach((p, i) => add(p, (i - (parentsIn.length - 1) / 2) * EGO_DX, 0));
+    add(rowNode, 0, rowY);
+    shownKids.forEach((c, i) => add(c, (i - (shownKids.length - 1) / 2) * EGO_DX, rowY + EGO_DY));
+    for (const p of parentsIn) edges.push({ source: rowNode, target: p });
+    for (const c of shownKids) edges.push({ source: c, target: rowNode });
+    const levels = 1 + (parentsIn.length ? 1 : 0) + (shownKids.length ? 1 : 0);
+    return { nodes, edges, positions, height: 64 + (levels - 1) * EGO_DY + 40, hidden: children.length - shownKids.length };
+  }, [rowNode, parentsIn, children, pdb, tags, slots]);
   const graphHighlight = useMemo(() => (rowNode === null ? [] : [rowNode, ...parentsIn]), [rowNode, parentsIn]);
   const graphEdges = useMemo(() => (rowNode === null ? [] : parentsIn.map((p) => edgeKey(rowNode, p))), [rowNode, parentsIn]);
   const rings = useMemo(() => {
@@ -110,6 +187,28 @@ export function TokenInspector({ live }: { live: TokensLive }) {
     m.set(ctx.params.seedNode, 'target');
     return m;
   }, [ctx]);
+  // Mini table view: the columns that become tokens first, then the key columns (structure only).
+  const tableCols = useMemo(() => {
+    if (!raw) return undefined;
+    const keys = (c: string) => c === raw.schema.pkey || c in raw.schema.fkeys;
+    const names = raw.schema.columns.map((c) => c.name);
+    return [...names.filter((c) => !keys(c)), ...names.filter(keys)];
+  }, [raw]);
+  // Bring the inspected cell into view sideways, inside the table's own scroller (never the page).
+  const colName = t && !t.isPadding ? t.colName : null;
+  useEffect(() => {
+    const wrap = tableWrap.current;
+    if (!wrap || !colName || !tableCols) return;
+    const scroller = wrap.querySelector<HTMLElement>('[role="table"]');
+    const headers = wrap.querySelectorAll<HTMLElement>('[role="columnheader"]');
+    const i = tableCols.indexOf(colName);
+    const h = i >= 0 ? headers[i + 1] : undefined; // headers[0] is the "row" column
+    if (!scroller || !h) return;
+    const left = h.offsetLeft;
+    const right = left + h.offsetWidth;
+    if (left >= scroller.scrollLeft && right <= scroller.scrollLeft + scroller.clientWidth) return;
+    scroller.scrollTo({ left: Math.max(0, left - (scroller.clientWidth - h.offsetWidth) / 2), behavior: 'auto' });
+  }, [colName, tableCols, t?.nodeIdx]);
 
   const step = (d: number) => setInspected(Math.max(0, Math.min(S - 1, inspected + d)));
   // Tables present in the context, in first-appearance order (strip legend).
@@ -148,7 +247,7 @@ export function TokenInspector({ live }: { live: TokensLive }) {
                 onClick={() => setInspected(p.pos)}
                 aria-pressed={inspected === p.pos}
                 className={cx(
-                  'h-7 rounded-full border px-2.5 text-[15px] transition-colors',
+                  'h-7 rounded-full border px-2.5 text-[15px] transition-colors pointer-coarse:h-9',
                   inspected === p.pos ? 'border-accent bg-accent-soft text-accent-text' : 'border-border bg-surface text-ink-2 hover:bg-surface-2 hover:text-ink',
                 )}
               >
@@ -161,11 +260,14 @@ export function TokenInspector({ live }: { live: TokensLive }) {
       caption={
         <>
           Top: one square per position, in the order the sampler emitted the cells. Middle: where the inspected token comes from, and every field
-          the model receives for it. Bottom: the whole batch dictionary, one row per position. The inspected token is shared with the embedding,
-          masks and attention chapters.
+          the model receives for it. Bottom: the whole batch dictionary as one table, one row per position (open it with the toggle). The inspected
+          token is shared with the embedding, masks and attention chapters.
         </>
       }
     >
+      <p className="mb-2 text-[16px] leading-snug text-ink-2">
+        Each square is one position, in the order the sampler wrote it. Click one, or use the arrows, to open its record below.
+      </p>
       <TokenStrip
         tokens={ctx.tokens}
         tableSlots={slots}
@@ -173,9 +275,10 @@ export function TokenInspector({ live }: { live: TokensLive }) {
         selected={inspected}
         highlight={rowPositions}
         onSelect={(p) => setInspected(p)}
-        onHover={setHover}
+        onHover={preview}
         showPadding={true}
         label="All positions of the live context"
+        className="pointer-coarse:[&_[role=listbox]]:gap-1 pointer-coarse:[&_[role=option]]:h-6 pointer-coarse:[&_[role=option]]:w-6"
       />
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14.5px] text-ink-2">
         {stripTables.map((tb) => (
@@ -197,12 +300,12 @@ export function TokenInspector({ live }: { live: TokensLive }) {
           <span aria-hidden="true" className="inline-block h-[14px] w-[14px] rounded-[3px] ring-2 ring-accent ring-offset-1 ring-offset-surface" />
           the inspected token’s row (a row of k cells is k tokens)
         </span>
-        <span>· hover to preview, click or Enter to pin</span>
+        <span>· hover to preview, click or Enter to open</span>
       </div>
 
-      <div className="mt-6 grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        {/* ── where it comes from */}
-        <div className="scroll-quiet min-w-0 lg:sticky lg:top-[calc(var(--topbar-h)+16px)] lg:max-h-[calc(100vh-var(--topbar-h)-32px)] lg:self-start lg:overflow-y-auto lg:pr-1">
+      <div className="mt-6 grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        {/* ── where it comes from (sticky on wide screens when it fits the viewport; never an inner scroll area) */}
+        <div ref={leftRef} className={cx('min-w-0', sticky && 'sticky top-[calc(var(--topbar-h)+16px)] self-start')}>
           <div className="eyebrow mb-2">Where it comes from</div>
           {!t || t.isPadding ? (
             <div className="rounded-xl border border-dashed border-axis px-4 py-4 text-[16.5px] leading-relaxed text-ink-2">
@@ -220,25 +323,28 @@ export function TokenInspector({ live }: { live: TokensLive }) {
                 </span>
               </div>
               {raw && (
-                <TableView
-                  schema={raw.schema}
-                  rows={raw.rows}
-                  slot={slots[t.tableName] ?? 0}
-                  title={`${t.tableName}${t.tableType && t.tableType !== 'Db' ? ` (${t.tableType})` : ''}`}
-                  rowFilter={tableRows}
-                  highlightRows={[t.rowPos]}
-                  highlightCells={[`${t.rowPos}:${t.colName}`]}
-                  targetCell={ctx.targetPos >= 0 && ctx.tokens[ctx.targetPos].nodeIdx === t.nodeIdx ? { row: t.rowPos, col: ctx.tokens[ctx.targetPos].colName } : null}
-                  scrollToRow={t.rowPos}
-                  maxHeight={150}
-                  footer="Rows of this table that are in the context, in visit order. Click a cell to inspect its token."
-                  onCellClick={(row, col) => {
-                    const n = nodeOfRow(row);
-                    if (n === undefined) return;
-                    const pos = (tokensByNode.get(n) ?? []).find((p) => ctx.tokens[p].colName === col);
-                    if (pos !== undefined) setInspected(pos);
-                  }}
-                />
+                <div ref={tableWrap}>
+                  <TableView
+                    schema={raw.schema}
+                    rows={raw.rows}
+                    columns={tableCols}
+                    slot={slots[t.tableName] ?? 0}
+                    title={`${t.tableName}${t.tableType && t.tableType !== 'Db' ? ` (${t.tableType})` : ''}`}
+                    rowFilter={tableRows}
+                    highlightRows={[t.rowPos]}
+                    highlightCells={[`${t.rowPos}:${t.colName}`]}
+                    targetCell={ctx.targetPos >= 0 && ctx.tokens[ctx.targetPos].nodeIdx === t.nodeIdx ? { row: t.rowPos, col: ctx.tokens[ctx.targetPos].colName } : null}
+                    scrollToRow={t.rowPos}
+                    maxHeight={132}
+                    footer="Rows of this table in the context, in visit order. Feature columns first; key columns (last) give no token. Click a cell to inspect its token."
+                    onCellClick={(row, col) => {
+                      const n = nodeOfRow(row);
+                      if (n === undefined) return;
+                      const pos = (tokensByNode.get(n) ?? []).find((p) => ctx.tokens[p].colName === col);
+                      if (pos !== undefined) setInspected(pos);
+                    }}
+                  />
+                </div>
               )}
               <dl className="mt-3 grid grid-cols-[96px_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[15.5px]">
                 <dt className="text-ink-2">cell</dt>
@@ -267,7 +373,7 @@ export function TokenInspector({ live }: { live: TokensLive }) {
                       type="button"
                       onClick={() => setInspected(p)}
                       className={cx(
-                        'num h-6 rounded-[5px] border px-1.5 text-[14px]',
+                        'num h-6 rounded-[5px] border px-1.5 text-[14px] pointer-coarse:h-8 pointer-coarse:min-w-8',
                         p === t.pos ? 'border-accent bg-accent-soft text-accent-text' : 'border-border bg-surface text-ink-2 hover:bg-surface-2',
                       )}
                       title={`${ctx.tokens[p].colName}`}
@@ -283,35 +389,59 @@ export function TokenInspector({ live }: { live: TokensLive }) {
               </div>
             </>
           )}
-          <div className="mt-5">
-            <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[15px]">
-              <span className="font-semibold text-ink">Its row in the context graph</span>
-              <span className="text-[14px] text-ink-2">{graph.nodes.length} rows · arrow = child → parent</span>
+          {ego && rowNode !== null && (
+            <div className="mt-5">
+              <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[15px]">
+                <span className="font-semibold text-ink">Its row in the context graph</span>
+                <span className="text-[14px] text-ink-2">parents above, children below · arrow = child → parent</span>
+              </div>
+              <EntityGraph
+                nodes={ego.nodes}
+                edges={ego.edges}
+                positions={ego.positions}
+                highlight={graphHighlight}
+                highlightEdges={graphEdges}
+                dimOthers={false}
+                rings={rings}
+                selected={rowNode}
+                labels="all"
+                legend={false}
+                height={ego.height}
+                onNodeClick={(id) => {
+                  const p = tokensByNode.get(Number(id))?.[0];
+                  if (p !== undefined) setInspected(p);
+                }}
+                title="The inspected token's row with its parent and child rows in the live context"
+              />
+              <ul className="mt-1.5 space-y-0.5 text-[14.5px] leading-snug text-ink-2">
+                <li>
+                  <span className="font-medium text-ink">Row:</span> <span className="font-mono">{nodeLabel(pdb, rowNode)}</span>
+                  {rowNode === ctx.params.seedNode ? ' (the seed row, dashed ring)' : ''}
+                </li>
+                <li>
+                  <span className="font-medium text-ink">Parents in its f2p_nbr_idxs:</span>{' '}
+                  {parentsIn.length ? <span className="font-mono">{parentsIn.map((p) => nodeLabel(pdb, p)).join(', ')}</span> : 'none in the context'}
+                </li>
+                <li>
+                  <span className="font-medium text-ink">Rows that list it as a parent:</span>{' '}
+                  {children.length ? (
+                    <>
+                      <span className="font-mono">
+                        {children
+                          .slice(0, MAX_CHILDREN)
+                          .map((c) => nodeRef(pdb.nodes[c]))
+                          .join(', ')}
+                      </span>
+                      {ego.hidden > 0 ? ` and ${ego.hidden} more` : ''}
+                    </>
+                  ) : (
+                    'none in the context'
+                  )}
+                </li>
+                <li>Click a node to inspect its first token.</li>
+              </ul>
             </div>
-            <EntityGraph
-              nodes={graph.nodes}
-              edges={graph.edges}
-              highlight={graphHighlight}
-              highlightEdges={graphEdges}
-              dimOthers
-              rings={rings}
-              selected={rowNode}
-              labels="highlighted"
-              height={210}
-              linkDistance={40}
-              charge={-90}
-              onNodeHover={(id) => setHover(id === null ? null : tokensByNode.get(Number(id))?.[0] ?? null)}
-              onNodeClick={(id) => {
-                const p = tokensByNode.get(Number(id))?.[0];
-                if (p !== undefined) setInspected(p);
-              }}
-              title="Rows of the live context, linked child → parent by foreign keys"
-            />
-            <div className="mt-1 text-[14px] leading-snug text-ink-2">
-              Lit: the token’s row and the parents in its <span className="font-mono">f2p_nbr_idxs</span>. Dashed ring: the seed row. Click a node
-              to inspect its first token.
-            </div>
-          </div>
+          )}
         </div>
 
         {/* ── what the model receives */}
@@ -321,26 +451,42 @@ export function TokenInspector({ live }: { live: TokensLive }) {
         </div>
       </div>
 
-      <div className="mt-7">
-        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <div className="text-[16px] font-semibold text-ink">Every position, every field</div>
-          <div className="text-[14.5px] text-ink-2">
-            <span className="font-mono">col_name_values</span> and <span className="font-mono">text_values</span> are 384-d vectors (shown above for the
-            inspected token). Scroll the table sideways for the value and flag columns →
+      <div className="mt-7 border-t border-grid pt-4">
+        <button
+          type="button"
+          aria-expanded={showTable}
+          aria-controls="tokens-full-table"
+          onClick={() => setShowTable((v) => !v)}
+          className="flex w-full flex-wrap items-baseline gap-x-2 text-left hover:text-accent-text"
+        >
+          <ChevronDown aria-hidden="true" size={17} className={cx('shrink-0 self-center text-ink-2 transition-transform', !showTable && '-rotate-90')} />
+          <span className="text-[16px] font-semibold text-ink">Every position, every field</span>
+          <span className="text-[15px] text-ink-2">
+            {showTable ? 'hide the table' : `show the whole batch dictionary as one table (${S} rows)`}
+          </span>
+        </button>
+        {showTable && (
+          <div id="tokens-full-table" className="mt-3">
+            <div className="mb-2 text-[14.5px] text-ink-2">
+              The flag columns come right after the cell; scroll sideways for the ids and values.{' '}
+              <span className="font-mono">col_name_values</span> and <span className="font-mono">text_values</span> are 384-d vectors (shown above for
+              the inspected token).
+            </div>
+            <TokenTable
+              tokens={ctx.tokens}
+              text={pdb.text}
+              tableSlots={slots}
+              fields={TABLE_FIELDS}
+              selected={inspected}
+              highlight={hover !== null ? [hover] : rowPositions}
+              onHover={preview}
+              onSelect={(p) => setInspected(p)}
+              maxHeight={330}
+              colWidths={{ cell: 250, f2p_nbr_idxs: 176, table_name_idxs: 184 }}
+              tableNameChars={16}
+            />
           </div>
-        </div>
-        <TokenTable
-          tokens={ctx.tokens}
-          text={pdb.text}
-          tableSlots={slots}
-          selected={inspected}
-          highlight={hover !== null ? [hover] : rowPositions}
-          onHover={setHover}
-          onSelect={(p) => setInspected(p)}
-          maxHeight={330}
-          colWidths={{ f2p_nbr_idxs: 176, table_name_idxs: 184 }}
-          tableNameChars={16}
-        />
+        )}
       </div>
     </Figure>
   );

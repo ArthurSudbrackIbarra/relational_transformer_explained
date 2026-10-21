@@ -87,8 +87,8 @@ function ruleText(f: Fate, file: TableFile, data: ChapterData, node: { ts: numbe
       const phrase = data.pdb.text[c.colNameIdx];
       return (
         <>
-          {name} is a feature column with a value, so it becomes one cell: sem type <strong>{SEM_LABEL[c.sem]}</strong>, stored as {storedText(f)}, column phrase “{phrase}” (text index{' '}
-          {c.colNameIdx}; text indices are arbitrary labels, and <code>pre.rs</code> numbers them in a different order).
+          {name} is a feature column with a value, so it becomes one cell: sem type <strong>{SEM_LABEL[c.sem]}</strong>, stored as {storedText(f)}, with the column phrase “{phrase}”
+          (string index {c.colNameIdx}).
         </>
       );
     }
@@ -100,7 +100,7 @@ function ResultChip({ f, data }: { f: Fate; data: ChapterData }) {
     return (
       <>
         <div className="flex min-w-0 items-center gap-1.5">
-          <SemBadge sem={f.cell.sem} size="xs" />
+          <SemBadge sem={f.cell.sem} size="sm" />
           <span className="truncate font-mono text-[14.5px] font-semibold text-ink">{f.col.name}</span>
         </div>
         <div className="num mt-0.5 truncate text-[14.5px] text-ink-2">{storedText(f)}</div>
@@ -161,16 +161,19 @@ function RowFlow({ data, file, row }: { data: ChapterData; file: TableFile; row:
       return (
         <>
           Row {row} of <code>{file.path}</code>, before pre.rs reads it. Its node index is {file.offset} + {row} = <strong>{file.offset + row}</strong>. Press play to process its {n} columns in
-          the order the table stores them.
+          the order the table stores them. Next: <code>{fates[0]?.col.name}</code>.
         </>
       );
     const f = fates[i - 1];
     return (
       <>
-        <span className="text-muted">
-          Column {i}/{n} ·{' '}
-        </span>
         {ruleText(f, file, data, node ?? { ts: null }, i - 1 === firstLinkIdx)}
+        {i < n && (
+          <span className="text-muted">
+            {' '}
+            Next: <code>{fates[i].col.name}</code>.
+          </span>
+        )}
       </>
     );
   };
@@ -202,7 +205,13 @@ function RowFlow({ data, file, row }: { data: ChapterData; file: TableFile; row:
 
   return (
     <LayoutGroup id={idPrefix}>
-      <StepPlayer {...player} unit="step" label="Step through pre.rs on this row" describe={describe} />
+      <StepPlayer
+        {...player}
+        unit="column"
+        formatCounter={(i, count) => (i === 0 ? `before · ${count - 1} columns` : `column ${i} / ${count - 1}`)}
+        label="Step through pre.rs on this row"
+        describe={describe}
+      />
 
       {/* the source row */}
       <div className="mt-4 rounded-xl border border-border bg-surface px-3 py-3" style={{ borderLeft: `3px solid ${catVar(data.slotOf(file.tableName))}` }}>
@@ -215,13 +224,15 @@ function RowFlow({ data, file, row }: { data: ChapterData; file: TableFile; row:
         <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
           {fates.map((f, i) => {
             const processed = i < done;
+            const justDone = i === done - 1;
             // phone: one line per column (name … value); from sm up: name above value
             const box = (
               <>
                 <div className="flex min-w-0 items-center gap-1.5 text-[14px] text-ink-2">
-                  <ColGlyph file={file} col={f.col.name} />
+                  <ColGlyph file={file} col={f.col.name} size="sm" />
                   <span className="truncate font-mono">{f.col.name}</span>
-                  {processed && <Check aria-label="processed" size={14} strokeWidth={2.5} className="ml-auto hidden shrink-0 text-muted sm:block" />}
+                  {processed && <Check aria-label="processed" size={14} strokeWidth={2.5} className={cx('ml-auto hidden shrink-0 sm:block', justDone ? 'text-accent-text' : 'text-muted')} />}
+                  {i === done && <span className="ml-auto shrink-0 text-[13px] font-medium text-muted">next</span>}
                 </div>
                 <div
                   className={cx(
@@ -235,7 +246,13 @@ function RowFlow({ data, file, row }: { data: ChapterData; file: TableFile; row:
               </>
             );
             return processed ? (
-              <div key={i} className="flex min-w-0 flex-wrap items-center gap-x-2 rounded-lg border border-dashed border-border-strong px-2.5 py-1.5 sm:block">
+              <div
+                key={i}
+                className={cx(
+                  'flex min-w-0 flex-wrap items-center gap-x-2 rounded-lg border border-dashed px-2.5 py-1.5 sm:block',
+                  justDone ? 'border-accent bg-accent-soft' : 'border-border-strong',
+                )}
+              >
                 {box}
               </div>
             ) : (
@@ -243,10 +260,7 @@ function RowFlow({ data, file, row }: { data: ChapterData; file: TableFile; row:
                 key={i}
                 layoutId={idPrefix + i}
                 transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-                className={cx(
-                  'flex min-w-0 flex-wrap items-center gap-x-2 rounded-lg border bg-surface-2 px-2.5 py-1.5 sm:block',
-                  i === done ? 'border-accent ring-1 ring-accent' : 'border-border',
-                )}
+                className="flex min-w-0 flex-wrap items-center gap-x-2 rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 sm:block"
               >
                 {box}
               </motion.div>
@@ -261,6 +275,23 @@ function RowFlow({ data, file, row }: { data: ChapterData; file: TableFile; row:
         {lane('link', 'Links', 'Foreign keys: the parent’s node index, plus edges. No token.')}
         {lane('none', 'Nothing', 'The primary key, and missing values.')}
       </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-ink-2" aria-label="Glyph legend">
+        {[SemType.Number, SemType.Text, SemType.DateTime, SemType.Boolean].map((t) => (
+          <span key={t} className="inline-flex items-center gap-1.5">
+            <SemBadge sem={t} size="sm" />
+            {SEM_LABEL[t]}
+          </span>
+        ))}
+        <span className="inline-flex items-center gap-1.5">
+          <KeyRound aria-hidden="true" size={15} className="text-ink-2" />
+          primary key
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Link2 aria-hidden="true" size={15} className="text-ink-2" />
+          foreign key
+        </span>
+        <span className="text-muted">Signed numbers are z-scores (Pass 2).</span>
+      </div>
 
       {/* the node record */}
       <div className="mt-3 rounded-xl border border-border bg-surface-2/50 px-3 py-2.5 text-[15px]">
@@ -269,7 +300,7 @@ function RowFlow({ data, file, row }: { data: ChapterData; file: TableFile; row:
         </div>
         <dl className="grid gap-x-5 gap-y-1 sm:grid-cols-2">
           <Field k="node_idx" v={String(file.offset + row)} />
-          <Field k="table_name_idx" v={`${node?.tableNameIdx ?? '—'}  (“${file.tableName}”)`} hint="an arbitrary string-table index; pre.rs’s own numbering differs" />
+          <Field k="table_name_idx" v={`${node?.tableNameIdx ?? '—'}  (“${file.tableName}”)`} hint="its index in the string table; the numbering is arbitrary" />
           <Field k="is_task_node" v={String(file.isTask)} hint="set for task rows; not read by the model" />
           <Field
             k="timestamp"

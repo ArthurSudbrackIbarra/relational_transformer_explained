@@ -51,8 +51,11 @@ export const ALL_TOKEN_FIELDS: TokenField[] = [
   'is_padding',
 ];
 
-/** Field → whether the paper-era model reads it (spec §5.1 "used by model?"). */
-export const FIELD_USED_BY_MODEL: Record<TokenField, boolean | 'display'> = {
+/**
+ * Field → whether the paper-era model reads it (spec §5.1 "used by model?"). 'eval' = read only by the
+ * evaluation readout (main.py:283-288), never by model.py.
+ */
+export const FIELD_USED_BY_MODEL: Record<TokenField, boolean | 'display' | 'eval'> = {
   pos: 'display',
   cell: 'display',
   node_idxs: true,
@@ -65,7 +68,7 @@ export const FIELD_USED_BY_MODEL: Record<TokenField, boolean | 'display'> = {
   datetime_values: true,
   boolean_values: true,
   masks: true,
-  is_targets: true, // eval readout only
+  is_targets: 'eval', // eval readout only (main.py:283-288)
   is_task_nodes: false,
   class_value_idxs: false,
   is_padding: true,
@@ -165,7 +168,7 @@ export function TokenTable({
       case 'number_values':
         return formatSigned(t.numberValue);
       case 'text_values':
-        return t.isPadding ? '0⃗' : `E(text[${t.textIdx}])${text && t.sem === 1 ? ` “${truncate(text[t.textIdx] ?? '', 14)}”` : ''}`;
+        return t.isPadding ? 'all zeros' : `E(text[${t.textIdx}])${text && t.sem === 1 ? ` “${truncate(text[t.textIdx] ?? '', 14)}”` : ''}`;
       case 'datetime_values':
         return formatSigned(t.datetimeValue);
       case 'boolean_values':
@@ -203,9 +206,11 @@ export function TokenTable({
                 title={
                   FIELD_USED_BY_MODEL[f] === 'display'
                     ? 'display only'
-                    : FIELD_USED_BY_MODEL[f]
-                      ? 'read by the model'
-                      : 'carried in the batch, never read by the paper-era model'
+                    : FIELD_USED_BY_MODEL[f] === 'eval'
+                      ? 'read by the evaluation readout (main.py:283-288), not by the model'
+                      : FIELD_USED_BY_MODEL[f]
+                        ? 'read by the model'
+                        : 'carried in the batch, never read by the paper-era model'
                 }
                 className={cx(
                   'flex shrink-0 items-center gap-1 px-2 font-mono text-[14px] font-semibold whitespace-nowrap',

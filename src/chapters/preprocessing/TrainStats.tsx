@@ -58,10 +58,10 @@ export function TrainStatsFigure({ data }: { data: ChapterData }) {
                   <th scope="col" className="py-1.5 pr-2 font-semibold">
                     split
                   </th>
-                  <th scope="col" className="py-1.5 pr-2 text-right font-semibold">
+                  <th scope="col" className="hidden py-1.5 pr-2 text-right font-semibold sm:table-cell">
                     rows
                   </th>
-                  <th scope="col" className="hidden py-1.5 pr-2 text-right font-semibold sm:table-cell">
+                  <th scope="col" className="py-1.5 pr-2 text-right font-semibold">
                     {isBool ? 'true in split' : 'mean in split'}
                   </th>
                   <th scope="col" className="py-1.5 pr-2 text-right font-semibold">
@@ -88,9 +88,10 @@ export function TrainStatsFigure({ data }: { data: ChapterData }) {
                       <td className="py-1.5 pr-2">
                         <span className="font-mono text-ink">{f.tableType}</span>
                         {f.tableType !== 'Train' && ts !== undefined && <span className="block text-[14px] whitespace-nowrap text-muted sm:ml-1.5 sm:inline">{isoDay(ts)}</span>}
+                        <span className="num block text-[14px] whitespace-nowrap text-muted sm:hidden">{nf(f.numNodes)} rows</span>
                       </td>
-                      <td className="num py-1.5 pr-2 text-right">{nf(f.numNodes)}</td>
-                      <td className="num hidden py-1.5 pr-2 text-right sm:table-cell">{isBool ? `${(own * 100).toFixed(1)}%` : fixed(own, 3)}</td>
+                      <td className="num hidden py-1.5 pr-2 text-right sm:table-cell">{nf(f.numNodes)}</td>
+                      <td className="num py-1.5 pr-2 text-right">{isBool ? `${(own * 100).toFixed(1)}%` : fixed(own, 3)}</td>
                       <td className="num py-1.5 pr-2 text-right whitespace-nowrap">
                         {inherited && <ArrowDownLeft aria-label="copied from Train" size={14} className="mr-1 inline text-accent-text" />}
                         {used ? fixed(used.mean, 4) : '—'}

@@ -50,6 +50,10 @@ export interface HeatmapProps {
   crop?: { rows?: number; cols?: number };
   rowLabels?: string[];
   colLabels?: string[];
+  /** Width of the row-label band in px (default 140). Pass a measured width so long labels are not truncated. */
+  rowLabelWidth?: number;
+  /** Height of the column-label band in px (default 104). */
+  colLabelHeight?: number;
   /** Categorical slot per row / column: drawn as a thin identity strip on the axis. */
   rowSlots?: number[];
   colSlots?: number[];
@@ -116,6 +120,8 @@ export function Heatmap(props: HeatmapProps) {
     crop,
     rowLabels,
     colLabels,
+    rowLabelWidth = LABEL_W,
+    colLabelHeight = LABEL_H,
     rowSlots,
     colSlots,
     showLabels = true,
@@ -161,12 +167,12 @@ export function Heatmap(props: HeatmapProps) {
     const wantLabels = showLabels && (!!rowLabels || !!colLabels);
     let labels = wantLabels && cell >= MIN_LABEL_CELL;
     if (labels && !cellSize) {
-      cell = Math.floor(Math.min(maxCellSize, Math.max(minCellSize, fit(ppr, rowLabels ? LABEL_W : 0))));
+      cell = Math.floor(Math.min(maxCellSize, Math.max(minCellSize, fit(ppr, rowLabels ? rowLabelWidth : 0))));
       labels = cell >= MIN_LABEL_CELL;
       if (!labels) cell = Math.floor(Math.min(maxCellSize, Math.max(minCellSize, fit(ppr, 0))));
     }
     return { ppr, cell: Math.max(1, cell), labels, stripW };
-  }, [width, C, stacks, panelsPerRow, cellSize, maxCellSize, minCellSize, showLabels, rowLabels, colLabels, hasRowStrip]);
+  }, [width, C, stacks, panelsPerRow, cellSize, maxCellSize, minCellSize, showLabels, rowLabels, colLabels, hasRowStrip, rowLabelWidth]);
 
   const hlRows = toSet(highlightRows);
   const hlCols = toSet(highlightCols);
@@ -259,6 +265,8 @@ export function Heatmap(props: HeatmapProps) {
             labels={labels}
             rowLabels={rowLabels}
             colLabels={colLabels}
+            labelW={rowLabelWidth}
+            labelH={colLabelHeight}
             rowSlots={rowSlots}
             colSlots={colSlots}
             mode={mode}
@@ -366,6 +374,8 @@ interface PanelProps {
   labels: boolean;
   rowLabels?: string[];
   colLabels?: string[];
+  labelW: number;
+  labelH: number;
   rowSlots?: number[];
   colSlots?: number[];
   mode: 'light' | 'dark';
@@ -485,10 +495,10 @@ function HeatmapPanel(p: PanelProps) {
   return (
     <figure className="m-0 min-w-0">
       {p.title && <figcaption className="mb-1.5 text-[15px] font-medium text-ink-2">{p.title}</figcaption>}
-      <div className="inline-grid" style={{ gridTemplateColumns: `${showRowLabels ? LABEL_W : 0}px auto` }}>
+      <div className="inline-grid" style={{ gridTemplateColumns: `${showRowLabels ? p.labelW : 0}px auto` }}>
         <div />
         {showColLabels ? (
-          <div className="relative overflow-hidden" style={{ height: LABEL_H, width: W }} aria-hidden="true">
+          <div className="relative overflow-hidden" style={{ height: p.labelH, width: W }} aria-hidden="true">
             {p.colLabels!.slice(0, C).map((l, c) => (
               <span
                 key={c}
@@ -497,7 +507,7 @@ function HeatmapPanel(p: PanelProps) {
                   fontSize: labelPx(cell),
                   left: stripW + c * cell,
                   width: cell,
-                  height: LABEL_H - 4,
+                  height: p.labelH - 4,
                   bottom: 3,
                   lineHeight: `${cell}px`,
                   writingMode: 'vertical-rl',
@@ -519,7 +529,7 @@ function HeatmapPanel(p: PanelProps) {
               <span
                 key={r}
                 className="num absolute right-2 truncate text-right text-ink-2"
-                style={{ top: colStripH + r * cell, width: LABEL_W - 10, height: cell, lineHeight: `${cell}px`, fontSize: labelPx(cell) }}
+                style={{ top: colStripH + r * cell, width: p.labelW - 10, height: cell, lineHeight: `${cell}px`, fontSize: labelPx(cell) }}
                 title={l}
               >
                 {l}

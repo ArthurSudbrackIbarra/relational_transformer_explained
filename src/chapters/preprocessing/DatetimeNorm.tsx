@@ -10,7 +10,7 @@ import { ChartFrame, DataTable, TeX, maxTextWidth, textWidth } from '@/component
 import { useElementSize } from '@/components/viz/useSize';
 import { catVar } from '@/styles/palette';
 import { DAY_MS, datetimeColumns, fileLabel, isoDay } from './data';
-import { Readout, signed, texNum, usePhone, type ChapterData } from './shared';
+import { Readout, Sub, signed, texNum, usePhone, type ChapterData } from './shared';
 
 const nf = (n: number) => n.toLocaleString('en-US');
 
@@ -104,19 +104,19 @@ export function DatetimeNormFigure({ data }: { data: ChapterData }) {
         <Readout label="values pooled n" hint={`${cols.length} columns, all files`}>
           {nf(count)}
         </Readout>
-        <Readout label={<>global mean μ<sub>T</sub></>} hint={new Date(mean).toISOString().slice(11, 19) + ' UTC'}>
+        <Readout label={<>global mean μ<Sub>T</Sub></>} hint={new Date(mean).toISOString().slice(11, 19) + ' UTC'}>
           {isoDay(mean)}
         </Readout>
-        <Readout label={<>population std σ<sub>T</sub></>} hint="ddof = 0 (divide by n)">
+        <Readout label={<>population std σ<Sub>T</Sub></>} hint="ddof = 0 (divide by n)">
           {(std / DAY_MS).toFixed(1)} days
         </Readout>
-        <Readout label="statistics per column" hint="the per-column ColStat is a dummy (0, 0)">
+        <Readout label="statistics per column" hint="pre.rs stores only a placeholder (0, 0), never used">
           none
         </Readout>
       </div>
       <ChartFrame
         title="Every datetime column on one clock"
-        subtitle={<>Monthly counts; each row is scaled to its own peak. The band is μ<sub>T</sub> ± σ<sub>T</sub>. Hover for a date’s z-score.</>}
+        subtitle={<>Monthly counts; each row is scaled to its own peak. The band is μ<Sub>T</Sub> ± σ<Sub>T</Sub>. Hover for a date’s z-score.</>}
         table={table}
       >
         <div ref={ref} className="relative w-full">
@@ -205,7 +205,15 @@ export function DatetimeNormFigure({ data }: { data: ChapterData }) {
                 </text>
                 {seedT !== null && (
                   <g transform={`translate(${x(seedT)},0)`}>
-                    <path d="M0,-5 L5,-13 L-5,-13 Z" style={{ fill: 'var(--accent)' }} />
+                    <path d="M0,-4 L6,-14 L-6,-14 Z" style={{ fill: 'var(--accent)' }} />
+                    <text
+                      x={x(seedT) > pw - 50 ? -9 : 9}
+                      y={-9}
+                      textAnchor={x(seedT) > pw - 50 ? 'end' : 'start'}
+                      style={{ fill: 'var(--accent-text)', fontSize: 13, fontWeight: 600 }}
+                    >
+                      seed
+                    </text>
                   </g>
                 )}
               </g>
@@ -238,7 +246,7 @@ export function DatetimeNormFigure({ data }: { data: ChapterData }) {
             <div
               role="tooltip"
               className="pointer-events-none absolute z-20 rounded-[9px] border border-border bg-surface px-2.5 py-1.5 text-[14.5px] leading-tight shadow-[var(--shadow-pop)]"
-              style={{ left: Math.max(0, Math.min(W - 190, LABEL_W + hoverX + 10)), top: 0 }}
+              style={{ left: Math.max(0, Math.min(W - 250, LABEL_W + hoverX + 12)), top: TOP + 4 }}
             >
               <span className="num text-ink">{isoDay(hoverT)}</span> <span className="text-ink-2">→ z</span> <strong className="num text-ink">{signed((hoverT - mean) / std, 3)}</strong>
               {hoverRow !== null && (
@@ -251,7 +259,7 @@ export function DatetimeNormFigure({ data }: { data: ChapterData }) {
         </div>
       </ChartFrame>
       <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-        <div className="scroll-quiet overflow-x-auto rounded-lg bg-surface-2 px-3 py-2 text-[17.5px]">
+        <div className="scroll-quiet overflow-x-auto rounded-lg bg-surface-2 px-3 py-2 text-[18px]">
           <TeX
             tex={
               phone
@@ -261,7 +269,7 @@ export function DatetimeNormFigure({ data }: { data: ChapterData }) {
           />
         </div>
         {seedT !== null && seedCell && (
-          <div className="scroll-quiet overflow-x-auto rounded-lg bg-surface-2 px-3 py-2 text-[17.5px]">
+          <div className="scroll-quiet overflow-x-auto rounded-lg bg-surface-2 px-3 py-2 text-[18px]">
             <span className="mr-2 block align-middle text-[15px] text-ink-2 sm:inline">
               <span aria-hidden="true" className="mr-1 inline-block h-0 w-0 border-x-[5px] border-t-[8px] border-x-transparent border-t-[var(--accent)] align-middle" />
               seed {seedCell.colName}:

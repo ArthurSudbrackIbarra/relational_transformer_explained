@@ -159,6 +159,7 @@ export function ChurnBuilder({
   const twoLineRule = (ruleSize.width || 480) < 470;
 
   const isAll = step.kind === 'all';
+  const compact = W < 640;
   const tableScroll = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const el = tableScroll.current;
@@ -195,8 +196,8 @@ export function ChurnBuilder({
       case 'train-first':
         return (
           <>
-            Training timestamps step back from the validation cutoff by Δ = {task.timedeltaDays} days. The first one is{' '}
-            <strong>{isoDay(trainStamps[trainStamps.length - 1]?.t ?? val)}</strong>.
+            Training timestamps step back from the validation cutoff by Δ = {task.timedeltaDays} days. One step back from the val cutoff
+            gives <strong>{isoDay(trainStamps[trainStamps.length - 1]?.t ?? val)}</strong>, the latest training timestamp.
           </>
         );
       case 'train-all':
@@ -245,7 +246,7 @@ export function ChurnBuilder({
       case 'all':
         return (
           <>
-            Do the same for <strong>every customer</strong> who is active at each t (left: one line per customer, one column per
+            Do the same for <strong>every customer</strong> who is active at each t (in the grid: one line per customer, one column per
             timestamp). The finished table holds{' '}
             {(['Train', 'Val', 'Test'] as Split[]).map((sp, k) => (
               <span key={sp}>
@@ -258,6 +259,10 @@ export function ChurnBuilder({
         );
     }
   };
+
+  const playerEl = (
+    <StepPlayer {...player} className={compact ? 'mt-3' : 'mt-4'} unit="step" label="Build the customer-churn task table" describe={describe} />
+  );
 
   const markerVisible = (sp: Split, t: number) => {
     if (sp !== 'Train') return true;
@@ -307,7 +312,14 @@ export function ChurnBuilder({
       </div>
 
       <div ref={wrapRef} className="min-w-0">
-        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Timeline of ${entityTitle}'s orders and the customer-churn prediction timestamps`} className="block">
+        <svg
+          width={W}
+          height={H}
+          viewBox={`0 0 ${W} ${H}`}
+          role="group"
+          aria-label={`Timeline of ${entityTitle}'s orders and the customer-churn prediction timestamps. Each timestamp marker is a button that jumps to its step.`}
+          className="block"
+        >
           {/* window band (t, t+Δ] */}
           <AnimatePresence>
             {windowStamp >= 0 && (
@@ -509,6 +521,9 @@ export function ChurnBuilder({
         </span>
       </div>
 
+      {/* on narrow screens the player sits right under the timeline, so "next" and the moving window stay in view together */}
+      {compact && playerEl}
+
       <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         {/* the computation (steps a-d), or every customer at once (step e) */}
         <div ref={ruleRef} className="min-w-0 rounded-xl border border-border bg-surface-2 px-4 py-3.5">
@@ -666,7 +681,7 @@ export function ChurnBuilder({
         </div>
       </div>
 
-      <StepPlayer {...player} className="mt-4" unit="step" label="Build the customer-churn task table" describe={describe} />
+      {!compact && playerEl}
     </div>
   );
 }

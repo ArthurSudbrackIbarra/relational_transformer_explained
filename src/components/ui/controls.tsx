@@ -249,10 +249,12 @@ export interface NumberFieldProps {
   hint?: ReactNode;
   className?: string;
   disabled?: boolean;
+  /** Shown while the field is empty (pass value = NaN for an empty field). */
+  placeholder?: string;
 }
 
 /** Integer/float input; commits on change when the value parses. */
-export function NumberField({ label, value, onChange, min, max, step = 1, hint, className, disabled }: NumberFieldProps) {
+export function NumberField({ label, value, onChange, min, max, step = 1, hint, className, disabled, placeholder }: NumberFieldProps) {
   const id = useId();
   return (
     <div className={cx('flex min-w-0 flex-col gap-1', className)}>
@@ -264,6 +266,7 @@ export function NumberField({ label, value, onChange, min, max, step = 1, hint, 
         type="number"
         inputMode="numeric"
         value={Number.isFinite(value) ? value : ''}
+        placeholder={placeholder}
         min={min}
         max={max}
         step={step}

@@ -8,7 +8,7 @@
  * Pass `positions` to pin a layout (e.g. keep nodes still while a BFS animates).
  */
 import { forceCollide, forceLink, forceManyBody, forceSimulation, forceX, forceY, type SimulationNodeDatum } from 'd3';
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { catVar } from '@/styles/palette';
 import { cx } from '../ui/cx';
 import { shapeOfSlot, shapePath } from './shapes';
@@ -50,6 +50,8 @@ export interface EntityGraphProps {
   badges?: ReadonlyMap<NodeId, string>;
   /** Edge keys "source->target" to draw in accent. */
   highlightEdges?: ReadonlySet<string> | readonly string[];
+  /** Also accent every edge of the hovered / selected node (default true). False: only `highlightEdges`. */
+  accentActiveEdges?: boolean;
   selected?: NodeId | null;
   onNodeHover?: (id: NodeId | null) => void;
   onNodeClick?: (id: NodeId) => void;
@@ -67,6 +69,16 @@ export interface EntityGraphProps {
   legend?: boolean;
   /** Accessible name. */
   title?: string;
+  /**
+   * Optional guide ellipses centred on the layout origin (layout units), drawn under the edges,
+   * e.g. hop-distance rings around a pinned radial layout. Each label sits at the top of its ring.
+   */
+  guides?: readonly { rx: number; ry: number; label?: string }[];
+  /**
+   * Keyboard: one tab stop for the whole graph (roving tabindex); arrow keys move between nodes,
+   * Enter / Space clicks. Default false (every node is its own tab stop).
+   */
+  roving?: boolean;
   className?: string;
 }
 
@@ -111,6 +123,7 @@ export function EntityGraph({
   rings,
   badges,
   highlightEdges,
+  accentActiveEdges = true,
   selected = null,
   onNodeHover,
   onNodeClick,
@@ -123,6 +136,8 @@ export function EntityGraph({
   charge = -70,
   legend = true,
   title = 'Entity graph: rows linked by foreign keys',
+  guides,
+  roving = false,
   className,
 }: EntityGraphProps) {
   const uid = useId().replace(/:/g, '');
@@ -183,10 +198,16 @@ export function EntityGraph({
       x1 = Math.max(x1, p.x);
       y1 = Math.max(y1, p.y);
     }
+    for (const g of guides ?? []) {
+      x0 = Math.min(x0, -g.rx);
+      x1 = Math.max(x1, g.rx);
+      y0 = Math.min(y0, -g.ry - (g.label ? 14 : 0));
+      y1 = Math.max(y1, g.ry);
+    }
     if (!Number.isFinite(x0)) return { x: -50, y: -50, w: 100, h: 100 };
     const pad = 28;
     return { x: x0 - pad, y: y0 - pad, w: Math.max(60, x1 - x0 + 2 * pad), h: Math.max(60, y1 - y0 + 2 * pad) };
-  }, [layout]);
+  }, [layout, guides]);
 
   const width = size.width || 640;
   const scale = Math.min(width / view.w, height / view.h, 2.2);
@@ -286,13 +307,26 @@ export function EntityGraph({
   const focusable = nodes.length <= 150 && (!!onNodeClick || !!onNodeHover);
   const k = 1 / scale; // keep strokes/text constant in screen px
 
+  // roving tabindex: the one tabbable node (falls back to the selected / first node)
+  const [rove, setRove] = useState<NodeId | null>(null);
+  const roveId = rove !== null && nodeById.has(rove) ? rove : selected !== null && nodeById.has(selected) ? selected : (nodes[0]?.id ?? null);
+  const nodeEls = useRef(new Map<NodeId, SVGGElement>());
+  const moveRove = (from: NodeId, step: number | 'first' | 'last') => {
+    const i = nodes.findIndex((n) => n.id === from);
+    const j = step === 'first' ? 0 : step === 'last' ? nodes.length - 1 : Math.max(0, Math.min(nodes.length - 1, i + step));
+    const id = nodes[j]?.id;
+    if (id === undefined) return;
+    setRove(id);
+    nodeEls.current.get(id)?.focus();
+  };
+
   const hovered = hover !== null ? nodeById.get(hover) : undefined;
   const hoveredPos = hover !== null ? layout.get(hover) : undefined;
 
   return (
     <div ref={wrapRef} className={cx('relative w-full min-w-0', className)}>
       <svg
-        role="img"
+        role={focusable && roving ? 'group' : 'img'}
         aria-label={`${title}. ${nodes.length} rows, ${edges.length} links.`}
         width="100%"
         height={height}
@@ -316,6 +350,25 @@ export function EntityGraph({
             </marker>
           ))}
         </defs>
+        {guides && guides.length > 0 && (
+          <g aria-hidden="true">
+            {guides.map((g, i) => (
+              <g key={i}>
+                <ellipse cx={0} cy={0} rx={g.rx} ry={g.ry} fill="none" style={{ stroke: 'var(--grid)' }} strokeWidth={1.25 * k} strokeDasharray={`${4 * k} ${3 * k}`} />
+                {g.label && (
+                  <text
+                    x={0}
+                    y={-g.ry - 5 * k}
+                    textAnchor="middle"
+                    style={{ fill: 'var(--muted)', fontSize: BADGE_PX * k, stroke: 'var(--surface)', strokeWidth: 3 * k, paintOrder: 'stroke' }}
+                  >
+                    {g.label}
+                  </text>
+                )}
+              </g>
+            ))}
+          </g>
+        )}
         <g>
           {edges.map((e) => {
             const a = layout.get(e.source);
@@ -328,7 +381,7 @@ export function EntityGraph({
             const x2 = b.x - (dx / len) * shrink;
             const y2 = b.y - (dy / len) * shrink;
             const key = edgeKey(e.source, e.target);
-            const on = hlE.has(key) || (active !== null && (e.source === active || e.target === active));
+            const on = hlE.has(key) || (accentActiveEdges && active !== null && (e.source === active || e.target === active));
             const dim = !on && (isDim(e.source) || isDim(e.target));
             return (
               <line
@@ -360,7 +413,11 @@ export function EntityGraph({
                 key={String(n.id)}
                 transform={`translate(${p.x},${p.y})`}
                 style={{ opacity: dim ? 0.28 : 1, cursor: onNodeClick ? 'pointer' : 'default' }}
-                tabIndex={focusable ? 0 : undefined}
+                ref={(el) => {
+                  if (el) nodeEls.current.set(n.id, el);
+                  else nodeEls.current.delete(n.id);
+                }}
+                tabIndex={focusable ? (roving ? (n.id === roveId ? 0 : -1) : 0) : undefined}
                 role={focusable ? 'button' : undefined}
                 aria-label={focusable ? `${n.title ?? n.label} (${n.table})` : undefined}
                 onPointerEnter={() => {
@@ -372,6 +429,7 @@ export function EntityGraph({
                   onNodeHover?.(null);
                 }}
                 onFocus={() => {
+                  if (roving) setRove(n.id);
                   setHover(n.id);
                   onNodeHover?.(n.id);
                 }}
@@ -384,6 +442,14 @@ export function EntityGraph({
                   if ((e.key === 'Enter' || e.key === ' ') && onNodeClick) {
                     e.preventDefault();
                     onNodeClick(n.id);
+                    return;
+                  }
+                  if (!roving) return;
+                  const step =
+                    e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : e.key === 'Home' ? 'first' : e.key === 'End' ? 'last' : null;
+                  if (step !== null) {
+                    e.preventDefault();
+                    moveRove(n.id, step);
                   }
                 }}
               >

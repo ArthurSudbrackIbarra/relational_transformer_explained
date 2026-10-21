@@ -268,3 +268,37 @@ export function featureColumns(db: RawDatabase, pdb: PreprocessedDB): FeatureCol
 export function zToRaw(col: FeatureColumn, z: number): number | null {
   return col.stats ? col.stats.mean + z * col.stats.std : null;
 }
+
+/**
+ * A cell token of a scalar feature column holding z in its type's slot, built the way the sampler
+ * writes one (fly.rs:472-490: the phrase index in col_name_values, the value in its type's slot, 0 in
+ * the other scalar slots), so the engine's `embedTokens` can embed it through the real column and value
+ * paths. null if the phrase is not in the DB's string table. Display only.
+ */
+export function syntheticCell(pdb: PreprocessedDB, col: FeatureColumn, z: number): Token | null {
+  const colNameIdx = pdb.columnIndex[col.phrase] ?? pdb.textToIdx.get(col.phrase);
+  if (colNameIdx === undefined || col.sem === SemType.Text) return null;
+  return {
+    pos: 0,
+    isPadding: false,
+    nodeIdx: -1,
+    f2pNbrIdxs: [-1, -1, -1, -1, -1],
+    tableNameIdx: pdb.textToIdx.get(col.table) ?? 0,
+    colNameIdx,
+    sem: col.sem,
+    numberValue: col.sem === SemType.Number ? z : 0,
+    textIdx: 0,
+    datetimeValue: col.sem === SemType.DateTime ? z : 0,
+    booleanValue: col.sem === SemType.Boolean ? z : 0,
+    mask: false,
+    isTarget: false,
+    isTaskNode: false,
+    classValueIdx: -1,
+    tableName: col.table,
+    tableType: null,
+    colName: col.col,
+    rowPos: -1,
+    raw: null,
+    depth: -1,
+  };
+}

@@ -1,34 +1,25 @@
 /**
  * The database as a relational entity graph (paper p.16 App. B): one node per
  * row, one edge per FK link, drawn for the k-hop neighbourhood of the focus row.
- * Rows with many children are drawn with a capped number of them (display
- * limit only, stated in the UI). The force layout runs only while the figure is
- * near the viewport, so walking the database higher up the page stays fast.
+ * The layout is radial: the focus row in the centre and one ring per hop
+ * distance, so the distance is read from the position, not from labels. Rows
+ * with many children are drawn with a capped number of them (display limit
+ * only, stated in the UI). The layout follows the focus row only while the
+ * figure is near the viewport, so walking the database higher up stays fast.
  */
-import { memo, startTransition, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { memo, startTransition, useEffect, useMemo, useState, useTransition } from 'react';
 import { EntityGraph, Segmented, type GraphEdgeSpec, type GraphNodeSpec, type NodeId, type RingStyle } from '@/components';
+import { useElementSize } from '@/components/viz/useSize';
 import type { RawDatabase } from '@/engine/types';
+import { useNearViewport } from './hooks';
 import { parseRowKey, rowCaption, rowKey, rowLabel, sameRow, type LinkIndex, type RowRef } from './model';
 
 const CAP_FOCUS = 60;
 const CAP_DEEP = 12;
-
-/** True once the element is within `margin` of the viewport (and while it stays there). */
-function useNearViewport<T extends Element>(margin: string): [React.RefObject<T | null>, boolean] {
-  const ref = useRef<T | null>(null);
-  const [near, setNear] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === 'undefined') {
-      setNear(true);
-      return;
-    }
-    const io = new IntersectionObserver((entries) => setNear(entries.some((e) => e.isIntersecting)), { rootMargin: margin });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [margin]);
-  return [ref, near];
-}
+/** Screen px between neighbouring nodes on a ring (node diameter is 15 px). */
+const NODE_GAP = 19;
+/** Radial distance between the sub-bands of a crowded ring. */
+const BAND_GAP = 15;
 
 export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
   db,
@@ -43,7 +34,7 @@ export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
   focus: RowRef;
   onFocus: (r: RowRef) => void;
 }) {
-  // `hopsUi` drives the control at once; the (costly) layout for `hops` follows as a transition.
+  // `hopsUi` drives the control at once; the layout for `hops` follows as a transition.
   const [hopsUi, setHopsUi] = useState<1 | 2 | 3>(2);
   const [hops, setHops] = useState<1 | 2 | 3>(2);
   const [pending, startHops] = useTransition();
@@ -57,18 +48,25 @@ export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
   useEffect(() => {
     if (near && !sameRow(drawn, focus)) startTransition(() => setDrawn(focus));
   }, [near, focus, drawn]);
+  const [wrap, size] = useElementSize<HTMLDivElement>();
+  const width = Math.max(300, size.width || 720);
+  const narrow = width < 560;
 
+  // breadth-first neighbourhood: hop distance of every row, and the row it was reached from
   const g = useMemo(() => {
     const hopOf = new Map<string, number>([[rowKey(drawn), 0]]);
+    const via = new Map<string, string>();
     let frontier: RowRef[] = [drawn];
     const hiddenKeys = new Set<string>();
     for (let h = 1; h <= hops; h++) {
       const next: RowRef[] = [];
       for (const r of frontier) {
+        const from = rowKey(r);
         const add = (n: RowRef) => {
           const k = rowKey(n);
           if (!hopOf.has(k)) {
             hopOf.set(k, h);
+            via.set(k, from);
             next.push(n);
           }
         };
@@ -94,7 +92,8 @@ export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
     const edges: GraphEdgeSpec[] = [];
     for (const k of hopOf.keys()) {
       const r = parseRowKey(k);
-      nodes.push({ id: k, label: rowLabel(r), table: r.table, slot: slots[r.table] ?? 0, title: `${rowLabel(r)} ${rowCaption(db, r)} · hop ${hopOf.get(k)}` });
+      const h = hopOf.get(k)!;
+      nodes.push({ id: k, label: rowLabel(r), table: r.table, slot: slots[r.table] ?? 0, title: `${rowLabel(r)} ${rowCaption(db, r)} · ${h === 0 ? 'centre' : `${h} hop${h === 1 ? '' : 's'}`}` });
       for (const p of idx.parentsOf(r)) {
         if (p.parentRow === null) continue;
         const pk = rowKey({ table: p.parentTable, row: p.parentRow });
@@ -103,14 +102,62 @@ export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
     }
     let hidden = 0;
     for (const k of hiddenKeys) if (!hopOf.has(k)) hidden++;
-    return { nodes, edges, hidden, hopOf };
+    return { nodes, edges, hidden, hopOf, via };
   }, [db, idx, slots, drawn, hops]);
 
-  const badges = useMemo(() => {
-    const m = new Map<NodeId, string>();
-    for (const [k, h] of g.hopOf) if (h > 1) m.set(k, String(h));
-    return m;
+  // Radial layout in screen px (the graph is drawn at scale ≈ 1): ring h is an ellipse whose size grows
+  // with h; its rows sit evenly along it, ordered by the angle of the row they were reached from, so
+  // each row stays near its neighbour one ring in. A ring with more rows than fit gets sub-bands.
+  const counts = useMemo(() => {
+    const c = [0, 0, 0, 0];
+    for (const h of g.hopOf.values()) c[h]++;
+    return c;
   }, [g]);
+  const height = hops === 1 ? (narrow ? 300 : 320) : hops === 2 ? (narrow ? 440 : 440) : narrow ? 560 : 520;
+  const layout = useMemo(() => {
+    const pad = 34;
+    const rxMax = width / 2 - pad;
+    const ryMax = height / 2 - pad - 8;
+    const pos = new Map<NodeId, { x: number; y: number }>();
+    const angle = new Map<string, number>();
+    pos.set(rowKey(drawn), { x: 0, y: 0 });
+    angle.set(rowKey(drawn), -Math.PI / 2);
+    const guides: { rx: number; ry: number; label: string }[] = [];
+    for (let h = 1; h <= hops; h++) {
+      const ring = [...g.hopOf.entries()].filter(([, x]) => x === h).map(([k]) => k);
+      const f = h / hops;
+      const rx = rxMax * f;
+      const ry = ryMax * f;
+      guides.push({ rx, ry, label: `${h} hop${h === 1 ? '' : 's'}` });
+      if (!ring.length) continue;
+      // order: by the angle of the row each was reached from, then by table, then by row
+      ring.sort((a, b) => {
+        const da = angle.get(g.via.get(a) ?? '') ?? 0;
+        const db_ = angle.get(g.via.get(b) ?? '') ?? 0;
+        const na = norm(da);
+        const nb = norm(db_);
+        if (na !== nb) return na - nb;
+        const ra = parseRowKey(a);
+        const rb = parseRowKey(b);
+        return ra.table === rb.table ? ra.row - rb.row : ra.table < rb.table ? -1 : 1;
+      });
+      // leave a gap at the top of the ring for its label
+      const perimeter = Math.PI * (3 * (rx + ry) - Math.sqrt((3 * rx + ry) * (rx + 3 * ry)));
+      const gap = Math.min(0.9, (64 / Math.max(1, perimeter)) * 2 * Math.PI);
+      const span = 2 * Math.PI - gap;
+      const bands = Math.max(1, Math.min(4, Math.ceil((ring.length * NODE_GAP) / Math.max(1, (perimeter * span) / (2 * Math.PI)))));
+      ring.forEach((k, i) => {
+        const t = (i + 0.5) / ring.length;
+        const a = -Math.PI / 2 + gap / 2 + t * span;
+        const band = bands > 1 ? (i % bands) - (bands - 1) / 2 : 0;
+        const sx = (rx + band * BAND_GAP) / rx;
+        const sy = (ry + band * BAND_GAP) / ry;
+        pos.set(k, { x: Math.cos(a) * rx * sx, y: Math.sin(a) * ry * sy });
+        angle.set(k, a);
+      });
+    }
+    return { pos, guides };
+  }, [g, hops, width, height, drawn]);
 
   const focusRing = useMemo(() => new Map<NodeId, RingStyle>([[rowKey(drawn), 'accent']]), [drawn]);
   const highlight = useMemo(() => [rowKey(drawn)], [drawn]);
@@ -129,30 +176,42 @@ export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
           ]}
         />
         <span className="num text-[15px] text-ink-2" aria-live="polite">
-          {pending ? 'laying out the graph…' : `${g.nodes.length} rows · ${g.edges.length} links`}
+          {pending
+            ? 'laying out the graph…'
+            : `${g.nodes.length} rows (${counts
+                .slice(1, hops + 1)
+                .map((c, i) => `${c} at ${i + 1} hop${i === 0 ? '' : 's'}`)
+                .join(', ')}) · ${g.edges.length} links`}
         </span>
       </div>
-      <EntityGraph
-        nodes={g.nodes}
-        edges={g.edges}
-        rings={focusRing}
-        highlight={highlight}
-        dimOthers={false}
-        badges={badges}
-        onNodeClick={(id) => onFocus(parseRowKey(String(id)))}
-        height={420}
-        labels="highlighted"
-        linkDistance={hops === 1 ? 46 : 34}
-        charge={hops === 3 ? -40 : -70}
-        title={`Relational entity graph around ${rowLabel(drawn)}`}
-        className={pending ? 'opacity-60 transition-opacity' : 'transition-opacity'}
-      />
+      <div ref={wrap} className="min-w-0">
+        <EntityGraph
+          nodes={g.nodes}
+          edges={g.edges}
+          rings={focusRing}
+          highlight={highlight}
+          dimOthers={false}
+          positions={layout.pos}
+          guides={layout.guides}
+          onNodeClick={(id) => onFocus(parseRowKey(String(id)))}
+          height={height}
+          labels={g.nodes.length <= 16 ? 'all' : 'highlighted'}
+          roving
+          title={`Relational entity graph around ${rowLabel(drawn)}`}
+          className={pending ? 'opacity-60 transition-opacity' : 'transition-opacity'}
+        />
+      </div>
       <p className="!mt-2 !mb-0 text-[15px] leading-snug text-ink-2">
-        Unmarked nodes are direct neighbours of {rowLabel(drawn)}; a 2 or 3 above a node is its hop distance. To keep the picture readable,{' '}
-        {rowLabel(drawn)} is drawn with at most{' '}
-        {CAP_FOCUS} children and every other row with at most {CAP_DEEP}
+        To keep the picture readable, {rowLabel(drawn)} is drawn with at most {CAP_FOCUS} children and every other row with at most {CAP_DEEP}
         {g.hidden > 0 ? `; ${g.hidden} more children are not drawn` : ''}. That is a display limit, not part of RT.
       </p>
     </div>
   );
 });
+
+/** Angle in [0, 2π), measured from the top of the ring (so sorting follows the drawing order). */
+function norm(a: number): number {
+  const t = a + Math.PI / 2;
+  const m = t % (2 * Math.PI);
+  return m < 0 ? m + 2 * Math.PI : m;
+}

@@ -26,6 +26,8 @@ export interface CiteProps {
   title?: string;
   /** Optional extra note in the card. */
   note?: ReactNode;
+  /** Optional chip text instead of the default short label (e.g. a file name for a url cite). */
+  label?: string;
   className?: string;
 }
 
@@ -54,8 +56,8 @@ function chipLabel(kind: CiteKind, ref: string): string {
 
 const KIND_NAME: Record<CiteKind, string> = { spec: 'Spec', paper: 'Paper', code: 'Code', url: 'Web' };
 
-export function Cite({ kind, ref, title, note, className }: CiteProps) {
-  const label = chipLabel(kind, ref);
+export function Cite({ kind, ref, title, note, label: chip, className }: CiteProps) {
+  const label = chip ?? chipLabel(kind, ref);
   let href: string | null = null;
   let full: ReactNode;
   switch (kind) {

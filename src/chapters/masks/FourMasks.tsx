@@ -3,15 +3,19 @@
  * hover (one (query, key) pair compared across all four masks) and click-to-pin the query.
  */
 import { Check, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { Figure, LayerLabel, ScaleLegend, Segmented, Switch, TableSwatch } from '@/components';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Figure, LayerLabel, ScaleLegend, ScaleNote, Segmented, Switch, TableSwatch } from '@/components';
 import { useResolvedTheme } from '@/styles/theme';
 import { FitMask } from './FitMask';
 import { countRow, int, LAYER_ORDER, maskStats, pct, rowName } from './maskUtils';
 import type { LiveMasks } from './useLiveMasks';
 
-/** Tokens in the labelled view: 24 is the most that fits two labelled 13 px matrices side by side at 1440 px. */
-const ZOOM = 24;
+/**
+ * Tokens in the labelled view: 20 is the most that fits two matrices side by side at 1440 px with
+ * 15 px cells, the size at which the Heatmap draws its labels at 13 px.
+ */
+export const FOURMASKS_ZOOM = 20;
+const ZOOM = FOURMASKS_ZOOM;
 
 export function FourMasks({ live }: { live: LiveMasks }) {
   const { ctx, masks, S, labels, tokenSlots, pinned, setPinned, grouping } = live;
@@ -29,11 +33,33 @@ export function FourMasks({ live }: { live: LiveMasks }) {
   const k = hover?.k ?? null;
   const qTok = ctx.tokens[q];
   const kTok = k !== null ? ctx.tokens[k] : null;
+  // floating readout next to the cursor (positioned imperatively, so pointer moves inside a cell do not re-render)
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const tipRef = useRef<HTMLDivElement | null>(null);
+  const lastPt = useRef<{ x: number; y: number } | null>(null);
+  const positionTip = () => {
+    const g = gridRef.current;
+    const t = tipRef.current;
+    const p = lastPt.current;
+    if (!g || !t || !p) return;
+    const r = g.getBoundingClientRect();
+    const x = p.x - r.left;
+    const y = p.y - r.top;
+    const w = t.offsetWidth || 300;
+    const left = x + 16 + w > r.width ? Math.max(0, x - 16 - w) : x + 16;
+    t.style.transform = `translate(${Math.round(left)}px, ${Math.round(y + 18)}px)`;
+  };
+  const placeTip = (e: React.PointerEvent) => {
+    lastPt.current = { x: e.clientX, y: e.clientY };
+    positionTip();
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(positionTip, [hover]);
 
   return (
     <Figure
       wide
-      title="The four relational attention masks of the live context"
+      title="The four attention masks of the live context"
       controls={
         <>
           <Segmented
@@ -41,18 +67,18 @@ export function FourMasks({ live }: { live: LiveMasks }) {
             value={view}
             onChange={setView}
             options={[
-              { value: 'all', label: `All ${hidePad ? ctx.numReal : S} tokens` },
+              { value: 'all', label: `All ${hidePad && hasPad ? ctx.numReal : S} tokens` },
               { value: 'zoom', label: `First ${zoomN}, labelled` },
             ]}
           />
-          <div className="flex flex-col gap-1">
-            <Switch checked={hidePad} onChange={setHidePad} label="Hide padding" disabled={!hasPad || view === 'zoom'} />
-            {!hasPad && (
-              <span className="text-[14px] leading-snug text-muted">
-                No padding here: the sampler filled all {S} positions. The toy context in the last section has 5 padding tokens.
-              </span>
-            )}
-          </div>
+          <ScaleNote inline className="mb-1.5" />
+          {hasPad ? (
+            <Switch checked={hidePad} onChange={setHidePad} label="Hide padding" disabled={view === 'zoom'} />
+          ) : (
+            <span className="mb-1.5 max-w-[34rem] text-[15px] leading-snug text-muted">
+              No padding to hide: the sampler filled all {S} positions. The toy context in Step 6 has 5 padding tokens.
+            </span>
+          )}
         </>
       }
       caption={
@@ -64,7 +90,37 @@ export function FourMasks({ live }: { live: LiveMasks }) {
         </>
       }
     >
-      <div className="grid gap-x-8 gap-y-7 md:grid-cols-2">
+      <div
+        ref={gridRef}
+        className="relative grid gap-x-8 gap-y-7 md:grid-cols-2"
+        onPointerMove={placeTip}
+        onPointerLeave={() => setHover(null)}
+      >
+        {hover && qTok && kTok && (
+          <div
+            ref={tipRef}
+            role="tooltip"
+            className="pointer-events-none absolute top-0 left-0 z-20 w-max max-w-[320px] rounded-lg border border-border bg-surface px-3 py-2 text-[15px] leading-snug text-ink shadow-[var(--shadow-pop)]"
+          >
+            <div className="num">
+              <span className="text-muted">q </span>#{hover.q} {labels[hover.q]}
+            </div>
+            <div className="num">
+              <span className="text-muted">k </span>#{hover.k} {labels[hover.k]}
+            </div>
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+              {LAYER_ORDER.map((l) => {
+                const ok = masks[l][hover.q * S + hover.k] === 1;
+                return (
+                  <span key={l} className={ok ? 'inline-flex items-center gap-0.5 font-semibold text-ink' : 'inline-flex items-center gap-0.5 text-muted'}>
+                    {ok ? <Check aria-hidden="true" size={14} style={{ color: 'var(--good)' }} /> : <X aria-hidden="true" size={14} />}
+                    {LAYER_SHORT[l]}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {LAYER_ORDER.map((l, i) => {
           const s = stats[i];
           const allowedPair = k !== null ? masks[l][q * S + k] === 1 : null;
@@ -74,6 +130,8 @@ export function FourMasks({ live }: { live: LiveMasks }) {
               n={crop}
               labelled={view === 'zoom'}
               maxCell={view === 'zoom' ? 16 : 7}
+              minLabelCell={15}
+              ticks={crop > 64 ? 32 : 16}
               bandRow={q < crop ? q : null}
               header={
                 <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
@@ -155,6 +213,8 @@ export function FourMasks({ live }: { live: LiveMasks }) {
     </Figure>
   );
 }
+
+const LAYER_SHORT = { col: 'column', feat: 'feature', nbr: 'neighbor', full: 'full' } as const;
 
 /** Colour key for the identity strips: one swatch per table in the context (task splits share one). */
 export function TableKey({ tables, padding = false }: { tables: readonly { name: string; slot: number }[]; padding?: boolean }) {

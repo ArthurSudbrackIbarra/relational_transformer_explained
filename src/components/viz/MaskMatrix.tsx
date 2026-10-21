@@ -18,6 +18,9 @@ export interface MaskMatrixProps {
   crop?: number;
   /** Per-token labels (e.g. "customers.age"). */
   labels?: string[];
+  /** Row-label band width / column-label band height in px (Heatmap defaults 140 / 104). */
+  labelWidth?: number;
+  labelHeight?: number;
   /** Per-token table colour slots (identity strips along both axes). */
   slots?: number[];
   highlightRows?: ReadonlySet<number> | readonly number[];
@@ -42,6 +45,8 @@ export function MaskMatrix({
   layer,
   crop,
   labels,
+  labelWidth,
+  labelHeight,
   slots,
   highlightRows,
   highlightCols,
@@ -72,6 +77,8 @@ export function MaskMatrix({
         scale="binary"
         rowLabels={labels}
         colLabels={labels}
+        rowLabelWidth={labelWidth}
+        colLabelHeight={labelHeight}
         rowSlots={slots}
         colSlots={slots}
         highlightRows={highlightRows}

@@ -96,7 +96,9 @@ export function ContextTables({
   const mode = useResolvedTheme();
   const reduce = useReducedMotion();
   const fill = sequentialCss(mode === 'dark' ? 0.62 : 0.66, mode);
-  const width = Math.max(200, size.width || 520);
+  // the viewBox is 4 px wider than the layout (2 px margin each side), so lay out in (measured width − 4):
+  // the SVG then draws at scale 1 and every text keeps its nominal size
+  const width = Math.max(200, (size.width || 524) - 4);
   const step = cell + GAP;
   const [tip, setTip] = useState<number | null>(null);
 
@@ -171,7 +173,7 @@ export function ContextTables({
   const H = Math.max(layout.height, cell + TITLE_H) + top;
   const stagger = (i: number) => (reduce ? 0 : Math.min(0.3, i * 0.004));
   const targetGeom = [...layout.cellAt.values()].find((g) => tokens[g.pos]?.isTarget);
-  const glyphPx = Math.max(12, cell - 4);
+  const glyphPx = Math.max(13, cell - 4);
 
   const scale = size.width ? size.width / (width + 4) : 1;
   const tipGeom = tip !== null && describe ? layout.cellAt.get(tip) : undefined;
@@ -410,7 +412,7 @@ export function ContextTablesLegend({ className, holes = ['null'] }: { className
       {holes.includes('null') && (
         <span className="inline-flex items-center gap-1.5" title={HOLE_TEXT.null}>
           <HoleSwatch kind="null" />
-          null value (no cell stored) <Cite kind="spec" ref="§4.9" />
+          null value (no cell stored) <Cite kind="spec" ref="§3.5" />
         </span>
       )}
       {holes.includes('dropped') && (

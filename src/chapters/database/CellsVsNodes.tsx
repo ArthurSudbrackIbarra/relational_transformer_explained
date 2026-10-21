@@ -4,6 +4,7 @@
  * non-missing feature cell is its own token (v, c, t) (p.4 §3.1); key cells
  * become no token, the links survive as structure (p.16 App. B; spec §1.2).
  */
+import { Clock, ToggleRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useId, useMemo, useState } from 'react';
 import { Segmented, formatDate, formatRaw, truncate } from '@/components';
@@ -26,15 +27,46 @@ const VALUE_PX = 14;
 /** Approximate advance of the monospace font, in em. */
 const MONO_EM = 0.62;
 
+type Sem = 'number' | 'text' | 'datetime' | 'boolean';
+
 interface Cluster {
   ref: RowRef;
   level: number;
-  cells: { col: string; text: string; sem: string }[];
+  cells: { col: string; text: string; sem: Sem }[];
   nKeys: number;
   nMissing: number;
 }
 
-const SEM_GLYPH: Record<string, string> = { int: '#', float: '#', str: 'Aa', datetime: '◷', bool: '◐' };
+/** Physical dtype → semantic type (spec §3.2), as SemBadge draws it. */
+const SEM_OF: Record<string, Sem> = { int: 'number', float: 'number', str: 'text', datetime: 'datetime', bool: 'boolean' };
+/** Graph view: node shape size and the gap between a node and the end of an arrow. */
+const NODE_R = 10;
+
+/** The SemBadge glyph inside an SVG chip (same glyphs as <SemBadge/>: #, Aa, clock, toggle). */
+function SvgSemGlyph({ sem, x, y }: { sem: Sem; x: number; y: number }) {
+  const box = 18;
+  return (
+    <g transform={`translate(${x},${y})`} aria-hidden="true">
+      <rect x={0} y={-box / 2} width={box} height={box} rx={4} style={{ fill: 'var(--surface-2)', stroke: 'var(--border)' }} strokeWidth={1} />
+      {sem === 'number' || sem === 'text' ? (
+        <text
+          x={box / 2}
+          y={0.5}
+          textAnchor="middle"
+          dominantBaseline="central"
+          className={sem === 'number' ? 'font-mono' : undefined}
+          style={{ fill: 'var(--ink-2)', fontSize: 13, fontWeight: 600, letterSpacing: sem === 'text' ? '-0.04em' : undefined }}
+        >
+          {sem === 'number' ? '#' : 'Aa'}
+        </text>
+      ) : sem === 'datetime' ? (
+        <Clock x={3} y={-6} width={12} height={12} strokeWidth={2.1} style={{ color: 'var(--ink-2)' }} />
+      ) : (
+        <ToggleRight x={2.5} y={-6.5} width={13} height={13} strokeWidth={2} style={{ color: 'var(--ink-2)' }} />
+      )}
+    </g>
+  );
+}
 
 export const CellsVsNodes = memo(function CellsVsNodes({ db, idx, slots, focus }: { db: RawDatabase; idx: LinkIndex; slots: Record<string, number>; focus: RowRef }) {
   const uid = useId().replace(/:/g, '');
@@ -57,7 +89,7 @@ export const CellsVsNodes = memo(function CellsVsNodes({ db, idx, slots, focus }
         cells: cls.tokens.map((c) => {
           const dt = t.schema.columns.find((x) => x.name === c)!.dtype;
           const v = dt === 'datetime' && typeof rec[c] === 'number' ? formatDate(rec[c] as number, 'never') : formatRaw(rec[c], dt);
-          return { col: c, text: v, sem: SEM_GLYPH[dt] ?? '#' };
+          return { col: c, text: v, sem: SEM_OF[dt] ?? 'number' };
         }),
         nKeys: cls.pk.length + cls.links.length,
         nMissing: cls.missing.length,
@@ -150,14 +182,28 @@ export const CellsVsNodes = memo(function CellsVsNodes({ db, idx, slots, focus }
             const a = pos.get(e.child)!;
             const b = pos.get(e.parent)!;
             const ca = clusters.find((c) => rowKey(c.ref) === e.parent)!;
-            // graph: centre to centre (shortened); cells: child header top → parent cluster bottom
-            const y1 = view === 'graph' ? a.y - 13 : a.y - 2;
-            const y2 = view === 'graph' ? b.y + 14 : b.y + HEAD_H + ca.cells.length * (CHIP_H + 4) + 6;
+            // graph: from the child's shape to just outside the parent's shape (the label sits to the right,
+            // so the arrowhead stays visible); cells: child header top → parent cluster bottom
+            let x1 = a.x;
+            let y1 = view === 'graph' ? a.y : a.y - 2;
+            let x2 = b.x;
+            let y2 = view === 'graph' ? b.y : b.y + HEAD_H + ca.cells.length * (CHIP_H + 4) + 6;
+            if (view === 'graph') {
+              const dx = x2 - x1;
+              const dy = y2 - y1;
+              const len = Math.hypot(dx, dy) || 1;
+              const startGap = NODE_R + 4;
+              const endGap = (e.parent === rowKey(focus) ? 16 : NODE_R) + 5;
+              x1 += (dx / len) * startGap;
+              y1 += (dy / len) * startGap;
+              x2 -= (dx / len) * endGap;
+              y2 -= (dy / len) * endGap;
+            }
             return (
               <motion.line
                 key={`${e.child}->${e.parent}`}
                 initial={false}
-                animate={{ x1: a.x, y1, x2: b.x, y2 }}
+                animate={{ x1, y1, x2, y2 }}
                 transition={spring}
                 style={{ stroke: 'var(--axis)' }}
                 strokeWidth={1.5}
@@ -177,10 +223,11 @@ export const CellsVsNodes = memo(function CellsVsNodes({ db, idx, slots, focus }
                   {view === 'graph' ? (
                     <motion.g key="node" initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.4 }}>
                       {isFocus && <circle r={16} fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth={2} />}
-                      <path d={shapePath(shapeOfSlot(slot), 10)} style={{ fill: catVar(slot), stroke: 'var(--surface)' }} strokeWidth={2} paintOrder="stroke" />
+                      <path d={shapePath(shapeOfSlot(slot), NODE_R)} style={{ fill: catVar(slot), stroke: 'var(--surface)' }} strokeWidth={2} paintOrder="stroke" />
                       <text
-                        y={29}
-                        textAnchor="middle"
+                        x={isFocus ? 21 : 15}
+                        y={0}
+                        dominantBaseline="central"
                         className="font-mono"
                         style={{ fill: 'var(--ink)', fontSize: 13, stroke: 'var(--surface)', strokeWidth: 4, paintOrder: 'stroke', strokeLinejoin: 'round' }}
                       >
@@ -212,10 +259,8 @@ export const CellsVsNodes = memo(function CellsVsNodes({ db, idx, slots, focus }
                           <title>{`token (v, c, t) = (${cell.text}, ${cell.col}, ${c.ref.table})`}</title>
                           <rect x={-CW / 2 + 6} y={0} width={CW - 12} height={CHIP_H} rx={4} style={{ fill: 'var(--surface)', stroke: 'var(--border-strong)' }} strokeWidth={1} />
                           <rect x={-CW / 2 + 6} y={0} width={3} height={CHIP_H} rx={1.5} style={{ fill: catVar(slot) }} />
-                          <text x={-CW / 2 + 14} y={12} dominantBaseline="central" style={{ fill: 'var(--ink-2)', fontSize: NAME_PX, fontWeight: 700 }}>
-                            {cell.sem}
-                          </text>
-                          <text x={-CW / 2 + 40} y={12} dominantBaseline="central" className="font-mono" style={{ fill: 'var(--ink-2)', fontSize: NAME_PX }}>
+                          <SvgSemGlyph sem={cell.sem} x={-CW / 2 + 13} y={12} />
+                          <text x={-CW / 2 + 37} y={12} dominantBaseline="central" className="font-mono" style={{ fill: 'var(--ink-2)', fontSize: NAME_PX }}>
                             {truncate(cell.col, nameChars)}
                           </text>
                           <text x={-CW / 2 + 14} y={29} dominantBaseline="central" className="font-mono" style={{ fill: 'var(--ink)', fontSize: VALUE_PX }}>

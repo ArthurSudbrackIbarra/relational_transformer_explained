@@ -156,6 +156,11 @@ export function isoMinute(ms: number): string {
   return new Date(ms).toISOString().slice(0, 16).replace('T', ' ');
 }
 
+/** "2024-03-06 13:00:24" style date and time to the second (UTC), the sampler's resolution (spec §1.4). */
+export function isoSecond(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
+}
+
 /**
  * The entity's row to show as "the" example row of a forecast task: its Val row, else its Test
  * row (an entity that becomes active after the val cutoff), else null (no row in any split).

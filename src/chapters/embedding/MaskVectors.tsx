@@ -1,26 +1,23 @@
 /**
- * Step 5 figure: the four learned mask vectors m_t (mask_embs, model.py:141-146) and the masked target
- * of the live context. Everything is read from the live weights and the forward pass; the "change the
- * hidden label" check re-runs the engine's own `embedTokens` (model.py:208-224) on a copy of the
- * target token whose stored value is replaced by another finite number.
+ * Step 5 figure: the four mask vectors m_t (mask_embs, model.py:141-146) and the masked target of
+ * the live context. Everything is read from the live weights, the exported init weights and the
+ * forward pass.
+ *
+ * The "change the hidden label" panel shows the official mechanism (model.py:216-224): the code
+ * evaluates the target type's value branch on the stored label, a nonzero vector, and multiplies it
+ * by the gate 0. Our engine's `embedTokens` skips gate-0 branches, so its recomputed x₀ equals the
+ * forward pass by construction; the panel says so.
  */
 import { Check, X } from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
-import { Cite, Figure, Segmented, SemBadge, StatusBadge, VectorStrip, cx, maxAbs, semOfDType } from '@/components';
-import { SEM_KEYS, embedTokens, tensor, textEmbedder } from '@/engine/model';
+import { memo, useMemo, useState, type ReactNode } from 'react';
+import { Cite, Figure, Segmented, SemBadge, StatusBadge, TeX, VectorStrip, cx, maxAbs, semOfDType } from '@/components';
+import { SEM_KEYS, embedTokens, scalarValueTerm, tensor, textEmbedder } from '@/engine/model';
 import { SemType, type RawDatabase, type Token } from '@/engine/types';
-import type { EmbeddingLive } from './live';
-import { fmt, fmtSigned, phraseOf, rowRef, VALUE_FIELD } from './live';
-import { maxAbsDelta, norm, slice, tokenScalar } from './math';
+import type { EmbeddingStable } from './live';
+import { fmt, fmtSigned, phraseOf, rowRef, useInitWeights, VALUE_FIELD } from './live';
+import { cosine, maxAbsDelta, norm, slice, tokenScalar, type ScalarKey } from './math';
 
 const TYPES = [SemType.Number, SemType.Text, SemType.DateTime, SemType.Boolean];
-
-function median(a: number[]): number {
-  if (!a.length) return NaN;
-  const s = [...a].sort((x, y) => x - y);
-  const m = s.length >> 1;
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-}
 
 function withStoredValue(t: Token, v: number): Token {
   if (t.sem === SemType.Number) return { ...t, numberValue: v };
@@ -28,29 +25,31 @@ function withStoredValue(t: Token, v: number): Token {
   return { ...t, booleanValue: v };
 }
 
-export function MaskVectors({ live }: { live: EmbeddingLive }) {
-  const { weights, store, fr, ctx, pdb, target, assets } = live;
+export const MaskVectors = memo(function MaskVectors({ live }: { live: EmbeddingStable }) {
+  const { weights, store, fr, ctx, pdb, target, assets, db } = live;
   const tgt = ctx.tokens[target];
+  const init = useInitWeights();
   const [alt, setAlt] = useState<'stored' | 'neg' | 'zero' | 'big'>('neg');
 
   const data = useMemo(() => {
-    if (!weights || !fr) return null;
+    if (!weights) return null;
     const d = weights.config.dModel;
     const m = TYPES.map((s) => tensor(weights, `mask_embs.${SEM_KEYS[s]}`));
-    const typical = TYPES.map((s) =>
-      median(ctx.tokens.filter((t) => !t.isPadding && !t.mask && t.sem === s).map((t) => norm(slice(fr.embedding.valueTerm, t.pos, d)))),
-    );
-    return { d, m, typical, domain: Math.max(...m.map((v) => maxAbs(v))) || 1 };
-  }, [weights, fr, ctx]);
+    const m0 = init && init.config.dModel === d ? TYPES.map((s) => tensor(init, `mask_embs.${SEM_KEYS[s]}`)) : null;
+    return { d, m, m0, domain: Math.max(...m.map((v) => maxAbs(v))) || 1 };
+  }, [weights, init]);
 
   const check = useMemo(() => {
-    if (!weights || !store || !fr || !tgt || !tgt.mask) return null;
+    if (!weights || !store || !fr || !tgt || !tgt.mask || tgt.sem === SemType.Text) return null;
     const d = weights.config.dModel;
+    const key = SEM_KEYS[tgt.sem] as ScalarKey;
     const stored = tokenScalar(tgt);
     const v = alt === 'stored' ? stored : alt === 'neg' ? -stored : alt === 'zero' ? 0 : 1000;
+    // the branch the official code evaluates for this position before the ×gate (model.py:218)
+    const branch = scalarValueTerm(weights, key, v).term;
     const emb = embedTokens([withStoredValue({ ...tgt, pos: 0 }, v)], textEmbedder(pdb, store), weights);
     const live0 = slice(fr.embedding.x0, tgt.pos, d);
-    return { stored, v, delta: maxAbsDelta(emb.x0, live0), x0: emb.x0 };
+    return { key, stored, v, branch, delta: maxAbsDelta(emb.x0, live0) };
   }, [weights, store, fr, tgt, pdb, alt]);
 
   if (!data || !tgt) {
@@ -61,9 +60,15 @@ export function MaskVectors({ live }: { live: EmbeddingLive }) {
     );
   }
   const tKey = SEM_KEYS[tgt.sem];
-  const tasksBySem = targetSems(live.db);
+  const tasksBySem = targetSems(db);
   const parent = tgt.f2pNbrIdxs.find((p) => p >= 0);
   const parentTok = parent !== undefined ? ctx.tokens.find((t) => !t.isPadding && t.nodeIdx === parent) : undefined;
+  const shrink = (i: number) => (data.m0 ? 1 - norm(data.m[i]) / norm(data.m0[i]) : NaN);
+  const cosInit = (i: number) => (data.m0 ? cosine(data.m[i], data.m0[i]) : NaN);
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+  const iText = TYPES.indexOf(SemType.Text);
+  const iDt = TYPES.indexOf(SemType.DateTime);
+  const minCos = data.m0 ? Math.min(...TYPES.map((_, i) => cosInit(i))) : NaN;
 
   return (
     <Figure
@@ -71,8 +76,8 @@ export function MaskVectors({ live }: { live: EmbeddingLive }) {
       title="The four mask vectors, and what the masked target still knows"
       caption={
         <>
-          Left: mask_embs of the checkpoint this page runs, on one shared colour scale. Right: the live masked target. The check at the bottom re-runs
-          the engine’s embedding on a copy of the target with a different stored label and compares x₀ with the forward pass.
+          Left: mask_embs of the checkpoint this page runs, on one shared colour scale, each compared with its value in the exported initial
+          weights. Right: the live masked target, and what the code does with its hidden label.
         </>
       }
     >
@@ -90,11 +95,14 @@ export function MaskVectors({ live }: { live: EmbeddingLive }) {
                     {used && <span className="rounded-full bg-accent px-2 py-px text-[13.5px] font-medium text-accent-ink">live target</span>}
                   </span>
                   <span className="num text-[15px] text-ink-2">
-                    ‖m‖ = <span className="text-ink">{fmt(norm(data.m[i]), 2)}</span>
-                    {Number.isFinite(data.typical[i]) && (
+                    {data.m0 ? (
                       <>
-                        {' '}
-                        · value terms ≈ <span className="text-ink">{fmt(data.typical[i], 2)}</span>
+                        ‖m‖ {fmt(norm(data.m0[i]), 2)} → <span className="text-ink">{fmt(norm(data.m[i]), 2)}</span> · cos with start{' '}
+                        <span className="text-ink">{cosInit(i).toFixed(4)}</span>
+                      </>
+                    ) : (
+                      <>
+                        ‖m‖ = <span className="text-ink">{fmt(norm(data.m[i]), 2)}</span>
                       </>
                     )}
                   </span>
@@ -103,11 +111,26 @@ export function MaskVectors({ live }: { live: EmbeddingLive }) {
               </div>
             );
           })}
-          <p className="!m-0 text-[15px] leading-snug text-ink-2">
-            “value terms ≈” is the median length of that type’s value terms in the live context, for comparison. Each m_t starts as{' '}
-            <code>torch.randn({data.d})</code>, a standard normal vector of length about √{data.d} = {fmt(Math.sqrt(data.d), 0)}{' '}
-            <Cite kind="spec" ref="§7.4" />.
-          </p>
+          <div className="grid gap-2 text-[15px] leading-snug text-ink-2 [&_code]:text-[14.5px]">
+            <p className="!m-0">
+              Each <TeX tex="m_t" /> starts as <code>torch.randn({data.d})</code>, a standard normal vector of length about √{data.d} ={' '}
+              {fmt(Math.sqrt(data.d), 0)}, as long as a normalised value term with γ = 1 <Cite kind="spec" ref="§7.4" />. Only{' '}
+              <code>m_number</code> and <code>m_boolean</code> can ever get a gradient: the gate that adds <TeX tex="m_t" /> is 1 only at a
+              masked token of type t <Cite kind="code" ref="rt/model.py:221-224" />, RT never masks text <Cite kind="code" ref="rt/model.py:256-257" />,
+              and no paper-era task has a datetime target <Cite kind="code" ref="rt/tasks.py:3-88" />. AdamW still applies weight decay to every
+              parameter, in one parameter group <Cite kind="code" ref="rt/main.py:188-195" />, so <code>m_text</code> and <code>m_datetime</code>{' '}
+              stay their random start, shrunk.
+            </p>
+            {data.m0 && (
+              <p className="!m-0">
+                In the checkpoint this page runs, every <TeX tex="m_t" /> still has a cosine of at least {minCos.toFixed(4)} with its starting
+                value. <code>m_text</code> and <code>m_datetime</code>, which only see weight decay, got {pct(shrink(iText))} and{' '}
+                {pct(shrink(iDt))} shorter; <code>m_number</code> and <code>m_boolean</code> got {pct(shrink(0))} and{' '}
+                {pct(shrink(TYPES.indexOf(SemType.Boolean)))} shorter.
+                {minCos > 0.98 && ' So these lengths and patterns say more about the initialisation and the weight decay than about anything learned.'}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="min-w-0">
@@ -115,7 +138,7 @@ export function MaskVectors({ live }: { live: EmbeddingLive }) {
             <div className="mb-1 text-[15px] text-ink-2">The masked target of the live context</div>
             <div className="mb-3 flex flex-wrap items-center gap-2 text-[16.5px]">
               <span className="font-mono text-ink">{rowRef(tgt)}</span>
-              <SemBadge sem={tgt.sem} size="xs" showLabel />
+              <SemBadge sem={tgt.sem} size="sm" showLabel />
               <span className="target-outline rounded px-1.5 font-mono font-bold text-accent-text">?</span>
             </div>
             <ul className="grid gap-2.5">
@@ -123,7 +146,8 @@ export function MaskVectors({ live }: { live: EmbeddingLive }) {
                 <strong className="font-semibold text-ink">Which column of which table</strong>: its column term embeds “{phraseOf(tgt)}”.
               </Knows>
               <Knows ok>
-                <strong className="font-semibold text-ink">Which type</strong>: the gate picks m_{tKey}, one of four different vectors.
+                <strong className="font-semibold text-ink">Which type</strong>: the gate picks <span className="font-mono">m_{tKey}</span>, one of
+                four different vectors.
               </Knows>
               <Knows ok>
                 <strong className="font-semibold text-ink">Which row, and its parent</strong>: node {tgt.nodeIdx}
@@ -139,7 +163,7 @@ export function MaskVectors({ live }: { live: EmbeddingLive }) {
 
           {check && (
             <div className="mt-4 rounded-xl border border-border bg-surface p-4">
-              <div className="mb-2 text-[16px] font-semibold text-ink">Change the hidden label, recompute x₀</div>
+              <div className="mb-2 text-[16px] font-semibold text-ink">Change the hidden label, follow it through the code</div>
               <Segmented
                 label="Stored label used for the check"
                 value={alt}
@@ -151,66 +175,88 @@ export function MaskVectors({ live }: { live: EmbeddingLive }) {
                   { value: 'big', label: '1000' },
                 ]}
               />
-              <div className="mt-3 flex items-center gap-2 text-[16px]">
-                {check.delta === 0 ? (
-                  <StatusBadge status="good">x₀ identical: max |Δ| = 0</StatusBadge>
-                ) : (
-                  <StatusBadge status="critical">max |Δ| = {check.delta.toExponential(2)}</StatusBadge>
-                )}
-              </div>
-              <p className="!mt-2 !mb-0 text-[15px] leading-snug text-ink-2">
-                {VALUE_FIELD[tgt.sem]} = {fmtSigned(check.v, 2)} gives the same {data.d} numbers as the forward pass. Any finite value would; a NaN
-                would not, because NaN·0 = NaN <Cite kind="spec" ref="§5.3" />.
+              <ol className="mt-3 grid gap-2.5 text-[15px] leading-snug text-ink-2">
+                <li>
+                  <div className="mb-1">
+                    <span className="font-semibold text-ink">1.</span> The code evaluates the {check.key} branch on the stored label{' '}
+                    {VALUE_FIELD[tgt.sem]} = {fmtSigned(check.v, 2)}, like at every position <Cite kind="code" ref="rt/model.py:218" />:
+                  </div>
+                  <VectorStrip values={check.branch} columns={32} cellHeight={10} domain={data.domain} label={undefined} hint={false} />
+                  <div className="num mt-0.5">
+                    <span className="text-[17px]">
+                      <TeX tex={String.raw`\mathrm{RMSNorm}_{\mathrm{${check.key}}}(W v + b)`} />
+                    </span>{' '}
+                    has length <span className="text-ink">{fmt(norm(check.branch), 2)}</span>: not zero.
+                  </div>
+                </li>
+                <li>
+                  <span className="font-semibold text-ink">2.</span> It multiplies that vector by its gate{' '}
+                  <span className="whitespace-nowrap text-[17px]">
+                    <TeX tex={String.raw`[t_i{=}\mathrm{${check.key}} \land \lnot\mathrm{mask}_i \land \lnot\mathrm{pad}_i] = 0`} />
+                  </span>
+                  , which gives <TeX tex="\vec 0" />, and adds <span className="font-mono">m_{check.key}</span> times its gate 1{' '}
+                  <Cite kind="code" ref="rt/model.py:216-224" />. So x₀ = column term + <span className="font-mono">m_{check.key}</span>, whatever the
+                  label.
+                </li>
+                <li>
+                  <span className="font-semibold text-ink">3.</span> The engine’s <code className="text-[14.5px]">embedTokens</code> on a copy of the
+                  target with this label, against the forward pass:{' '}
+                  {check.delta === 0 ? (
+                    <StatusBadge status="good">x₀ identical: max |Δ| = 0</StatusBadge>
+                  ) : (
+                    <StatusBadge status="critical">max |Δ| = {check.delta.toExponential(2)}</StatusBadge>
+                  )}
+                </li>
+              </ol>
+              <p className="!mt-2.5 !mb-0 text-[15px] leading-snug text-ink-2">
+                Step 3 holds by construction: our engine skips every branch whose gate is 0 and never reads a masked label. The official code does
+                compute the branch of step 1 and then zeroes it. That gives the same x₀ for any finite label; a NaN label would not, because NaN·0 =
+                NaN <Cite kind="spec" ref="§5.3" />.
               </p>
             </div>
           )}
         </div>
       </div>
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[560px] border-collapse text-[15px]">
-          <thead>
-            <tr className="border-b border-grid text-left text-ink-2">
-              <th scope="col" className="py-1.5 pr-3 font-medium">
-                Mask vector
-              </th>
-              <th scope="col" className="py-1.5 pr-3 font-medium">
-                Masked as a target?
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {TYPES.map((s) => (
-              <tr key={s} className="border-b border-grid/60 last:border-0">
-                <th scope="row" className="py-1.5 pr-3 text-left font-normal text-ink">
-                  <span className="inline-flex items-center gap-2">
-                    <SemBadge sem={s} size="xs" />
-                    <span className="font-mono">m_{SEM_KEYS[s]}</span>
-                  </span>
-                </th>
-                <td className="py-1.5 pr-3 text-ink-2">
-                  {s === SemType.Number || s === SemType.Boolean ? (
-                    <>
-                      Yes: every RelBench task is regression or binary classification <Cite kind="paper" ref="p.6 §3.3" />.
-                      {tasksBySem[s].length > 0 && <> Here: {tasksBySem[s].join(', ')}.</>}
-                    </>
-                  ) : s === SemType.DateTime ? (
-                    <>
-                      Not in the paper’s tasks. The code would accept it and train it with the Huber loss <Cite kind="code" ref="rt/model.py:250-251" />.
-                    </>
-                  ) : (
-                    <>
-                      Never: the loss raises “masking text not supported” <Cite kind="code" ref="rt/model.py:256-257" />.
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      <div className="mt-5">
+        <div className="mb-1.5 text-[15.5px] font-semibold text-ink">Which mask vectors are ever used</div>
+        <dl className="divide-y divide-grid/60 border-y border-grid text-[15px]">
+          {TYPES.map((s) => (
+            <div key={s} className="grid gap-x-4 gap-y-1 py-2 sm:grid-cols-[170px_minmax(0,1fr)]">
+              <dt className="inline-flex items-center gap-2 text-ink">
+                <SemBadge sem={s} size="sm" />
+                <span className="font-mono">m_{SEM_KEYS[s]}</span>
+              </dt>
+              <dd className="m-0 min-w-0 text-ink-2">
+                {s === SemType.Number || s === SemType.Boolean ? (
+                  <>
+                    Masked as a target: every RelBench task is regression or binary classification <Cite kind="paper" ref="p.6 §3.3" />.
+                    {tasksBySem[s].length > 0 && (
+                      <>
+                        {' '}
+                        Here: {tasksBySem[s].join(', ')}.
+                      </>
+                    )}
+                  </>
+                ) : s === SemType.DateTime ? (
+                  <>
+                    Not by the paper’s tasks <Cite kind="code" ref="rt/tasks.py:3-88" />. The code would accept a datetime target and train it with
+                    the Huber loss <Cite kind="code" ref="rt/model.py:250-251" />.
+                    {tasksBySem[s].length > 0 ? <> Here: {tasksBySem[s].join(', ')}.</> : <> This database has none either.</>}
+                  </>
+                ) : (
+                  <>
+                    Never: the loss raises “masking text not supported” <Cite kind="code" ref="rt/model.py:256-257" />.
+                  </>
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </Figure>
   );
-}
+});
 
 /** Task names of a DB grouped by the sem type of their target column (sem type = physical dtype, spec §3.2). */
 function targetSems(db: RawDatabase): Record<SemType, string[]> {

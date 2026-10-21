@@ -21,11 +21,24 @@ function useSpring() {
   return reduce ? { duration: 0 } : { type: 'spring' as const, stiffness: 200, damping: 28 };
 }
 
-function ZLine({ zTrue, zFalse, data, slot }: { zTrue: number; zFalse: number; data?: { zTrue: number; zFalse: number }; slot: number }) {
+function ZLine({
+  zTrue,
+  zFalse,
+  data,
+  slot,
+  isTarget,
+}: {
+  zTrue: number;
+  zFalse: number;
+  data?: { zTrue: number; zFalse: number };
+  slot: number;
+  /** The column is some task's prediction target: then the sign is the BCE label (model.py:252-255). */
+  isTarget: boolean;
+}) {
   const spring = useSpring();
   const [ref, size] = useElementSize<HTMLDivElement>();
   const W = Math.max(280, size.width || 640);
-  const M = { l: 16, r: 16 };
+  const M = { l: 30, r: 16 };
   const finite = Number.isFinite(zTrue) && Number.isFinite(zFalse);
   const ext = finite ? Math.max(2, Math.ceil(Math.max(Math.abs(zTrue), Math.abs(zFalse)) + 0.25)) : 2;
   const x = scaleLinear().domain([-ext, ext]).range([M.l, W - M.r]);
@@ -79,11 +92,14 @@ function ZLine({ zTrue, zFalse, data, slot }: { zTrue: number; zFalse: number; d
             {t === 0 ? '0' : t > 0 ? `+${t}` : `−${-t}`}
           </text>
         ))}
+        <text x={M.l - 10} y={Y} dy="0.34em" textAnchor="end" style={{ fill: 'var(--muted)', fontSize: 13, fontStyle: 'italic' }}>
+          z
+        </text>
         <text x={x(-ext)} y={Y + 47} style={{ fill: 'var(--ink-2)', fontSize: 13 }}>
-          z &lt; 0 → BCE target 0
+          {isTarget ? 'z < 0 → BCE target 0 (if masked)' : 'z < 0: false side'}
         </text>
         <text x={x(ext)} y={Y + 47} textAnchor="end" style={{ fill: 'var(--ink-2)', fontSize: 13 }}>
-          z &gt; 0 → BCE target 1
+          {isTarget ? 'z > 0 → BCE target 1 (if masked)' : 'z > 0: true side'}
         </text>
         {finite && data && dot(data.zFalse, 'false', 'false', true)}
         {finite && data && dot(data.zTrue, 'true', 'true', true)}
@@ -138,6 +154,22 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
   const nan = !Number.isFinite(s.zTrue) || !Number.isFinite(s.zFalse);
   const slot = data.slotOf(c.file.tableName);
   const pTrue = n ? k / n : 0;
+  // is this column a prediction target of some task of the DB (forecast label column, or an autocomplete target)?
+  const isTarget = data.db.tasks.some((t) =>
+    t.kind === 'forecast' ? c.file.isTask && t.name === c.file.tableName && t.targetCol === c.col.name : t.table === c.file.tableName && t.targetCol === c.col.name,
+  );
+  // quick picks; the label shows the share the chip really sets (k is rounded)
+  const pctLabel = (kk: number) => {
+    const p = (100 * kk) / Math.max(1, n);
+    return Number.isInteger(p) ? `${p}%` : `${p.toFixed(1)}%`;
+  };
+  const chips = [
+    { k: Math.max(1, Math.round(n / 20)), text: (kk: number) => `${pctLabel(kk)} true` },
+    { k: Math.round(n / 4), text: (kk: number) => `${pctLabel(kk)} true` },
+    { k: Math.round(n / 2), text: (kk: number) => pctLabel(kk) },
+    { k: n, text: () => 'all true' },
+    { k: 0, text: () => 'all false' },
+  ].filter((ch, i, a) => a.findIndex((o) => o.k === ch.k) === i);
 
   return (
     <div className="min-w-0">
@@ -164,7 +196,7 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
       </div>
 
       <div className="mt-4">
-        <ZLine zTrue={s.zTrue} zFalse={s.zFalse} data={isWhatIf && Number.isFinite(real.zTrue) ? real : undefined} slot={slot} />
+        <ZLine zTrue={s.zTrue} zFalse={s.zFalse} data={isWhatIf && Number.isFinite(real.zTrue) ? real : undefined} slot={slot} isTarget={isTarget} />
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -183,22 +215,18 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
       <div className="mt-4 grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
         <Slider label="What if the column had this many trues? (n fixed)" value={k} min={0} max={n} onChange={setK} format={(v) => `${nf(v)} / ${nf(n)} (${((100 * v) / Math.max(1, n)).toFixed(1)}%)`} />
         <div className="flex flex-wrap items-center gap-1.5">
-          <PickChip active={k === Math.round(n / 4)} onClick={() => setK(Math.round(n / 4))}>
-            25% true
-          </PickChip>
-          <PickChip active={k === Math.round(n / 2)} onClick={() => setK(Math.round(n / 2))}>
-            50%
-          </PickChip>
-          <PickChip active={k === n} onClick={() => setK(n)}>
-            all true
-          </PickChip>
+          {chips.map((ch) => (
+            <PickChip key={ch.k} active={k === ch.k} onClick={() => setK(ch.k)} title={`${nf(ch.k)} of ${nf(n)} true`}>
+              {ch.text(ch.k)}
+            </PickChip>
+          ))}
           <Button size="sm" variant="ghost" onClick={() => setK(kData)} disabled={!isWhatIf}>
             Reset to data
           </Button>
         </div>
       </div>
 
-      <div className="mt-3 scroll-quiet overflow-x-auto rounded-lg bg-surface-2 px-3 py-2 text-[17.5px]" aria-live="polite">
+      <div className="mt-3 scroll-quiet overflow-x-auto rounded-lg bg-surface-2 px-3 py-2 text-[18px]" aria-live="polite">
         {nan ? (
           <div className="flex flex-wrap items-center gap-2 py-0.5">
             <StatusBadge status="critical">σ = 0: every value becomes 0/0 = NaN</StatusBadge>

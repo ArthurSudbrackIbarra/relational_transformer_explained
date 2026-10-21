@@ -26,7 +26,7 @@ function NumberChart({ c, slot, probe, setProbe, step }: { c: StatColumn; slot: 
   const { mean, std } = c.stats;
   const [ref, size] = useElementSize<HTMLDivElement>();
   const W = Math.max(280, size.width || 700);
-  const M = { top: 46, right: 14, bottom: 70, left: 40 };
+  const M = { top: 46, right: 14, bottom: 70, left: 58 };
   const PH = 150;
   const pw = W - M.left - M.right;
   const intBins = isSmallInteger(c.values);
@@ -83,8 +83,15 @@ function NumberChart({ c, slot, probe, setProbe, step }: { c: StatColumn; slot: 
               </text>
             </g>
           ))}
-          {/* ±1σ wash */}
-          <rect x={x(mean - std)} y={0} width={Math.max(0, x(mean + std) - x(mean - std))} height={PH} style={{ fill: 'var(--accent)', opacity: 0.06 }} />
+          {/* ±1σ wash, clipped to the plot */}
+          {(() => {
+            const b0 = Math.max(0, x(mean - std));
+            const b1 = Math.min(pw, x(mean + std));
+            return b1 > b0 ? <rect x={b0} y={0} width={b1 - b0} height={PH} style={{ fill: 'var(--accent)', opacity: 0.06 }} /> : null;
+          })()}
+          <text transform={`translate(${-M.left + 14},${PH / 2}) rotate(-90)`} textAnchor="middle" style={{ fill: 'var(--muted)', fontSize: 13 }}>
+            rows
+          </text>
           {bins.map((b, i) => {
             const x0 = x(b.x0 ?? 0) + 1;
             const x1 = x(b.x1 ?? 0) - 1;
@@ -119,7 +126,13 @@ function NumberChart({ c, slot, probe, setProbe, step }: { c: StatColumn; slot: 
           />
           {/* mean */}
           <line x1={x(mean)} x2={x(mean)} y1={-6} y2={PH + 44} style={{ stroke: 'var(--ink-2)' }} strokeWidth={1.25} />
-          <text x={x(mean) + 4} y={-8} style={{ fill: 'var(--ink-2)', fontSize: 13.5, fontWeight: 600 }}>
+          {/* μ label on the side away from the probe line */}
+          <text
+            x={x(mean) + (px >= x(mean) && px - x(mean) < 24 ? -4 : 4)}
+            y={-8}
+            textAnchor={px >= x(mean) && px - x(mean) < 24 ? 'end' : 'start'}
+            style={{ fill: 'var(--ink-2)', fontSize: 13.5, fontWeight: 600 }}
+          >
             μ
           </text>
           {/* probe */}
@@ -167,7 +180,7 @@ function NumberChart({ c, slot, probe, setProbe, step }: { c: StatColumn; slot: 
             {intBins ? `${c.col.name} = ${formatNumber(((bins[hover].x0 ?? 0) + (bins[hover].x1 ?? 0)) / 2)}` : `${c.col.name} ${formatNumber(bins[hover].x0 ?? 0, 2)} to ${formatNumber(bins[hover].x1 ?? 0, 2)}`}
           </div>
           <div>
-            <strong className="num text-ink">{bins[hover].length}</strong> <span className="text-ink-2">rows</span>
+            <strong className="num text-ink">{bins[hover].length}</strong> <span className="text-ink-2">{bins[hover].length === 1 ? 'row' : 'rows'}</span>
           </div>
           <div className="num mt-0.5 text-ink-2">
             z {signed(((intBins ? ((bins[hover].x0 ?? 0) + (bins[hover].x1 ?? 0)) / 2 : bins[hover].x0 ?? 0) - mean) / std, 2)}
@@ -195,6 +208,8 @@ export function NumberNormFigure({ data, cols, defaultId, defaultProbe }: { data
   const z = (probe - mean) / std;
   const slot = data.slotOf(c.file.tableName);
   const isTask = c.file.isTask;
+  // pre.rs:338-339 replaces σ by 1 when it is undefined (n ≤ 1) or exactly 0 (a constant column)
+  const guard = c.values.length <= 1 || lo === hi;
 
   const table = (
     <DataTable
@@ -224,7 +239,7 @@ export function NumberNormFigure({ data, cols, defaultId, defaultProbe }: { data
           {nf(c.values.length)}
         </Readout>
         <Readout label="mean μ">{fixed(mean, 3)}</Readout>
-        <Readout label="sample std σ" hint="ddof = 1 (divide by n − 1)">
+        <Readout label={guard ? 'σ (guarded)' : 'sample std σ'} hint={guard ? 'guard: σ set to 1 (pre.rs:338-339)' : 'ddof = 1 (divide by n − 1)'}>
           {fixed(std, 3)}
         </Readout>
         <Readout label="rows that fed μ, σ" hint={isTask ? 'Val and Test reuse them' : 'every row of the table file'}>
@@ -236,7 +251,7 @@ export function NumberNormFigure({ data, cols, defaultId, defaultProbe }: { data
       </ChartFrame>
       <div className="mt-2 grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Slider label={`Probe value v (${c.col.name})`} value={probe} min={lo} max={hi} step={step} onChange={setProbe} format={(v) => formatNumber(v, 2)} />
-        <div className="scroll-quiet overflow-x-auto rounded-lg bg-surface-2 px-3 py-2 text-[17.5px]">
+        <div className="scroll-quiet overflow-x-auto rounded-lg bg-surface-2 px-3 py-2 text-[18px]">
           <TeX tex={`z = \\dfrac{v - \\mu}{\\sigma} = \\dfrac{${texNum(probe, 2, { trim: true })} - ${texNum(mean, 3)}}{${texNum(std, 3)}} = ${texNum(z, 3, { sign: true })}`} />
         </div>
       </div>

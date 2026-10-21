@@ -3,9 +3,11 @@
  *
  *  - `OneMask`: the literal masks[0, :] array of the live context (exactly one true, fly.rs:492-496);
  *  - `TargetVsLabel`: the masked target next to a visible label cell of the same column;
- *  - `HiddenLabelDemo`: overwrite the label stored in the target token and rerun the forward pass.
- *    The prediction does not move (the value is gated out by ~masks, model.py:219); the loss does,
- *    because the loss reads that stored value as its target (model.py:240) (spec §5.3).
+ *  - `HiddenLabelDemo`: overwrite the label stored in the target token and rerun the forward pass
+ *    with the input embedding evaluated literally (every term × its gate, model.py:216-224; see
+ *    compute.ts literalWithStoredLabel). The prediction does not move (the value term is multiplied
+ *    by ~masks = 0, model.py:219); the loss does, because the loss reads that stored value as its
+ *    target (model.py:240) (spec §5.3).
  */
 import { ArrowDown, ArrowRight, ArrowUp, Equal, EqualNot, Lock } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -26,13 +28,14 @@ import {
   formatRaw,
   formatSigned,
 } from '@/components';
-import { l2norm, scalarValueTerm, tensor, type RTForwardResult } from '@/engine/model';
+import { l2norm, scalarValueTerm, tensor } from '@/engine/model';
 import { sigmoid, denormalize } from '@/engine/metrics';
 import { SemType, type ForwardResult, type RTWeights, type Token } from '@/engine/types';
 import { useTargetStats } from '@/state/hooks';
 import { ArrayStrip } from './ArrayStrip';
-import { afterPaint, forwardWithStoredLabel } from './compute';
+import { afterPaint, literalSelfCheck, literalWithStoredLabel, type LiteralResult } from './compute';
 import { pickVisibleLabel, tokenRowRef, type TokensLive } from './live';
+import { ZeroVec } from './ZeroVec';
 
 /** The paper's hidden size, from the shared scale table (paper d = 256, spec §5.2). */
 const PAPER_D = SCALE_ROWS.find((r) => r.what === 'Hidden size d')?.paper ?? '256';
@@ -52,7 +55,7 @@ export function OneMask({ live }: { live: TokensLive }) {
       caption={
         <>
           The array exactly as the model receives it: one boolean per position. Hover a cell to see which token it belongs to. The single true entry
-          is the seed row’s target cell <Cite kind="code" ref="rustler/src/fly.rs:492-496" />.
+          is the seed row’s target cell <span className="whitespace-nowrap"><Cite kind="code" ref="rustler/src/fly.rs:492-496" />.</span>
         </>
       }
     >
@@ -75,7 +78,7 @@ export function OneMask({ live }: { live: TokensLive }) {
         <button
           type="button"
           className="ml-auto inline-flex items-center gap-1 text-[15px] text-accent-text hover:underline"
-          onClick={() => inspectAndGo(t.pos)}
+          onClick={() => inspectAndGo(t.pos, 'Back to Step 3')}
         >
           Inspect pos {t.pos} in Step 1 <ArrowUp aria-hidden="true" size={15} />
         </button>
@@ -188,12 +191,12 @@ export function TargetVsLabel({ live }: { live: TokensLive }) {
       <EqualNot aria-label="different" size={16} className="inline shrink-0 text-accent-text" />
     );
   const targetHead = (
-    <button type="button" className="inline-flex items-center gap-1.5 text-left hover:text-accent-text" onClick={() => inspectAndGo(target.pos)} title="Inspect in Step 1">
+    <button type="button" className="inline-flex items-center gap-1.5 text-left hover:text-accent-text" onClick={() => inspectAndGo(target.pos, 'Back to Step 3')} title="Inspect in Step 1">
       <span className="target-outline rounded-[3px] px-1 font-mono font-bold text-accent-text">?</span> target · pos {target.pos}
     </button>
   );
   const labelHead = (
-    <button type="button" className="inline-flex items-center gap-1.5 text-left hover:text-accent-text" onClick={() => inspectAndGo(lab.pos)} title="Inspect in Step 1">
+    <button type="button" className="inline-flex items-center gap-1.5 text-left hover:text-accent-text" onClick={() => inspectAndGo(lab.pos, 'Back to Step 3')} title="Inspect in Step 1">
       <TableSwatch slot={slots[lab.tableName] ?? 0} /> {pick.kind === 'self' ? 'own past label' : 'other row’s label'} · pos {lab.pos}
     </button>
   );
@@ -207,7 +210,7 @@ export function TargetVsLabel({ live }: { live: TokensLive }) {
           {tokenRowRef(lab)} = {formatRaw(lab.raw)}. Table, column and type match, so both tokens get the same column-name term and the same
           encoder. They differ in row id{otherDiffs.length ? <> (and here also in {otherDiffs.join(' and ')})</> : null}. Of the flags the model
           reads, only <span className="font-mono">masks</span> differs, and it swaps the value term for the mask vector{' '}
-          <Cite kind="code" ref="rt/model.py:216-224" />. Click a column header to inspect that token in Step 1.
+          <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:216-224" />.</span> Click a column header to inspect that token in Step 1.
         </>
       }
     >
@@ -314,6 +317,7 @@ function GateFlow({
     for (let j = 0; j < d; j++) out[j] = col[j] + 0 * term[j] + 1 * m[j];
     return out;
   }, [col, term, m, d]);
+  const zero = useMemo(() => new Float32Array(d), [d]);
   const engineX0 = base.embedding.x0.subarray(pos * d, (pos + 1) * d);
   let diff = 0;
   for (let j = 0; j < d; j++) diff = Math.max(diff, Math.abs(x0Literal[j] - engineX0[j]));
@@ -338,7 +342,7 @@ function GateFlow({
   const Box = ({ children, className }: { children: ReactNode; className?: string }) => (
     <div className={cx('min-w-0 rounded-xl border border-border bg-surface px-3 py-2.5', className)}>{children}</div>
   );
-  const row = 'flex flex-col items-stretch gap-2 md:grid md:grid-cols-[200px_18px_minmax(0,1fr)_18px_minmax(150px,190px)_18px_92px] md:items-center md:gap-3';
+  const row = 'flex flex-col items-stretch gap-2 md:grid md:grid-cols-[190px_18px_minmax(0,1fr)_18px_minmax(150px,190px)_18px_112px] md:items-center md:gap-3';
 
   return (
     <div className="mt-6 rounded-xl border border-border bg-surface-2/50 px-4 py-4">
@@ -395,7 +399,11 @@ function GateFlow({
           <div className="num text-[22px] leading-tight font-bold text-[var(--critical)]">= 0</div>
         </div>
         <Arrow />
-        <div className="num rounded-xl border border-dashed border-axis px-3 py-2 text-center text-[18px] text-ink-2">0⃗</div>
+        <div className="rounded-xl border border-dashed border-axis px-3 py-2 text-center">
+          <ZeroVec className="text-[19px] text-ink-2" />
+          <VectorStrip values={zero} columns={16} cellHeight={7} domain={domain} showReadout={false} className="mt-1" />
+          <div className="mt-0.5 text-[13px] text-ink-2">{d} zeros</div>
+        </div>
       </div>
 
       {/* mask branch */}
@@ -428,7 +436,7 @@ function GateFlow({
 
       <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-grid pt-3 text-[15.5px] text-ink-2">
         <span>
-          x₀[{pos}] = column-name term + <span className="num">0⃗</span> + m<sub className="text-[13px] leading-none">{semKey}</sub>, whatever the stored value.
+          x₀[{pos}] = column-name term + <ZeroVec /> + m<sub className="text-[13px] leading-none">{semKey}</sub>, whatever the stored value.
         </span>
         <StatusBadge status={diff === 0 ? 'good' : 'warning'}>
           {diff === 0 ? 'same x₀ as the engine’s forward pass, bit for bit' : `differs from the engine by ${diff.toExponential(1)}`}
@@ -485,7 +493,9 @@ export function HiddenLabelDemo({ live }: { live: TokensLive }) {
 
   const [key, setKey] = useState('stored');
   const opt = options.find((o) => o.key === key) ?? options[0];
-  const [res, setRes] = useState<{ key: string; fr: RTForwardResult | ForwardResult; ms: number } | null>(null);
+  const [res, setRes] = useState<{ key: string; ctx: typeof ctx; lit: LiteralResult } | null>(null);
+  // The literal path on the sampler's own tokens, compared with the engine's forward pass.
+  const [check, setCheck] = useState<{ ctx: typeof ctx; ok: boolean } | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -496,29 +506,33 @@ export function HiddenLabelDemo({ live }: { live: TokensLive }) {
 
   useEffect(() => {
     if (!opt || !fr || !assets.store || !assets.weights) return;
-    if (opt.key === 'stored') {
-      setRes({ key: 'stored', fr, ms: 0 });
-      return;
-    }
     let alive = true;
     setRunning(true);
     setError(null);
-    const t0 = performance.now();
-    afterPaint(() => forwardWithStoredLabel(ctx, pdb, assets.store!, assets.weights!, opt.z))
+    afterPaint(() => {
+      const lit = literalWithStoredLabel(ctx, pdb, assets.store!, assets.weights!, opt.z);
+      const base = opt.key === 'stored' ? lit : literalWithStoredLabel(ctx, pdb, assets.store!, assets.weights!, storedZ);
+      const c = literalSelfCheck(base, fr);
+      return { lit, ok: c.x0 === 0 && c.xFinal === 0 && c.prediction && c.loss };
+    })
       .then((r) => {
-        if (alive) setRes({ key: opt.key, fr: r, ms: performance.now() - t0 });
+        if (!alive) return;
+        setRes({ key: opt.key, ctx, lit: r.lit });
+        setCheck({ ctx, ok: r.ok });
       })
       .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)))
       .finally(() => alive && setRunning(false));
     return () => {
       alive = false;
     };
-  }, [opt, fr, assets.store, assets.weights, ctx, pdb]);
+  }, [opt, fr, assets.store, assets.weights, ctx, pdb, storedZ]);
 
   if (!target || !opt) return null;
   const field = binary ? 'boolean_values' : target.sem === SemType.Number ? 'number_values' : 'datetime_values';
-  const cur = res && res.key === opt.key ? res.fr : null;
-  const same = cur && fr ? cur.prediction === fr.prediction : null;
+  const cur = res && res.key === opt.key && res.ctx === ctx ? res.lit : null;
+  const checked = check && check.ctx === ctx ? check.ok : null;
+  // Measured: the literal path's prediction for this stored value against the engine's, bit for bit.
+  const same = cur && fr ? Object.is(cur.prediction, fr.prediction) : null;
   const lossLabel = (z: number) => (binary ? `1{z > 0} = ${z > 0 ? 1 : 0}` : `y = ${formatSigned(z, 3)}`);
   const isBaseline = opt?.key === 'stored';
   const predText = (p: number) =>
@@ -547,10 +561,15 @@ export function HiddenLabelDemo({ live }: { live: TokensLive }) {
       }
       caption={
         <>
-          The forward pass runs again in your browser on the same {ctx.tokens.length} tokens, with only the target’s stored value replaced. The
-          prediction is read at the masked position, as evaluation does <Cite kind="code" ref="rt/main.py:283-288" />; the loss uses the stored value
-          as its target <Cite kind="code" ref="rt/model.py:240" />. The site’s engine skips a term whose gate is 0 instead of multiplying it by 0,
-          which gives the same numbers for finite values; the bottom panel evaluates that term anyway, to show what the gate removes.
+          The forward pass runs again in your browser on the same {ctx.tokens.length} tokens, with only the target’s stored value replaced. This
+          rerun evaluates the input embedding literally, the way <Cite kind="code" ref="rt/model.py:216-224" /> writes it: at every position the value
+          term of every type is computed from its slot, the replaced label included, multiplied by its gate and added up. That input then passes
+          through the four blocks. The prediction is read at the masked position, as evaluation does{' '}
+          <span className="whitespace-nowrap"><Cite kind="code" ref="rt/main.py:283-288" />,</span> and the loss uses the stored value as its target{' '}
+          <span className="whitespace-nowrap">
+            <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:240" />.</span>
+          </span>{' '}
+          The bottom panel opens the gate for the target alone.
         </>
       }
     >
@@ -597,7 +616,7 @@ export function HiddenLabelDemo({ live }: { live: TokensLive }) {
           <div className="mt-1.5 text-[14.5px] text-ink-2">
             {fr && cur && opt.key !== 'stored'
               ? same
-                ? 'Bit for bit the same output as with the stored label.'
+                ? 'Measured: bit for bit the same output as with the stored label.'
                 : `Differs by ${formatNumber(Math.abs(cur.prediction - fr.prediction))}.`
               : 'Pick another value above and the forward pass runs again.'}
           </div>
@@ -616,6 +635,19 @@ export function HiddenLabelDemo({ live }: { live: TokensLive }) {
           </div>
           {binary && <div className="mt-0.5 text-[14px] leading-snug text-ink-2">the label is 1 (true) if the stored z is above 0, else 0</div>}
         </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14.5px] text-ink-2">
+        {checked === null ? (
+          <StatusBadge status="info">checking the literal path against the engine…</StatusBadge>
+        ) : checked ? (
+          <StatusBadge status="good">literal path = the engine’s forward pass, bit for bit</StatusBadge>
+        ) : (
+          <StatusBadge status="warning">literal path differs from the engine</StatusBadge>
+        )}
+        <span>
+          On the sampler’s own tokens, the literal evaluation gives the same x₀, final states, prediction and loss as the engine.
+          {cur ? ` This rerun: ${formatNumber(cur.ms, 0)} ms.` : ''}
+        </span>
       </div>
       {fr && assets.weights && target.sem !== SemType.Text && (
         <GateFlow

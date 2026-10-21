@@ -100,6 +100,8 @@ export interface StepPlayerProps extends StepPlayerState {
   describe?: (index: number) => ReactNode;
   /** Label of the unit, e.g. "event" → "event 3 / 41". Default "step". */
   unit?: string;
+  /** Custom counter text (default "<unit> <index + 1> / <count>"); also used as the scrubber's aria-valuetext. */
+  formatCounter?: (index: number, count: number) => string;
   className?: string;
   /** Accessible name of the player. */
   label?: string;
@@ -117,9 +119,11 @@ export function StepPlayer({
   reset,
   describe,
   unit = 'step',
+  formatCounter,
   className,
   label = 'Step-through controls',
 }: StepPlayerProps) {
+  const counter = formatCounter ? formatCounter(index, count) : null;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const atEnd = index >= count - 1;
   return (
@@ -180,14 +184,14 @@ export function StepPlayer({
             setIndex(Number(e.target.value));
           }}
           aria-label={`${unit} position`}
-          aria-valuetext={`${unit} ${index + 1} of ${count}`}
+          aria-valuetext={counter ?? `${unit} ${index + 1} of ${count}`}
           className="h-5 min-w-[120px] flex-1 cursor-pointer"
         />
         <span
           className="num shrink-0 text-right text-[15px] whitespace-nowrap text-ink-2"
-          style={{ minWidth: `${unit.length + 2 * String(Math.max(1, count)).length + 4}ch` }}
+          style={{ minWidth: counter ? undefined : `${unit.length + 2 * String(Math.max(1, count)).length + 4}ch` }}
         >
-          {unit} {count === 0 ? 0 : index + 1} / {count}
+          {counter ?? `${unit} ${count === 0 ? 0 : index + 1} / ${count}`}
         </span>
         <label className="flex items-center gap-1 text-[15px] text-ink-2">
           <span className="sr-only">Speed</span>

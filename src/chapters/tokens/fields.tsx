@@ -10,6 +10,10 @@ import { Cite, SemBadge, TableSwatch, VectorStrip, cx, formatSigned, truncate } 
 import type { EmbeddingStore } from '@/engine/embeddings';
 import { SEM_TYPE_NAMES, SemType, type PreprocessedDB, type Token } from '@/engine/types';
 import { nodeLabel } from './live';
+import { ZeroVec } from './ZeroVec';
+
+/** A stored scalar slot: an exact 0 (the default of an unused slot, fly.rs:75-78) prints as "0", not "+0.000". */
+export const formatSlot = (v: number, digits?: number) => (v === 0 ? '0' : formatSigned(v, digits));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Metadata
@@ -17,12 +21,41 @@ import { nodeLabel } from './live';
 
 export type Reader = 'masks' | 'embed' | 'loss' | 'eval' | 'unused';
 
-export const READER: Record<Reader, { label: string; icon: LucideIcon; title: string }> = {
-  masks: { label: 'attention masks', icon: Eye, title: 'Read when the four attention masks are built (model.py:164-191)' },
-  embed: { label: 'embedding', icon: Layers, title: 'Read by the input embedding (model.py:208-224)' },
-  loss: { label: 'loss', icon: Crosshair, title: 'Read by the loss at the masked cell (model.py:236-265)' },
-  eval: { label: 'eval readout', icon: ScanSearch, title: 'Read when evaluation collects predictions and labels (main.py:283-293)' },
-  unused: { label: 'never read', icon: Ban, title: 'Carried in the batch, never read by the paper-era model or eval loop' },
+export const READER: Record<Reader, { label: string; icon: LucideIcon; title: string; meaning: string; cite?: string }> = {
+  masks: {
+    label: 'attention masks',
+    icon: Eye,
+    title: 'Read when the four attention masks are built (model.py:164-191)',
+    meaning: 'the four attention masks are built from it',
+    cite: 'rt/model.py:164-191',
+  },
+  embed: {
+    label: 'embedding',
+    icon: Layers,
+    title: 'Read by the input embedding (model.py:208-224)',
+    meaning: 'the input embedding reads it',
+    cite: 'rt/model.py:208-224',
+  },
+  loss: {
+    label: 'loss',
+    icon: Crosshair,
+    title: 'Read by the loss at the masked cell (model.py:236-265)',
+    meaning: 'the loss at the masked cell reads it',
+    cite: 'rt/model.py:236-265',
+  },
+  eval: {
+    label: 'eval readout',
+    icon: ScanSearch,
+    title: 'Read when evaluation collects predictions and labels (main.py:283-293)',
+    meaning: 'evaluation reads it to collect predictions and labels',
+    cite: 'rt/main.py:283-293',
+  },
+  unused: {
+    label: 'never read',
+    icon: Ban,
+    title: 'Carried in the batch, never read by the paper-era model or eval loop',
+    meaning: 'carried in the batch, read by neither the model nor the eval loop',
+  },
 };
 
 export type FieldKey =
@@ -275,7 +308,9 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
           <div className="min-w-0">
             <div className={cx('text-[15px]', active ? 'text-ink' : 'text-ink-2')}>
               {t.isPadding ? (
-                <span className="num">0⃗ (all zeros)</span>
+                <span>
+                  <ZeroVec /> (384 zeros)
+                </span>
               ) : (
                 <>
                   <span className="num">E(text[{idx}])</span> <span className="font-mono">“{truncate(text[idx] ?? '', 34)}”</span>
@@ -290,7 +325,7 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
       const v = k === 'number_values' ? t.numberValue : k === 'datetime_values' ? t.datetimeValue : t.booleanValue;
       return (
         <div className={cx('flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[15px]', active ? 'text-ink' : 'text-ink-2')}>
-          <span className={cx('num', active && 'font-semibold')}>{formatSigned(v)}</span>
+          <span className={cx('num', active && 'font-semibold')}>{formatSlot(v)}</span>
           {active && t.mask && (
             <span className="inline-flex items-center gap-1 text-[14px] text-accent-text">
               <Lock aria-hidden="true" size={13} /> the hidden label, stored but gated out by masks
@@ -328,7 +363,12 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
           </div>
         );
       case 'col_name_values': {
-        if (t.isPadding) return <span className="num text-[15px] text-ink-2">0⃗ (all zeros)</span>;
+        if (t.isPadding)
+          return (
+            <span className="text-[15px] text-ink-2">
+              <ZeroVec /> (384 zeros)
+            </span>
+          );
         const phrase = text[t.colNameIdx] ?? '';
         const vec = store && store.has(phrase) ? store.get(phrase) : null;
         return (
@@ -374,12 +414,16 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
   return (
     <div className="min-w-0">
       <div className="mb-3 rounded-lg bg-surface-2 px-3 py-2 text-[14.5px] leading-snug text-ink-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-0.5 font-medium text-ink">Read by:</span>
+        <div className="mb-1 font-medium text-ink">Read by:</div>
+        <ul className="space-y-1">
           {(Object.keys(READER) as Reader[]).map((r) => (
-            <ReaderTag key={r} reader={r} />
+            <li key={r} className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              <ReaderTag reader={r} />
+              <span>{READER[r].meaning}</span>
+              {READER[r].cite && <Cite kind="code" ref={READER[r].cite!} />}
+            </li>
           ))}
-        </div>
+        </ul>
         <div className="mt-1.5">
           <span className="num">E(·)</span> = frozen MiniLM text embedding (<Link to="/semantics">chapter 5</Link>) ·{' '}
           <span className="num">i32</span> = 32-bit integer · <span className="num">bf16</span> = bfloat16, a 16-bit float ·{' '}

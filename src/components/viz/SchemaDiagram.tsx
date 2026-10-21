@@ -40,6 +40,10 @@ export interface SchemaDiagramProps {
   columnsOf?: Record<string, number>;
   /** Only list key and time columns (compact overview). */
   keysOnly?: boolean;
+  /** Horizontal gap between layout columns, where the arrows run (px). Default 56. */
+  gutter?: number;
+  /** Colour each arrow by its child table (at rest); hover still uses the accent. Default false. */
+  tintArrows?: boolean;
   className?: string;
 }
 
@@ -61,6 +65,8 @@ export function SchemaDiagram({
   onColumnClick,
   columnsOf,
   keysOnly = false,
+  gutter = 56,
+  tintArrows = false,
   className,
 }: SchemaDiagramProps) {
   const hlT = toSet(highlightTables);
@@ -171,8 +177,8 @@ export function SchemaDiagram({
     <div className={cx('scroll-quiet relative w-full overflow-x-auto', className)}>
       <div
         ref={wrap}
-        className="relative grid items-start gap-x-14 gap-y-5 p-1"
-        style={{ gridTemplateColumns: `repeat(${nCols}, minmax(244px, 1fr))`, minWidth: nCols * 244 + (nCols - 1) * 56 + 8 }}
+        className="relative grid items-start gap-y-5 p-1"
+        style={{ columnGap: gutter, gridTemplateColumns: `repeat(${nCols}, minmax(244px, 1fr))`, minWidth: nCols * 244 + (nCols - 1) * gutter + 8 }}
       >
         <svg
           aria-hidden="true"
@@ -182,13 +188,15 @@ export function SchemaDiagram({
         >
           {arrows.map((a) => {
             const on = !!active && (a.from === active || a.to === active);
+            const slot = tables.find((t) => t.schema.name === a.from)?.slot ?? 0;
+            const rest = tintArrows ? catVar(slot) : 'var(--axis)';
             return (
               <g key={a.id} style={{ opacity: active && !on ? 0.25 : 1 }}>
-                <path d={a.d} fill="none" style={{ stroke: on ? 'var(--accent)' : 'var(--axis)' }} strokeWidth={on ? 2 : 1.5} />
+                <path d={a.d} fill="none" style={{ stroke: on ? 'var(--accent)' : rest }} strokeWidth={on ? 2 : 1.5} />
                 <path
                   d="M0,0 L-7,-4 L-7,4 Z"
                   transform={`translate(${a.tip.x},${a.tip.y}) rotate(${a.tip.angle})`}
-                  style={{ fill: on ? 'var(--accent)' : 'var(--axis)' }}
+                  style={{ fill: on ? 'var(--accent)' : rest }}
                 />
               </g>
             );

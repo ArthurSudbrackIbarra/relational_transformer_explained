@@ -52,6 +52,8 @@ export interface TableViewProps {
   onCellClick?: (row: number, col: string) => void;
   /** Scroll this row into view when it changes. */
   scrollToRow?: number | null;
+  /** Scroll this column into view (horizontally) when it changes. */
+  scrollToCol?: string | null;
   /** Max scroll height (px). Default 360. */
   maxHeight?: number;
   /** Optional row subset (row positions) to display, in this order. */
@@ -103,6 +105,7 @@ export function TableView({
   onRowClick,
   onCellClick,
   scrollToRow,
+  scrollToCol,
   maxHeight = 360,
   rowFilter,
   footer,
@@ -139,7 +142,8 @@ export function TableView({
     const el = scroller.current;
     const top = idx * ROW_H;
     if (top < el.scrollTop || top + ROW_H * 2 > el.scrollTop + el.clientHeight) {
-      el.scrollTo({ top: Math.max(0, top - el.clientHeight / 3), behavior: 'smooth' });
+      // snap to whole rows so no row is left half-hidden under the sticky header
+      el.scrollTo({ top: Math.max(0, Math.round((top - el.clientHeight / 3) / ROW_H) * ROW_H), behavior: 'smooth' });
     }
   }, [scrollToRow, order]);
 
@@ -158,6 +162,20 @@ export function TableView({
   }, [cols, rows, schema]);
   const colWidth = (name: string) => widths[name] ?? 120;
   const totalW = idxW + cols.reduce((s, c) => s + colWidth(c.name), 0);
+
+  useEffect(() => {
+    if (!scrollToCol || !scroller.current) return;
+    const i = cols.findIndex((c) => c.name === scrollToCol);
+    if (i < 0) return;
+    const el = scroller.current;
+    const left = idxW + cols.slice(0, i).reduce((s, c) => s + colWidth(c.name), 0);
+    const right = left + colWidth(scrollToCol);
+    if (left < el.scrollLeft || right > el.scrollLeft + el.clientWidth) {
+      // centre the column (the row-position column scrolls with the table)
+      el.scrollTo({ left: Math.max(0, left - Math.max(0, (el.clientWidth - (right - left)) / 2)), behavior: 'smooth' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollToCol, cols, widths]);
 
   const kindOf = (name: string): 'pk' | 'fk' | 'feature' =>
     name === schema.pkey ? 'pk' : name in fkCols ? 'fk' : 'feature';

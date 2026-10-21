@@ -7,7 +7,7 @@
 import { color as d3color } from 'd3';
 import { motion } from 'motion/react';
 import { useMemo, useState } from 'react';
-import { Select, Slider, StepPlayer, cx, inkOn, textWidth, useStepPlayer } from '@/components';
+import { Select, Slider, StepPlayer, cx, fitText, inkOn, textWidth, useStepPlayer } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import { catHex, catVar } from '@/styles/palette';
 import { usePrefersReducedMotion, useResolvedTheme } from '@/styles/theme';
@@ -98,7 +98,26 @@ export function IndexSpaceFigure({ data }: { data: ChapterData }) {
   const H_PINS = stagger ? 50 : 30;
   const BAR_Y = H_PINS + 4;
   const BAR_H = 36;
-  const H = BAR_Y + BAR_H + 26;
+  // brackets under the axis: the DB tables (sorted by name), then each task's splits (test < train < val)
+  const BR_Y = BAR_Y + BAR_H + 30;
+  const H = BR_Y + 30;
+  const groups = useMemo(() => {
+    const out: { id: string; label: string; short: string; n0: number; n1: number }[] = [];
+    for (const f of files) {
+      const id = f.tableType === 'Db' ? 'db' : f.tableName;
+      const last = out[out.length - 1];
+      if (last && last.id === id) last.n1 = f.offset + f.numNodes;
+      else
+        out.push({
+          id,
+          label: id === 'db' ? 'db/*.parquet (sorted by name)' : `tasks/${f.tableName}/*.parquet`,
+          short: id === 'db' ? 'db/*.parquet' : f.tableName,
+          n0: f.offset,
+          n1: f.offset + f.numNodes,
+        });
+    }
+    return out;
+  }, [files]);
 
   const cur = files[read];
   const describe = (i: number) => {
@@ -132,6 +151,9 @@ export function IndexSpaceFigure({ data }: { data: ChapterData }) {
             const fits = w > textWidth(label, 13.5, mono) + 12;
             const twoLine = !fits && f.tableType !== 'Db' && w > Math.max(textWidth(f.tableName, 13, mono), textWidth(f.tableType, 13, mono)) + 10;
             const shortFits = !fits && !twoLine && f.tableType !== 'Db' && w > textWidth(f.tableType, 13.5, mono) + 10;
+            // tiny task splits: initials (Te / Tr / V), full name in the tooltip
+            const initials = f.tableType === 'Test' ? 'Te' : f.tableType === 'Train' ? 'Tr' : 'V';
+            const initFits = !fits && !twoLine && !shortFits && f.tableType !== 'Db' && w > textWidth(initials, 13, mono) + 4;
             const rgb = d3color(catHex(slot, mode))?.rgb();
             const ink = rgb ? inkOn([rgb.r, rgb.g, rgb.b]) : 'var(--ink)';
             return (
@@ -163,6 +185,11 @@ export function IndexSpaceFigure({ data }: { data: ChapterData }) {
                   />
                 )}
                 {i === read && <rect x={x0 - 1.5} y={BAR_Y - 1.5} width={w + 3} height={BAR_H + 3} rx={4} fill="none" style={{ stroke: 'var(--ink)' }} strokeWidth={1.5} />}
+                {isRead && initFits && (
+                  <text x={x0 + w / 2} y={BAR_Y + BAR_H / 2} dy="0.34em" textAnchor="middle" style={{ fill: ink, fontSize: 13, fontWeight: 600, pointerEvents: 'none' }} className="font-mono">
+                    {initials}
+                  </text>
+                )}
                 {isRead && (fits || shortFits) && (
                   <text x={x0 + w / 2} y={BAR_Y + BAR_H / 2} dy="0.34em" textAnchor="middle" style={{ fill: ink, fontSize: 13.5, fontWeight: 600, pointerEvents: 'none' }} className="font-mono">
                     {fits ? label : f.tableType}
@@ -190,6 +217,33 @@ export function IndexSpaceFigure({ data }: { data: ChapterData }) {
               </text>
             </g>
           ))}
+          {/* brackets: DB tables first, then each task's three splits */}
+          {(() => {
+            // labels stay inside their bracket (long form, then short, then cut), and never overlap the previous one
+            let lastRight = -Infinity;
+            return groups.map((g) => {
+            const gx0 = x(g.n0) + 1;
+            const gx1 = x(g.n1) - 2;
+            const gw = Math.max(0, gx1 - gx0);
+            const room = Math.max(0, gw);
+            const text = textWidth(g.label, 13, { mono: true }) <= room ? g.label : fitText(g.short, room, 13, { mono: true });
+            const tw = textWidth(text, 13, { mono: true });
+            const tx = Math.max(lastRight + 8, Math.max(0, Math.min(W - tw, gx0 + gw / 2 - tw / 2)));
+            const show = gw > 14 && text !== '…' && tx + tw <= W;
+            if (show) lastRight = tx + tw;
+            return (
+              <g key={g.id}>
+                <title>{g.label}</title>
+                <path d={`M${gx0},${BR_Y - 6} V${BR_Y} H${gx1} V${BR_Y - 6}`} fill="none" style={{ stroke: 'var(--muted)' }} strokeWidth={1.25} />
+                {show && (
+                  <text x={tx} y={BR_Y + 16} className="font-mono" style={{ fill: 'var(--ink-2)', fontSize: 13 }}>
+                    {text}
+                  </text>
+                )}
+              </g>
+            );
+            });
+          })()}
           {/* pins */}
           {pins.map((p, i) => {
             const px = pinX[i];
@@ -219,7 +273,7 @@ export function IndexSpaceFigure({ data }: { data: ChapterData }) {
           <div
             role="tooltip"
             className="pointer-events-none absolute z-20 rounded-[9px] border border-border bg-surface px-2.5 py-2 text-[14.5px] leading-tight shadow-[var(--shadow-pop)]"
-            style={{ left: Math.max(0, Math.min(W - 230, x(files[hover].offset) - 20)), top: BAR_Y + BAR_H + 30 }}
+            style={{ left: Math.max(0, Math.min(W - 230, x(files[hover].offset) - 20)), top: BR_Y + 22 }}
           >
             <div className="font-mono text-[14px] text-muted">{files[hover].path}</div>
             <div className="mt-1 text-ink">
@@ -236,7 +290,7 @@ export function IndexSpaceFigure({ data }: { data: ChapterData }) {
       {/* table_info.json */}
       <div className="mt-4 overflow-x-auto">
         <table className="w-full border-collapse text-[15px]">
-          <caption className="mb-1.5 text-left text-[14.5px] font-medium text-ink-2">
+          <caption className="mb-1.5 text-left text-[15px] font-medium text-ink-2">
             <code>table_info.json</code>, as written by pre.rs (key → offset, count)
           </caption>
           <thead>
@@ -271,8 +325,18 @@ export function IndexSpaceFigure({ data }: { data: ChapterData }) {
                   f.key === probeKey && 'bg-accent-soft',
                 )}
                 onClick={() => setProbe(f.offset + Math.min(row, f.numNodes - 1))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setProbe(f.offset + Math.min(row, f.numNodes - 1));
+                  }
+                }}
+                tabIndex={0}
+                aria-label={`${f.key}: offset ${f.offset}, ${f.numNodes} rows. Press Enter to probe this file.`}
                 onPointerEnter={() => setHover(i)}
                 onPointerLeave={() => setHover(null)}
+                onFocus={() => setHover(i)}
+                onBlur={() => setHover(null)}
               >
                 <td className="py-1 pr-2">
                   <span className="inline-flex items-center gap-1.5">

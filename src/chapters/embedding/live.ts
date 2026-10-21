@@ -79,31 +79,40 @@ export function useEmbeddingLive() {
   const store = assets.store;
   const ready = assets.status === 'ready' && !!weights && !!store && !!fr;
 
-  return {
-    db,
-    pdb,
-    task,
-    seedNode,
-    ctx,
-    S,
-    slots,
-    assets,
-    weights,
-    store,
-    fr,
-    ready,
-    target,
-    inspected,
-    setInspected,
-    columns,
-    contextColumns,
-    gates,
-    firstOfType,
-    padCount,
-  };
+  /**
+   * Everything except the inspected token, as one stable object: figures that do not show the
+   * inspected token take this (and are memoised), so picking a token does not re-render them.
+   */
+  const stable = useMemo(
+    () => ({
+      db,
+      pdb,
+      task,
+      seedNode,
+      ctx,
+      S,
+      slots,
+      assets,
+      weights,
+      store,
+      fr,
+      ready,
+      target,
+      columns,
+      contextColumns,
+      gates,
+      firstOfType,
+      padCount,
+    }),
+    [db, pdb, task, seedNode, ctx, S, slots, assets, weights, store, fr, ready, target, columns, contextColumns, gates, firstOfType, padCount],
+  );
+
+  return useMemo(() => ({ ...stable, stable, inspected, setInspected }), [stable, inspected, setInspected]);
 }
 
 export type EmbeddingLive = ReturnType<typeof useEmbeddingLive>;
+/** The live data without the inspected token (see `stable` above). */
+export type EmbeddingStable = EmbeddingLive['stable'];
 
 /**
  * The exported untrained initialisation of our mini model (public/data/weights/init.*, PyTorch

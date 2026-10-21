@@ -17,7 +17,7 @@ import { getMasks } from '@/engine/pipeline';
 import { ATTN_ORDER, SemType } from '@/engine/types';
 import { catVar } from '@/styles/palette';
 import { afterPaint, forwardShuffled, randomPermutation, type ShuffleResult } from './compute';
-import { tokenRowRef, type TokensLive } from './live';
+import { nodeLabel, tokenRowRef, type TokensLive } from './live';
 
 const CELL = 18;
 const GAP = 3;
@@ -98,6 +98,18 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
     }
     return { bad, total: ATTN_ORDER.length * S * S };
   }, [current, baseMasks, newPos, S]);
+  // The parent row whose cells the most other cells may read (the widest vertical band of the feature mask).
+  const band = useMemo(() => {
+    const present = new Set(ctx.tokens.filter((t) => !t.isPadding).map((t) => t.nodeIdx));
+    const readers = new Map<number, number>();
+    for (const t of ctx.tokens) {
+      if (t.isPadding) continue;
+      for (const p of new Set(t.f2pNbrIdxs)) if (p >= 0 && present.has(p)) readers.set(p, (readers.get(p) ?? 0) + 1);
+    }
+    let best: { node: number; readers: number } | null = null;
+    for (const [node, n] of readers) if (!best || n > best.readers) best = { node, readers: n };
+    return best ? { label: nodeLabel(pdb, best.node), readers: best.readers } : null;
+  }, [ctx, pdb]);
   const hlBase = hover !== null ? [hover] : [];
   const hlShuf = hover !== null ? [newPos[hover]] : [];
   const onKey = (e: KeyboardEvent) => {
@@ -132,10 +144,12 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
       caption={
         <>
           Each square is one token (colour = table, “?” = the masked target). Shuffling moves the squares to random positions: the token arrays are
-          permuted, the four masks are rebuilt from the permuted ids <Cite kind="code" ref="rt/model.py:165-191" />, and the full forward pass runs
+          permuted, the four masks are rebuilt from the permuted ids <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:165-191" />,</span> and the full forward pass runs
           again in your browser. Mathematically the result is exact. In floating point a different key order can change the last bits, so the
-          official bfloat16 model gives equality up to rounding; this site’s float32 engine reports what it actually gets. Focus the squares and use
-          the arrow keys to follow one token.
+          official bfloat16 model gives equality up to rounding. This site’s engine adds up its dot products and weighted sums in 64-bit floats and
+          stores 32-bit results (<span className="font-mono">src/engine/model/ops.ts</span>), so a different summation order moves the sums far
+          below what a 32-bit float can hold, and the comparison reports what it actually gets. Focus the squares and use the arrow keys to follow
+          one token.
         </>
       }
     >
@@ -284,9 +298,16 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
         </div>
       </div>
       <p className="mt-3 text-[15px] leading-snug text-ink-2">
-        The same mask drawn in two orders. The sampler emits a row’s cells together, so the feature mask hugs the diagonal. After the shuffle it
-        looks scattered, yet every entry still says the same thing about the same pair of cells: it is the same relation, written in a different
-        order. Hover a square or a matrix row to light up that token’s row and column in both drawings.
+        The same mask drawn in two orders. The sampler emits a row’s cells together, so each row is a block on the diagonal (same_node). The
+        vertical bands are parent rows whose cells every child row may read (kv_in_f2p) <Cite kind="code" ref="rt/model.py:171-173" />{' '}
+        <Cite kind="code" ref="rt/model.py:187" />
+        {band ? (
+          <>
+            ; the widest here is <span className="font-mono text-ink">{band.label}</span>, whose cells {band.readers} child cells may read
+          </>
+        ) : null}
+        . After the shuffle the picture looks scattered, yet every entry still says the same thing about the same pair of cells: it is the same
+        relation, written in a different order. Hover a square or a matrix row to light up that token’s row and column in both drawings.
         {fr && current ? ` Forward pass: ${formatNumber(current.ms, 0)} ms.` : ''}
       </p>
     </Figure>

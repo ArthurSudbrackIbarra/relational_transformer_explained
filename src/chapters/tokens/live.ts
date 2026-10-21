@@ -5,7 +5,7 @@
  * The inspected token is the store's `selectedPos` (shared with the masks and attention chapters as
  * "the token being inspected"); null means the masked target. Hover state stays local to each figure.
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { InContextLabels } from '@/engine/pipeline';
 import type { GraphNode, PreprocessedDB, RawDatabase, RawTable, SampledContext, TaskDef, Token } from '@/engine/types';
 import {
@@ -44,15 +44,37 @@ export function useTokensLive() {
     (pos: number | null) => setSelectedPos(pos === null || pos === target ? null : pos),
     [setSelectedPos, target],
   );
+  // After a programmatic jump the page scrolls under a resting pointer; hover previews would then
+  // replace the token just clicked. They stay off until the pointer really moves.
+  const hoverGate = useRef({ suppressed: false });
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      if (e.movementX !== 0 || e.movementY !== 0) hoverGate.current.suppressed = false;
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    return () => window.removeEventListener('pointermove', onMove);
+  }, []);
+  const hoverAllowed = useCallback(() => !hoverGate.current.suppressed, []);
+
+  /** Where the reader was before the last "inspect in Step 1" jump (null = no jump to undo). */
+  const [jump, setJump] = useState<{ y: number; label: string; seq: number } | null>(null);
+  const smooth = () => !(typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   /** Inspect a token and bring the Step 1 inspector into view (for links from later sections). */
   const inspectAndGo = useCallback(
-    (pos: number) => {
+    (pos: number, from = 'Back to where you were') => {
       setInspected(pos);
-      const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      requestAnimationFrame(() => document.getElementById(INSPECTOR_ID)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }));
+      hoverGate.current.suppressed = true;
+      setJump((j) => ({ y: window.scrollY, label: from, seq: (j?.seq ?? 0) + 1 }));
+      requestAnimationFrame(() => document.getElementById(INSPECTOR_ID)?.scrollIntoView({ behavior: smooth() ? 'smooth' : 'auto', block: 'start' }));
     },
     [setInspected],
   );
+  const jumpBack = useCallback(() => {
+    if (!jump) return;
+    window.scrollTo({ top: jump.y, behavior: smooth() ? 'smooth' : 'auto' });
+    setJump(null);
+  }, [jump]);
+  const dismissJump = useCallback(() => setJump(null), []);
 
   const seed = pdb.nodes[seedNode];
   const entityNode = task.kind === 'forecast' && seed && seed.f2pNbrIdxs.length ? seed.f2pNbrIdxs[0] : null;
@@ -87,6 +109,10 @@ export function useTokensLive() {
     inspected,
     setInspected,
     inspectAndGo,
+    jump,
+    jumpBack,
+    dismissJump,
+    hoverAllowed,
     tokensByNode,
   };
 }

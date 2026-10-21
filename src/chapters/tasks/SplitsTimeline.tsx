@@ -3,8 +3,8 @@
  * of which task rows a seed at time t could ever see (spec §2.5, fly.rs:421-424: a P→F child is
  * skipped iff child_ts > seed_ts, so equal timestamps pass).
  *
- * Bars = number of task rows per timestamp (engine task table). Nothing here samples a context;
- * "may be visible" means "passes the temporal filter", not "is in the context".
+ * Bars = number of task rows per timestamp (engine task table). Nothing here samples a context:
+ * the colours say only whether a row passes the time filter, not whether it is in the context.
  */
 import { useId, useMemo, useState } from 'react';
 import { ChartFrame, DataTable, Select, formatPct } from '@/components';
@@ -17,11 +17,14 @@ import { scaleLinear } from 'd3';
 
 type Vis = 'earlier' | 'same' | 'later';
 
+// What the time filter decides (fly.rs:421-424). Passing it does not mean "in the context": that is
+// up to the search and L (Chapter 6).
 const VIS_TEXT: Record<Vis, string> = {
-  earlier: 'earlier than the seed: labels can be reached',
-  same: 'same timestamp: other entities’ labels can be reached',
-  later: 'later than the seed: skipped by the temporal filter',
+  earlier: 'earlier than the seed: passes the time filter',
+  same: 'same timestamp as the seed: passes the time filter too (fly.rs:422 skips only later rows)',
+  later: 'later than the seed: skipped by the time filter',
 };
+const VIS_SHORT: Record<Vis, string> = { earlier: 'passes', same: 'passes (same t)', later: 'skipped' };
 
 export function SplitsTimeline({ db, task, defaultSeedT }: { db: RawDatabase; task: TaskDef; defaultSeedT: number }) {
   const sums = useMemo(() => stampSummaries(task), [task]);
@@ -43,7 +46,8 @@ export function SplitsTimeline({ db, task, defaultSeedT }: { db: RawDatabase; ta
   const barW = Math.max(6, Math.min(18, pxPerDelta * 0.6));
 
   const visOf = (t: number): Vis => (t < seedT ? 'earlier' : t === seedT ? 'same' : 'later');
-  const fillOf = (v: Vis) => (v === 'earlier' ? 'var(--cat-5)' : v === 'same' ? `url(#${hatchId})` : 'var(--grid)');
+  // later = hollow dashed outline in --muted (>= 3:1 against the surface in both themes)
+  const fillOf = (v: Vis) => (v === 'earlier' ? 'var(--cat-5)' : v === 'same' ? `url(#${hatchId})` : 'transparent');
 
   const groups = (['Train', 'Val', 'Test'] as Split[]).map((s) => {
     const items = sums.filter((x) => x.split === s);
@@ -56,13 +60,13 @@ export function SplitsTimeline({ db, task, defaultSeedT }: { db: RawDatabase; ta
   const table = (
     <DataTable
       caption={`${task.name}: rows per timestamp`}
-      columns={['timestamp', 'split', 'rows', binary ? `${task.targetCol} = true` : `mean ${task.targetCol}`, 'vs. seed']}
+      columns={['timestamp', 'split', 'rows', binary ? `${task.targetCol} = true` : `mean ${task.targetCol}`, 'time filter']}
       rows={sums.map((s) => [
         isoDay(s.t),
         s.split,
         s.rows,
         binary ? formatPct(s.positives / Math.max(1, s.rows), 0) : s.mean.toFixed(2),
-        visOf(s.t),
+        VIS_SHORT[visOf(s.t)],
       ])}
     />
   );
@@ -70,7 +74,7 @@ export function SplitsTimeline({ db, task, defaultSeedT }: { db: RawDatabase; ta
   return (
     <ChartFrame
       title={`${task.name}: one table, three splits`}
-      subtitle="Bars count the task rows at each prediction timestamp (one row per active entity)."
+      subtitle="Bars count the task rows at each prediction timestamp. Colour shows which of them a seed at t may see under the time filter (fly.rs:421-424); whether they then land in the context is up to the search (Chapter 6)."
       table={table}
     >
       <div className="mb-3 flex flex-wrap items-end gap-x-4 gap-y-2">
@@ -84,17 +88,17 @@ export function SplitsTimeline({ db, task, defaultSeedT }: { db: RawDatabase; ta
         <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 pb-1 text-[14.5px] text-ink-2" aria-label="Legend">
           <li className="inline-flex items-center gap-1.5">
             <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-[3px]" style={{ background: 'var(--cat-5)' }} />
-            earlier: reachable
+            earlier: passes the time filter
           </li>
           <li className="inline-flex items-center gap-1.5">
             <svg width="11" height="11" aria-hidden="true">
               <rect width="11" height="11" rx="3" fill={`url(#${hatchId})`} />
             </svg>
-            same timestamp: reachable (other entities)
+            same timestamp: passes too
           </li>
           <li className="inline-flex items-center gap-1.5">
-            <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-[3px]" style={{ background: 'var(--grid)', outline: '1px solid var(--axis)' }} />
-            later: filtered out
+            <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-[3px] border-[1.5px] border-dashed" style={{ borderColor: 'var(--muted)' }} />
+            later: skipped
           </li>
         </ul>
       </div>
@@ -176,8 +180,9 @@ export function SplitsTimeline({ db, task, defaultSeedT }: { db: RawDatabase; ta
                   d={vBarPath(cx - barW / 2, barW, y(0), y(s.rows), 3)}
                   style={{
                     fill: fillOf(v),
-                    stroke: v === 'same' ? 'var(--cat-5)' : v === 'later' ? 'var(--axis)' : 'none',
-                    strokeWidth: v === 'earlier' ? 0 : 1,
+                    stroke: v === 'same' ? 'var(--cat-5)' : v === 'later' ? 'var(--muted)' : 'none',
+                    strokeWidth: v === 'earlier' ? 0 : v === 'later' ? 1.5 : 1,
+                    strokeDasharray: v === 'later' ? '3 2' : undefined,
                     opacity: hover && hover.t !== s.t ? 0.75 : 1,
                     transition: 'fill 200ms',
                   }}

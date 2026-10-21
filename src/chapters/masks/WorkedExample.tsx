@@ -156,11 +156,21 @@ export function WorkedExample() {
           label="Toy context tokens (click one to make it the query)"
         />
       </div>
+      <StepPlayer
+        {...player}
+        unit="query"
+        formatCounter={(i, n) => `query ${i} · rows 0-${n - 1}`}
+        className="mb-5"
+        label="Step through the query rows"
+        describe={() => explain(layer, q, allowed)}
+      />
       <div className="grid items-start gap-6 lg:grid-cols-[auto_minmax(0,1fr)]">
         <AsciiGrid rows={ascii[layer]} q={q} allowed={allowed} />
         <FitMask
           n={TOY_L}
           labelled
+          fitLabels
+          ticks={4}
           maxCell={15}
           bandRow={q}
           matrix={{
@@ -173,7 +183,6 @@ export function WorkedExample() {
           }}
         />
       </div>
-      <StepPlayer {...player} unit="step" className="mt-5" label="Step through the query rows" describe={() => explain(layer, q, allowed)} />
     </Figure>
   );
 }

@@ -9,8 +9,10 @@ import { memo, useMemo } from 'react';
 import { SchemaDiagram, type SchemaTableSpec } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 
+/** Gap between the two card columns, where the F→P arrows run (wider than the default, so they stay apart). */
+const GUTTER = 112;
 /** Below this container width the two-column diagram would need a horizontal scroller. */
-const STACK_BELOW = 600;
+const STACK_BELOW = 2 * 244 + GUTTER + 40;
 
 export const SchemaOverview = memo(function SchemaOverview({ tables, onOpen }: { tables: SchemaTableSpec[]; onOpen: (table: string) => void }) {
   const [ref, size] = useElementSize<HTMLDivElement>();
@@ -37,7 +39,7 @@ export const SchemaOverview = memo(function SchemaOverview({ tables, onOpen }: {
           </p>
         </>
       ) : (
-        <SchemaDiagram tables={tables} onTableClick={onOpen} />
+        <SchemaDiagram tables={tables} onTableClick={onOpen} gutter={GUTTER} tintArrows />
       )}
     </div>
   );

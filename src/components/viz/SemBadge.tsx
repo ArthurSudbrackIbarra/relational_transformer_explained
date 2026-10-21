@@ -25,7 +25,7 @@ function toCode(sem: SemType | SemTypeName): SemType {
   return (i < 0 ? 0 : i) as SemType;
 }
 
-// Box sizes; the glyph text never drops below 12px (BUILD_PLAN §5).
+// Box sizes; the glyph text never drops below 13px (BUILD_PLAN §5 / dense-label floor).
 const DIM = { xs: 18, sm: 21, md: 24 } as const;
 
 /** Glyph for a sem type; accessible name = the type name. */
@@ -36,11 +36,11 @@ export function SemBadge({ sem, size = 'sm', showLabel = false, bare = false, cl
   const icon = Math.round(px * 0.7);
   const glyph =
     code === SemType.Number ? (
-      <span className="font-mono font-semibold" style={{ fontSize: Math.max(12.5, Math.round(px * 0.7)) }}>
+      <span className="font-mono font-semibold" style={{ fontSize: Math.max(13, Math.round(px * 0.7)) }}>
         #
       </span>
     ) : code === SemType.Text ? (
-      <span className="font-semibold tracking-[-0.04em]" style={{ fontSize: Math.max(12, Math.round(px * 0.6)) }}>
+      <span className="font-semibold tracking-[-0.04em]" style={{ fontSize: Math.max(13, Math.round(px * 0.6)) }}>
         Aa
       </span>
     ) : code === SemType.DateTime ? (

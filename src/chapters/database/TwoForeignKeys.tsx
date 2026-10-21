@@ -1,8 +1,9 @@
 /**
  * The paper's limitation example (p.10 §7): a product table with buyer_id and
- * seller_id, both foreign keys to user. After preprocessing the FK names are
- * gone: the parent list (pre.rs:479) and the edges (pre.rs:515-529) remain. The
- * list keeps FK-column order, but the attention masks only test membership
+ * seller_id, both foreign keys to user. After preprocessing no token carries a
+ * foreign-key column name (key columns make no cells); what remains is the
+ * parent list (pre.rs:479) and the edges (pre.rs:515-529). The list keeps
+ * FK-column order, but the attention masks only test membership
  * (model.py:171-178), so buyer and seller look alike (spec §1.2, §4.13).
  * Hypothetical schema, drawn in neutral colours on purpose.
  */
@@ -57,8 +58,9 @@ export function TwoForeignKeys() {
           <span className="text-muted">]</span>
         </div>
         <div className="mt-1.5 text-[15px] leading-snug text-ink-2">
-          The list holds the two parents’ global node indices, in foreign-key-column order, and no column name. The attention masks only ask
-          whether a row is in the list <Cite kind="code" ref="rt/model.py:171-178" />, so the model cannot tell the buyer from the seller.
+          The list holds the two parents’ node indices, offset(user) + 7 and offset(user) + 12 (shown here as user[7] and user[12]), in
+          foreign-key-column order, and no column name. The attention masks only ask whether a row is in the list{' '}
+          <Cite kind="code" ref="rt/model.py:171-178" />, so the model cannot tell the buyer from the seller.
         </div>
       </div>
     </div>

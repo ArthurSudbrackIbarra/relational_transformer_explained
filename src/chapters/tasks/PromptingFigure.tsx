@@ -1,15 +1,16 @@
 /**
  * Figure: task-table prompting (paper p.4 §3.1). The task table is attached to the database as an
  * ordinary table with one FK to the entity; its rows become children of the entity, exactly like
- * orders or reviews. Live schema (key and time columns only, the figure is about links) + the
- * live P→F adjacency of the example entity (PreprocessedDB.p2fAdj), filtered exactly as the
- * sampler's table test filters it (fly.rs:417): task-table children only from a seed of that table.
- * Below 600 px the schema is drawn as a compact stack instead of the multi-column diagram.
+ * orders or reviews. Live schema (DB tables: key and time columns only, the figure is about links;
+ * the task table: all columns, label shaded) + the live P→F adjacency of the example entity
+ * (PreprocessedDB.p2fAdj), filtered exactly as the sampler's table test filters it (fly.rs:417):
+ * task-table children only from a seed of that table. The task table sits in a column left of its
+ * entity, so its one FK edge crosses no card. Below 600 px the schema is a compact stack.
  */
 import { AnimatePresence, motion } from 'motion/react';
 import { Clock, Link2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Cite, SchemaDiagram, SemBadge, Segmented, TableSwatch, semOfDType, type SchemaTableSpec } from '@/components';
+import { Cite, SchemaDiagram, SemBadge, Segmented, TableSwatch, cx, semOfDType, type SchemaTableSpec } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import type { PreprocessedDB, RawDatabase, TaskDef } from '@/engine/types';
 import { catVar } from '@/styles/palette';
@@ -47,8 +48,9 @@ function CompactSchema({ specs, task }: { specs: SchemaTableSpec[]; task: TaskDe
             {taskSpec.schema.columns.map((c) => {
               const fk = taskSpec.schema.fkeys[c.name];
               const isTime = c.name === taskSpec.schema.timeCol;
+              const isLabel = c.name === task.targetCol;
               return (
-                <li key={c.name} className="flex items-center gap-2 px-3 py-[6px] text-[15.5px]">
+                <li key={c.name} className={cx('flex items-center gap-2 px-3 py-[6px] text-[15.5px]', isLabel && 'bg-accent-soft')}>
                   <span className="flex w-[20px] shrink-0 justify-center text-ink-2">
                     {fk ? <Link2 aria-label="foreign key" size={15} /> : <SemBadge sem={semOfDType(c.dtype)} size="xs" />}
                   </span>
@@ -59,6 +61,7 @@ function CompactSchema({ specs, task }: { specs: SchemaTableSpec[]; task: TaskDe
                       <Clock aria-hidden="true" size={12} /> time
                     </span>
                   )}
+                  {isLabel && <span className="shrink-0 rounded bg-surface px-1.5 text-[13.5px] font-medium text-accent-text">label</span>}
                 </li>
               );
             })}
@@ -92,14 +95,45 @@ export function PromptingFigure({
   const [wrapRef, size] = useElementSize<HTMLDivElement>();
   const narrow = (size.width || 800) < 600;
 
+  // DB tables: key and time columns only (the figure is about links); the task table: every column,
+  // because its label column is what makes past task rows in-context labels (spec §2.5).
   const specs: SchemaTableSpec[] = useMemo(() => {
-    const out: SchemaTableSpec[] = db.tables.map((t) => ({ schema: t.schema, slot: slots[t.schema.name] ?? 0, rowCount: t.rows.length, kind: 'db' }));
+    const out: SchemaTableSpec[] = db.tables.map((t) => ({
+      schema: {
+        ...t.schema,
+        columns: t.schema.columns.filter((c) => c.name === t.schema.pkey || c.name in t.schema.fkeys || c.name === t.schema.timeCol),
+      },
+      slot: slots[t.schema.name] ?? 0,
+      rowCount: t.rows.length,
+      kind: 'db',
+    }));
     if (task?.tables) {
       const n = (['Train', 'Val', 'Test'] as const).map((s) => `${s} ${task.tables![s].rows.length}`).join(' · ');
       out.push({ schema: task.tables.Train.schema, slot: slots[task.name] ?? 5, kind: 'task', subtitle: `${n} rows` });
     }
     return out;
   }, [db, task, slots]);
+
+  // Layout: the task table in its own column LEFT of its entity, the DB tables shifted one column
+  // right, so the task table's single FK edge runs between adjacent columns and crosses no card.
+  const columnsOf = useMemo(() => {
+    if (!task) return undefined;
+    const byName = new Map(db.tables.map((t) => [t.schema.name, t]));
+    const memo = new Map<string, number>();
+    const level = (name: string, seen: Set<string>): number => {
+      if (memo.has(name)) return memo.get(name)!;
+      const t = byName.get(name);
+      if (!t || seen.has(name)) return 0;
+      seen.add(name);
+      const parents = Object.values(t.schema.fkeys).filter((p) => byName.has(p) && p !== name);
+      const l = parents.length === 0 ? 0 : 1 + Math.max(...parents.map((p) => level(p, seen)));
+      memo.set(name, l);
+      return l;
+    };
+    const out: Record<string, number> = { [task.name]: 0 };
+    for (const t of db.tables) out[t.schema.name] = level(t.schema.name, new Set()) + 1;
+    return out;
+  }, [db, task]);
 
   // the entity whose children we list: the attached task's entity (default: the customer)
   const entityTable = task?.entityTable ?? 'customers';
@@ -146,11 +180,26 @@ export function PromptingFigure({
           {narrow ? (
             <CompactSchema specs={specs} task={task} />
           ) : (
-            <SchemaDiagram tables={specs} keysOnly highlightTables={task ? [task.name] : []} selectedTable={task?.name ?? null} />
+            <SchemaDiagram
+              tables={specs}
+              columnsOf={columnsOf}
+              highlightTables={task ? [task.name] : []}
+              highlightColumns={task ? [`${task.name}.${task.targetCol}`] : []}
+              selectedTable={task?.name ?? null}
+            />
           )}
         </motion.div>
       </AnimatePresence>
-      {!narrow && <p className="mt-1 px-1 text-[15px] text-muted">Only key and time columns are listed.</p>}
+      <p className="mt-1 px-1 text-[15px] leading-snug text-muted">
+        Database tables: only key and time columns are listed.
+        {task && (
+          <>
+            {' '}
+            The task table is listed in full; its label column <span className="font-mono text-ink-2">{task.targetCol}</span>, the cell a
+            seed masks, is shaded.
+          </>
+        )}
+      </p>
 
       <div className="mt-5 rounded-xl border border-border bg-surface-2 px-4 py-3">
         <div className="text-[15.5px] text-ink-2">
@@ -175,7 +224,7 @@ export function PromptingFigure({
         <p className="mt-2 text-[15px] leading-snug text-ink-2">
           {task
             ? `The ${task.name} rows hang off the ${task.entityTable!.replace(/s$/, '')} through one foreign key, just like its other child rows. `
-            : 'This is the paper’s picture with no task table attached, and also what an autocomplete seed (a database row) gets. '}
+            : 'With no task table attached, the entity keeps only its database children; this is also what an autocomplete seed (a database row) gets. '}
           The stored P→F list of {entityTable}[{entityRow}] holds <span className="num text-ink">{stored}</span> children, because
           preprocessing indexes every task table <Cite kind="code" ref="rustler/src/pre.rs:79-92" />; the sampler skips the{' '}
           <span className="num text-ink">{skipped}</span> that belong to {task ? 'other task tables' : 'task tables'}.

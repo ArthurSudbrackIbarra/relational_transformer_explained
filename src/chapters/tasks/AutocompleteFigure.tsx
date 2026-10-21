@@ -61,6 +61,17 @@ export function AutocompleteFigure({
     () => ctx.tokens.filter((t) => !t.isPadding && t.nodeIdx !== seedNode && t.tableName === task.table && task.columnsToDrop.includes(t.colName)).length,
     [ctx, seedNode, task],
   );
+  // fly.rs:458 compares timestamps (seconds; None == None also matches, spec §4.9)
+  const sameTsOthers = useMemo(() => {
+    const info = pdb.tableInfo[`${task.table}:Db`];
+    const ts = pdb.nodes[seedNode]?.ts ?? null;
+    let k = 0;
+    for (let i = 0; i < info.numNodes; i++) {
+      const nd = pdb.nodes[info.nodeIdxOffset + i];
+      if (nd.nodeIdx !== seedNode && (nd.ts ?? null) === ts) k++;
+    }
+    return k;
+  }, [pdb, task, seedNode]);
   const targetMissing = row[task.targetCol] === null || (typeof row[task.targetCol] === 'number' && Number.isNaN(row[task.targetCol] as number));
 
   const fates = table.schema.columns.map((c) => {
@@ -89,7 +100,14 @@ export function AutocompleteFigure({
           />
         </div>
         <div className="flex items-end gap-1">
-          <NumberField label={`Review row (0–${n - 1})`} value={review} min={0} max={n - 1} onChange={(v) => onReviewChange(Math.max(0, Math.min(n - 1, Math.round(v))))} className="w-[130px]" />
+          <NumberField
+            label={`Review # (0–${n - 1})`}
+            value={review}
+            min={0}
+            max={n - 1}
+            onChange={(v) => onReviewChange(Math.max(0, Math.min(n - 1, Math.round(v))))}
+            className="w-[170px]"
+          />
           <IconButton label="Previous review" size="sm" onClick={() => onReviewChange((review - 1 + n) % n)}>
             <ChevronLeft size={16} />
           </IconButton>
@@ -111,7 +129,7 @@ export function AutocompleteFigure({
               <li
                 key={col.name}
                 className={cx(
-                  'grid grid-cols-[18px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 px-3.5 py-2 sm:grid-cols-[18px_minmax(0,0.85fr)_minmax(0,1.35fr)]',
+                  'grid grid-cols-[22px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 px-3.5 py-2 sm:grid-cols-[22px_minmax(0,0.85fr)_minmax(0,1.35fr)]',
                   fate === 'dropped' && 'bg-surface-2',
                 )}
               >
@@ -121,7 +139,7 @@ export function AutocompleteFigure({
                   ) : fate === 'fk' ? (
                     <Link2 aria-label="foreign key" size={15} />
                   ) : (
-                    <SemBadge sem={semOfDType(col.dtype)} size="xs" />
+                    <SemBadge sem={semOfDType(col.dtype)} size="sm" />
                   )}
                 </span>
                 <span className={cx('truncate font-mono text-[15px]', fate === 'pk' || fate === 'fk' ? 'text-ink-2' : 'text-ink')}>{col.name}</span>
@@ -180,9 +198,11 @@ export function AutocompleteFigure({
             <dd className="num text-right font-semibold text-ink">{labels.other.length}</dd>
             {task.columnsToDrop.length > 0 ? (
               <>
-                <dt className="text-ink-2">Leakage cells dropped (seed row · other rows with the seed’s timestamp)</dt>
+                <dt className="text-ink-2">Leakage cells dropped from the seed row</dt>
+                <dd className="num text-right font-semibold text-ink">{drops.length - dropsOther}</dd>
+                <dt className="text-ink-2">Other reviews at exactly the seed’s timestamp (same second), which would lose it too</dt>
                 <dd className="num text-right font-semibold text-ink">
-                  {drops.length - dropsOther} · {dropsOther}
+                  {sameTsOthers === 0 ? 'none' : `${sameTsOthers} (${dropsOther} cell${dropsOther === 1 ? '' : 's'} dropped here)`}
                 </dd>
                 <dt className="text-ink-2">
                   Other reviews’ <span className="font-mono">{task.columnsToDrop.join(', ')}</span> tokens kept (other timestamps)

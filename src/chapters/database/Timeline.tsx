@@ -2,11 +2,15 @@
  * Timeline of the time-stamped rows linked to one entity (e.g. all orders and
  * reviews of a customer), with a draggable prediction time t. Rows after t are
  * "the future": using them to predict at t would leak (paper p.3 §2.1).
+ *
+ * Keyboard: the marks form one tab stop (roving tabindex): arrow keys move from
+ * row to row in time order, Enter / Space makes the row the focus row. The slider
+ * moves t.
  */
 import { scaleTime, utcMonth } from 'd3';
 import { RotateCcw } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Slider, TableSwatch, formatDate } from '@/components';
+import { Button, Slider, TableSwatch, formatDate, textWidth } from '@/components';
 import { TooltipBox } from '@/components/viz/chartParts';
 import { shapeOfSlot, shapePath } from '@/components/viz/shapes';
 import { useElementSize } from '@/components/viz/useSize';
@@ -25,14 +29,16 @@ export interface TimelineProps {
   seedTime: number | null;
 }
 
-const LANE_H = 46;
-const M = { top: 26, right: 14, bottom: 28, left: 12 };
+const M = { top: 30, right: 14, bottom: 46, left: 12 };
 const DAY = 86_400_000;
+const LABEL_PX = 13.5;
+const SMALL_PX = 13;
 
 interface Mark {
   ref: RowRef;
   t: number;
   lane: number;
+  /** In [-0.5, 0.5): vertical offset as a fraction of the lane's jitter range. */
   jitter: number;
 }
 
@@ -40,6 +46,9 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
   const [wrap, size] = useElementSize<HTMLDivElement>();
   const width = Math.max(300, size.width || 700);
   const narrow = width < 560;
+  // taller lanes on phones, where the same marks are squeezed into fewer pixels
+  const LANE_H = narrow ? 66 : 48;
+  const JITTER = LANE_H * 0.46;
 
   const lanes = useMemo(
     () =>
@@ -58,10 +67,10 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
         if (typeof v !== 'number') continue;
         // deterministic vertical jitter so same-day rows do not hide each other
         const h = Math.sin(r * 12.9898 + lane * 78.233) * 43758.5453;
-        out.push({ ref: { table: g.childTable, row: r }, t: v, lane, jitter: (h - Math.floor(h) - 0.5) * 18 });
+        out.push({ ref: { table: g.childTable, row: r }, t: v, lane, jitter: h - Math.floor(h) - 0.5 });
       }
     });
-    return out;
+    return out.sort((a, b) => a.t - b.t || a.lane - b.lane || a.ref.row - b.ref.row);
   }, [idx, lanes]);
 
   const t0 = utcMonth.floor(new Date(db.minTimestamp)).getTime();
@@ -78,6 +87,9 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
   const every = narrow ? 6 : 3;
 
   const [hover, setHover] = useState<Mark | null>(null);
+  const [kb, setKb] = useState(0);
+  const [kbActive, setKbActive] = useState(false);
+  const markEls = useRef<(SVGGElement | null)[]>([]);
   const dragging = useRef(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const setFromEvent = (e: React.PointerEvent) => {
@@ -91,6 +103,28 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
   const before = lanes.map((_, l) => marks.filter((m) => m.lane === l && m.t <= cut).length);
   const after = lanes.map((_, l) => marks.filter((m) => m.lane === l && m.t > cut).length);
   const xc = x(new Date(cut));
+  const seedMoved = seedTime !== null && Math.abs(cut - seedTime) > DAY / 2;
+  const xs = seedTime !== null ? x(new Date(seedTime)) : 0;
+
+  // ── header labels: the cutoff label is clamped inside the chart; the "future" label only shows when it fits ──
+  const cutText = `t = ${formatDate(cut, 'never')}${seedTime !== null && !seedMoved ? ' (seed)' : ''}`;
+  const cutW = textWidth(cutText, LABEL_PX, { weight: 600 });
+  const flip = xc + 8 + cutW > width - M.right;
+  const cutX0 = Math.max(M.left, flip ? xc - 8 - cutW : xc + 8);
+  const futText = 'after t: the future';
+  const futW = textWidth(futText, SMALL_PX);
+  const futX0 = width - M.right - futW;
+  const showFut = xc < futX0 - 12 && (flip || cutX0 + cutW + 16 < futX0);
+  // the dashed seed-time line is labelled under the month labels, clamped too
+  const seedText = 'seed time';
+  const seedW = textWidth(seedText, SMALL_PX);
+  const seedX0 = Math.max(M.left, Math.min(width - M.right - seedW, xs - seedW / 2));
+
+  const moveKb = (i: number) => {
+    const j = Math.max(0, Math.min(marks.length - 1, i));
+    setKb(j);
+    markEls.current[j]?.focus();
+  };
 
   if (lanes.length === 0) {
     return <p className="text-[16px] text-ink-2">No time-stamped rows are linked to {rowLabel(anchor)}.</p>;
@@ -108,9 +142,9 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
           format={() => formatDate(cut, 'never')}
           className="w-full max-w-[340px]"
         />
-        {seedTime !== null && Math.abs(cut - seedTime) > DAY / 2 && (
-          <Button size="sm" variant="ghost" icon={<RotateCcw size={14} />} onClick={() => setCut(seedTime)}>
-            Back to the seed’s time ({formatDate(seedTime, 'never')})
+        {seedMoved && (
+          <Button size="sm" variant="ghost" icon={<RotateCcw size={14} />} onClick={() => setCut(seedTime!)}>
+            Back to the seed’s time ({formatDate(seedTime!, 'never')})
           </Button>
         )}
       </div>
@@ -119,10 +153,10 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
           ref={svgRef}
           width={width}
           height={H}
-          role="img"
+          role="group"
           aria-label={`Timeline of the rows linked to ${rowLabel(anchor)}. Prediction time ${formatDate(cut, 'never')}: ${lanes
             .map((g, l) => `${before[l]} ${g.childTable} before, ${after[l]} after`)
-            .join('; ')}.`}
+            .join('; ')}. Use the arrow keys to move between rows.`}
           className="block touch-pan-y"
           onPointerDown={(e) => {
             dragging.current = true;
@@ -141,7 +175,7 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
             <g key={m.getTime()}>
               <line x1={x(m)} x2={x(m)} y1={M.top - 6} y2={H - M.bottom} style={{ stroke: 'var(--grid)' }} strokeWidth={i % every === 0 ? 1 : 0.5} />
               {i % every === 0 && x(m) + 58 < width && (
-                <text x={x(m) + 3} y={H - M.bottom + 16} style={{ fill: 'var(--muted)', fontSize: 13 }}>
+                <text x={x(m) + 3} y={H - M.bottom + 16} style={{ fill: 'var(--muted)', fontSize: SMALL_PX }}>
                   {m.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })} {m.getUTCFullYear()}
                 </text>
               )}
@@ -162,61 +196,103 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
                 x={M.left + 2}
                 y={M.top + l * LANE_H + 7}
                 className="font-mono"
-                style={{ fill: 'var(--ink-2)', fontSize: 13, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 3 }}
+                style={{ fill: 'var(--ink-2)', fontSize: SMALL_PX, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 3 }}
               >
                 {g.childTable}
               </text>
             </g>
           ))}
-          {marks.map((m) => {
+          {marks.map((m, i) => {
             const slot = slots[m.ref.table] ?? 0;
             const fut = m.t > cut;
             const isFocus = sameRow(m.ref, focus);
             const cx = x(new Date(m.t));
-            const cy = M.top + m.lane * LANE_H + LANE_H / 2 + m.jitter;
+            const cy = M.top + m.lane * LANE_H + LANE_H / 2 + m.jitter * JITTER;
+            const kbHere = kbActive && kb === i;
             return (
               <g
                 key={rowKey(m.ref)}
+                ref={(el) => {
+                  markEls.current[i] = el;
+                }}
                 transform={`translate(${cx},${cy})`}
-                style={{ opacity: fut ? 0.3 : 1, cursor: 'pointer' }}
+                style={{ cursor: 'pointer', outline: 'none' }}
+                role="button"
+                tabIndex={i === kb ? 0 : -1}
+                aria-label={`${rowLabel(m.ref)}, ${formatDate(m.t, 'never')}, ${fut ? 'after t' : 'before t'}`}
                 onPointerEnter={() => setHover(m)}
                 onPointerLeave={() => setHover(null)}
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => onFocus(m.ref)}
+                onFocus={() => {
+                  setKb(i);
+                  setKbActive(true);
+                  setHover(m);
+                }}
+                onBlur={() => {
+                  setKbActive(false);
+                  setHover(null);
+                }}
+                onKeyDown={(e) => {
+                  const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+                  if (step) {
+                    e.preventDefault();
+                    moveKb(i + step);
+                  } else if (e.key === 'Home' || e.key === 'End') {
+                    e.preventDefault();
+                    moveKb(e.key === 'Home' ? 0 : marks.length - 1);
+                  } else if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onFocus(m.ref);
+                  }
+                }}
               >
                 <circle r={9} fill="transparent" />
-                {isFocus && <circle r={9} fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth={2} />}
-                <path d={shapePath(shapeOfSlot(slot), 4.6)} style={{ fill: catVar(slot), stroke: 'var(--surface)' }} strokeWidth={1.5} paintOrder="stroke" />
+                {(isFocus || kbHere) && (
+                  <circle r={9} fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth={2} strokeDasharray={kbHere && !isFocus ? '3 2' : undefined} />
+                )}
+                {/* future rows: hollow, in the table colour, so they stay visible on the shaded region in both themes */}
+                <path
+                  d={shapePath(shapeOfSlot(slot), 4.6)}
+                  style={{ fill: fut ? 'var(--surface)' : catVar(slot), stroke: fut ? catVar(slot) : 'var(--surface)', opacity: fut ? 0.75 : 1 }}
+                  strokeWidth={fut ? 1.6 : 1.5}
+                  paintOrder="stroke"
+                />
               </g>
             );
           })}
           {/* seed time (if moved away) */}
-          {seedTime !== null && Math.abs(cut - seedTime) > DAY / 2 && (
-            <line x1={x(new Date(seedTime))} x2={x(new Date(seedTime))} y1={M.top - 6} y2={H - M.bottom} style={{ stroke: 'var(--ink-2)' }} strokeDasharray="3 3" strokeWidth={1} />
+          {seedMoved && (
+            <g aria-hidden="true">
+              <line x1={xs} x2={xs} y1={M.top - 6} y2={H - M.bottom + 22} style={{ stroke: 'var(--ink-2)' }} strokeDasharray="3 3" strokeWidth={1} />
+              <text x={seedX0} y={H - M.bottom + 36} style={{ fill: 'var(--ink-2)', fontSize: SMALL_PX, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 3 }}>
+                {seedText}
+              </text>
+            </g>
           )}
           {/* cutoff */}
-          <line x1={xc} x2={xc} y1={M.top - 10} y2={H - M.bottom} style={{ stroke: 'var(--accent)' }} strokeWidth={2} />
-          <circle cx={xc} cy={M.top - 10} r={5} style={{ fill: 'var(--accent)' }} />
-          <text
-            x={xc + (xc > width * 0.72 ? -8 : 8)}
-            y={M.top - 8}
-            textAnchor={xc > width * 0.72 ? 'end' : 'start'}
-            style={{ fill: 'var(--ink)', fontSize: 13.5, fontWeight: 600, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 3 }}
-          >
-            t = {formatDate(cut, 'never')}
-            {seedTime !== null && Math.abs(cut - seedTime) <= DAY / 2 ? ' (seed)' : ''}
-          </text>
-          {xc < width - M.right - 70 && (
-            <text x={width - M.right - 4} y={M.top + 6} textAnchor="end" style={{ fill: 'var(--muted)', fontSize: 13 }}>
-              after t: the future
+          <g aria-hidden="true">
+            <line x1={xc} x2={xc} y1={M.top - 10} y2={H - M.bottom} style={{ stroke: 'var(--accent)' }} strokeWidth={2} />
+            <circle cx={xc} cy={M.top - 10} r={5} style={{ fill: 'var(--accent)' }} />
+            <text
+              x={cutX0}
+              y={M.top - 12}
+              style={{ fill: 'var(--ink)', fontSize: LABEL_PX, fontWeight: 600, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 3 }}
+            >
+              {cutText}
             </text>
-          )}
+            {showFut && (
+              <text x={futX0} y={M.top - 12} style={{ fill: 'var(--muted)', fontSize: SMALL_PX }}>
+                {futText}
+              </text>
+            )}
+          </g>
         </svg>
         {hover && (
           <TooltipBox
             style={{
               left: Math.min(width - 210, Math.max(0, x(new Date(hover.t)) - 100)),
-              top: Math.max(0, M.top + hover.lane * LANE_H + LANE_H / 2 + hover.jitter + 14),
+              top: Math.max(0, M.top + hover.lane * LANE_H + LANE_H / 2 + hover.jitter * JITTER + 14),
             }}
           >
             <div className="font-mono font-semibold text-ink">{rowLabel(hover.ref)}</div>
@@ -243,7 +319,7 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
             </span>
           </span>
         ))}
-        <span>Drag on the chart or use the slider to move t.</span>
+        <span>Hollow marks lie after t, in the shaded future.</span>
       </div>
     </div>
   );

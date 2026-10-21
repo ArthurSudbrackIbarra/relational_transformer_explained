@@ -22,7 +22,7 @@ const nf = (n: number) => n.toLocaleString('en-US');
 const KINDS = [
   { id: 'cell', label: 'cell (feature value)', fill: 'var(--ink-2)' },
   { id: 'link', label: 'link (foreign key)', fill: 'var(--muted)' },
-  { id: 'pk', label: 'primary key', fill: 'var(--axis)' },
+  { id: 'pk', label: 'primary key', fill: 'url(#pp-dots)' },
   { id: 'missing', label: 'missing (no cell, no link)', fill: 'url(#pp-hatch)' },
 ] as const;
 
@@ -31,7 +31,7 @@ type KindId = (typeof KINDS)[number]['id'];
 const LABEL_PX = 13;
 const NUM_PX = 13.5;
 /** Minimum drawn width of a non-empty segment, so a handful of missing values stays visible. */
-const MIN_SEG = 4;
+const MIN_SEG = 6;
 
 interface Row {
   id: string;
@@ -144,6 +144,11 @@ export function CellFatesChart({ data }: { data: ChapterData }) {
               <rect width="5" height="5" style={{ fill: 'var(--surface)' }} />
               <line x1="0" y1="0" x2="0" y2="5" style={{ stroke: 'var(--ink-2)' }} strokeWidth="2.2" />
             </pattern>
+            {/* primary key: dots in the muted ink (≥ 3:1 against the surface), distinct from the hatched "missing" */}
+            <pattern id="pp-dots" width="4" height="4" patternUnits="userSpaceOnUse">
+              <rect width="4" height="4" style={{ fill: 'var(--surface)' }} />
+              <circle cx="2" cy="2" r="1.15" style={{ fill: 'var(--ink-2)' }} />
+            </pattern>
           </defs>
           {!narrow && (
             <g style={{ fill: 'var(--muted)', fontSize: LABEL_PX }}>
@@ -184,7 +189,7 @@ export function CellFatesChart({ data }: { data: ChapterData }) {
                     width={Math.max(1, s.w - (j > 0 ? 1 : 0) - (j < segs.length - 1 ? 1 : 0))}
                     height={BAR_H}
                     rx={j === 0 || j === segs.length - 1 ? 3 : 0}
-                    style={{ fill: s.k.fill, stroke: s.k.id === 'pk' ? 'var(--muted)' : 'none', strokeWidth: 0.75 }}
+                    style={{ fill: s.k.fill, stroke: s.k.id === 'pk' || s.k.id === 'missing' ? 'var(--muted)' : 'none', strokeWidth: 1 }}
                   />
                 ))}
                 {narrow ? (

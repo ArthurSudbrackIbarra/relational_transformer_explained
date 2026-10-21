@@ -9,7 +9,7 @@
 import { AnimatePresence, motion, useInView } from 'motion/react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, SemBadge, cx, formatRaw, semOfDType, textWidth, truncate } from '@/components';
+import { Button, SemBadge, cx, formatRaw, semOfDType, textWidth } from '@/components';
 import type { PreprocessedDB, RawDatabase, TaskDef } from '@/engine/types';
 import { usePrefersReducedMotion } from '@/styles/theme';
 import { useElementSize } from '@/components/viz/useSize';
@@ -21,6 +21,7 @@ import {
   firstActivity,
   forecastSpecOf,
   isoDay,
+  isoSecond,
   labelEvents,
   windowEvents,
   type EntityEvent,
@@ -59,26 +60,70 @@ function HiddenCell({ masked, value, wide }: { masked: boolean; value: string; w
   );
 }
 
-/** A ±45-day strip around t: the past (known at t) and the label window (t, t + Δ]. */
-function FutureStrip({ t, delta, events }: { t: number; delta: number; events: readonly EntityEvent[] }) {
+/**
+ * A ±45-day strip around t: the past (known at t) and the label window (t, t + Δ]. While the label
+ * is masked the window's orders are not drawn (the future is unknown); they appear on reveal.
+ */
+function FutureStrip({ t, delta, events, masked, reduced }: { t: number; delta: number; events: readonly EntityEvent[]; masked: boolean; reduced: boolean }) {
   const span = 1.5 * delta;
   const [ref, size] = useElementSize<HTMLDivElement>();
   const W = Math.max(240, size.width || 320);
   const x = (ms: number) => 8 + ((ms - (t - span)) / (2 * span)) * (W - 16);
   const shown = events.filter((e) => e.t >= t - span && e.t <= t + span);
+  const inWin = (e: EntityEvent) => e.t > t && e.t <= t + delta;
   const bandW = x(t + delta) - x(t);
   const winLabel = bandW >= textWidth('future window', 13, { weight: 500 }) + 8 ? 'future window' : 'window';
   const Y = { label: 13, bandTop: 20, bandBot: 46, dot: 33, axis: 42, t: 62 };
   return (
     <div ref={ref} className="mt-3 min-w-0">
-      <svg width={W} height={68} className="block" role="img" aria-label={`Orders around the prediction time t, and the window (t, t + ${Math.round(delta / 86_400_000)} days]`}>
+      <svg
+        width={W}
+        height={68}
+        className="block"
+        role="img"
+        aria-label={`Orders around the prediction time t, and the window (t, t + ${Math.round(delta / 86_400_000)} days]${masked ? '; the orders inside the window are hidden until you reveal the label' : ''}`}
+      >
         <rect x={x(t)} y={Y.bandTop} width={bandW} height={Y.bandBot - Y.bandTop} rx={3} style={{ fill: 'var(--accent-soft)' }} />
         <line x1={x(t + delta)} x2={x(t + delta)} y1={Y.bandTop} y2={Y.bandBot} style={{ stroke: 'var(--accent)' }} strokeWidth={1.2} />
         <line x1={8} x2={W - 8} y1={Y.axis} y2={Y.axis} style={{ stroke: 'var(--axis)' }} />
         <line x1={x(t)} x2={x(t)} y1={Y.bandTop - 2} y2={Y.axis + 8} style={{ stroke: 'var(--ink)' }} strokeWidth={1.5} />
-        {shown.map((e) => (
-          <circle key={e.row} cx={x(e.t)} cy={Y.dot} r={4} style={{ fill: 'var(--cat-3)', stroke: 'var(--surface)', opacity: e.t > t && e.t <= t + delta ? 1 : 0.45 }} strokeWidth={1} />
-        ))}
+        {shown
+          .filter((e) => !inWin(e))
+          .map((e) => (
+            <circle key={e.row} cx={x(e.t)} cy={Y.dot} r={4} style={{ fill: 'var(--cat-3)', stroke: 'var(--surface)', opacity: 0.45 }} strokeWidth={1} />
+          ))}
+        <AnimatePresence initial={false}>
+          {masked ? (
+            <motion.text
+              key="q"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduced ? 0 : 0.2 }}
+              x={x(t) + bandW / 2}
+              y={Y.dot + 5}
+              textAnchor="middle"
+              className="fill-[var(--accent-text)] font-mono text-[15px] font-bold"
+            >
+              ?
+            </motion.text>
+          ) : (
+            shown.filter(inWin).map((e, i) => (
+              <motion.circle
+                key={e.row}
+                initial={reduced ? false : { opacity: 0, scale: 0.3 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, delay: reduced ? 0 : 0.08 * i }}
+                cx={x(e.t)}
+                cy={Y.dot}
+                r={4}
+                style={{ fill: 'var(--cat-3)', stroke: 'var(--surface)', transformOrigin: `${x(e.t)}px ${Y.dot}px` }}
+                strokeWidth={1}
+              />
+            ))
+          )}
+        </AnimatePresence>
         <text x={x(t) - 8} y={Y.label} textAnchor="end" className="fill-[var(--muted)] text-[13px]">
           known at t
         </text>
@@ -121,7 +166,9 @@ export function MaskedCellFigure({
 
   // ── autocomplete panel: a few rows of reviews around the example review ──
   const reviews = db.tables.find((t) => t.schema.name === ratingTask.table)!;
-  const shownCols = ['review_time', 'rating', 'review_text', 'verified'];
+  const shownCols = ['review_time', 'rating', 'review_text'];
+  const [acRef, acSize] = useElementSize<HTMLDivElement>();
+  const acStacked = (acSize.width || 480) < 440;
   const rowIdx = useMemo(() => {
     const n = reviews.rows.length;
     const start = Math.max(0, Math.min(n - 4, review - 1));
@@ -151,61 +198,90 @@ export function MaskedCellFigure({
     <div ref={ref} className="min-w-0">
       <div className="grid gap-4 md:grid-cols-2">
         {/* autocomplete */}
-        <div className="card flex min-w-0 flex-col overflow-hidden" style={{ borderLeft: '3px solid var(--cat-7)' }}>
+        <div ref={acRef} className="card flex min-w-0 flex-col overflow-hidden" style={{ borderLeft: '3px solid var(--cat-7)' }}>
           <div className="border-b border-grid px-4 py-3">
             <div className="eyebrow">Autocomplete</div>
             <div className="mt-0.5 text-[17px] font-semibold text-ink">The value exists. We hide it.</div>
           </div>
-          <div className="scroll-quiet overflow-x-auto px-2 py-2">
-            <table className="w-full min-w-[360px] border-collapse text-[15px]">
-              <thead>
-                <tr className="text-left text-[14px] text-ink-2">
-                  <th className="px-1.5 py-1 font-medium" title="row position (= review_id)">
-                    #
-                  </th>
-                  {shownCols.map((c) => (
-                    <th key={c} className="px-1.5 py-1 font-medium">
-                      <span className="inline-flex items-center gap-1">
-                        <SemBadge sem={semOfDType(dtypeOf(c))} size="xs" />
-                        <span className="font-mono">{c}</span>
-                      </span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rowIdx.map((r) => {
-                  const rec = reviews.rows[r];
-                  const isSeed = r === review;
-                  return (
-                    <tr key={r} className={cx('border-t border-grid/70', isSeed && 'bg-surface-2')}>
-                      <td className="num px-1.5 py-1 text-muted">{r}</td>
-                      {shownCols.map((c) => {
-                        const dropped = isDropped(r, c);
-                        return (
-                          <td key={c} className={cx('px-1.5 py-1', c === 'review_text' ? 'max-w-[150px] text-ink-2' : 'num text-ink')}>
-                            {isSeed && c === ratingTask.targetCol ? (
-                              <HiddenCell masked={masked} value={formatRaw(rec[c], dtypeOf(c))} />
-                            ) : c === 'review_text' ? (
-                              <span
-                                className={cx('block truncate', dropped && 'text-muted line-through decoration-[var(--critical)]')}
-                                title={dropped ? 'Leakage column: this cell is dropped from the context (fly.rs:457-461)' : typeof rec[c] === 'string' ? (rec[c] as string) : undefined}
-                              >
-                                {truncate(formatRaw(rec[c], 'str'), 22)}
-                              </span>
-                            ) : c === 'review_time' && typeof rec[c] === 'number' ? (
-                              <span className="whitespace-nowrap">{isoDay(rec[c] as number)}</span>
-                            ) : (
-                              formatRaw(rec[c], dtypeOf(c))
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          {/* the reviews around the seed: time (to the second, the sampler's resolution), rating, review_text */}
+          <div
+            className={cx('grid gap-x-3 px-3 pt-2 pb-3', acStacked ? 'grid-cols-[minmax(0,1fr)_auto]' : 'grid-cols-[auto_auto_minmax(0,1fr)]')}
+            role="table"
+            aria-label={`Reviews ${rowIdx[0]} to ${rowIdx[rowIdx.length - 1]}`}
+          >
+            <div role="rowgroup" className="contents">
+              <div
+                role="row"
+                className={cx(
+                  'grid grid-cols-subgrid items-center border-b border-grid px-1.5 pb-1.5 text-[14px] text-ink-2',
+                  acStacked ? 'col-span-2' : 'col-span-3',
+                )}
+              >
+                {shownCols.map((c) => (
+                  <span
+                    key={c}
+                    role="columnheader"
+                    className={cx('inline-flex min-w-0 items-center gap-1 font-medium', acStacked && c === 'review_text' && 'col-span-2')}
+                  >
+                    <SemBadge sem={semOfDType(dtypeOf(c))} size="sm" />
+                    <span className="font-mono">{c}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div role="rowgroup" className="contents">
+              {rowIdx.map((r) => {
+                const rec = reviews.rows[r];
+                const isSeed = r === review;
+                return (
+                  <div
+                    key={r}
+                    role="row"
+                    className={cx(
+                      'grid grid-cols-subgrid items-start gap-y-0.5 border-b border-grid/70 px-1.5 py-1.5 text-[15px] last:border-0',
+                      acStacked ? 'col-span-2' : 'col-span-3',
+                      isSeed && 'rounded-md bg-surface-2',
+                    )}
+                  >
+                    {shownCols.map((c) => {
+                      const dropped = isDropped(r, c);
+                      const v = rec[c];
+                      return (
+                        <span key={c} role="cell" className={cx('min-w-0', acStacked && c === 'review_text' && 'col-span-2')}>
+                          {c === 'review_time' ? (
+                            <span className="num whitespace-nowrap text-ink">
+                              <span className="mr-1.5 text-[14px] text-muted">#{r}</span>
+                              {typeof v === 'number' ? isoSecond(v) : formatRaw(v, dtypeOf(c))}
+                            </span>
+                          ) : isSeed && c === ratingTask.targetCol ? (
+                            <HiddenCell masked={masked} value={formatRaw(v, dtypeOf(c))} />
+                          ) : c === 'review_text' ? (
+                            <span
+                              className={cx(
+                                'block leading-snug',
+                                dropped ? 'text-muted line-through decoration-[var(--critical)]' : 'line-clamp-2 text-ink-2',
+                              )}
+                              title={
+                                dropped
+                                  ? 'Leakage column: this cell is dropped from the context (fly.rs:457-461)'
+                                  : typeof v === 'string'
+                                    ? v
+                                    : undefined
+                              }
+                            >
+                              {typeof v === 'string' ? `“${v}”` : formatRaw(v, 'str')}
+                              {dropped && <span className="sr-only"> (dropped: leakage column)</span>}
+                            </span>
+                          ) : (
+                            <span className="num text-ink">{formatRaw(v, dtypeOf(c))}</span>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <dl className="mx-4 mb-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[15px]">
             <dt className="text-ink-2">seed row</dt>
@@ -277,7 +353,7 @@ export function MaskedCellFigure({
                     this is their Test row.
                   </p>
                 )}
-                <FutureStrip t={exRow.t} delta={delta} events={allEvents} />
+                <FutureStrip t={exRow.t} delta={delta} events={allEvents} masked={masked} reduced={reduced} />
                 <p className="mt-1 text-[15px] leading-snug text-ink-2">
                   The label is computed from customer {customer}’s orders in{' '}
                   <span className="num whitespace-nowrap text-ink">

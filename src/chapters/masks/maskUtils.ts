@@ -31,6 +31,24 @@ export function rowName(t: Token): string {
   return `${t.tableName}[${t.rowPos}]`;
 }
 
+/** Row name of a graph node, in the same format as rowName (for parents that are not in the context). */
+export function nodeName(node: { tableName: string; tableType: Token['tableType']; rowPos: number }): string {
+  if (node.tableType && node.tableType !== 'Db') return `${node.tableName}:${node.tableType}[${node.rowPos}]`;
+  return `${node.tableName}[${node.rowPos}]`;
+}
+
+/**
+ * OutLinks(i) of a token's row (paper p.5 §3.2): ALL its parents, as listed in f2p_nbr_idxs (spec §4.13),
+ * whether or not they are in the context; `inCtx` says whether any of their cells is a token here.
+ */
+export function outLinks(t: Token, tokens: readonly Token[], pdb: PreprocessedDB): { node: number; name: string; inCtx: boolean }[] {
+  return [...new Set(t.f2pNbrIdxs.filter((p) => p >= 0))].map((p) => {
+    const tok = tokens.find((x) => !x.isPadding && x.nodeIdx === p);
+    const g = pdb.nodes[p];
+    return { node: p, name: tok ? rowName(tok) : g ? nodeName(g) : `node ${p}`, inCtx: !!tok };
+  });
+}
+
 /** Short row tag: "c35", "o70", "val32", "train258". */
 export function rowTag(t: Token, prefixes: Record<string, string>): string {
   if (t.isPadding) return 'pad';

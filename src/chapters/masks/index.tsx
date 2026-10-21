@@ -23,10 +23,10 @@ import {
 } from '@/components';
 import { SemType } from '@/engine/types';
 import { ColumnTableCheck, PaddingDemo, TransposeFlip, ZeroUpdateCheck } from './Details';
-import { FourMasks } from './FourMasks';
+import { FOURMASKS_ZOOM, FourMasks } from './FourMasks';
 import { LayerCards } from './LayerCards';
 import { MaskCounts } from './MaskCounts';
-import { article, childlessTables, int, LAYER_ORDER, listAnd, maskStats, pct, rowName, rowTag, singular } from './maskUtils';
+import { article, childlessTables, int, LAYER_ORDER, listAnd, maskStats, outLinks, pct, rowName, rowTag, singular } from './maskUtils';
 import {
   MODEL_ATTN_FWD_30_47,
   MODEL_BLOCK_FWD_82_86,
@@ -44,7 +44,7 @@ const SDPA_TEX = String.raw`\begin{gathered}\operatorname{SDPA}(\mathbf{Q},\math
 
 export default function MasksChapter() {
   const live = useLiveMasks();
-  const { ctx, masks, S, target, grouping, db, prefixes } = live;
+  const { ctx, masks, S, target, grouping, db, pdb, prefixes } = live;
   const stats = useMemo(() => maskStats(masks, ctx.tokens), [masks, ctx]);
   const byLayer = Object.fromEntries(stats.map((s) => [s.layer, s])) as Record<(typeof LAYER_ORDER)[number], (typeof stats)[number]>;
 
@@ -62,8 +62,16 @@ export default function MasksChapter() {
     entityNode === undefined || !seed
       ? undefined
       : ctx.tokens.find((t) => !t.isPadding && t.tableType === 'Db' && t.tableNameIdx !== seed.tableNameIdx && t.f2pNbrIdxs.includes(entityNode));
+  /** Parents of a row that are in the context (only these can be attended to). */
   const parentsOf = (t: NonNullable<typeof seed>) =>
     [...new Set(t.f2pNbrIdxs.filter((p) => p >= 0))].map(inCtx).filter((x): x is NonNullable<typeof x> => !!x).map(rowName);
+  /** OutLinks as the paper defines them: every parent, in the context or not. */
+  const outLinksText = (t: NonNullable<typeof seed>) => {
+    const ol = outLinks(t, ctx.tokens, pdb);
+    if (!ol.length) return 'empty';
+    return listAnd(ol.map((o) => (o.inCtx ? o.name : `${o.name} (not in the context, so it cannot be attended to)`)));
+  };
+  const outLinksVerb = (t: NonNullable<typeof seed>) => (outLinks(t, ctx.tokens, pdb).length > 1 ? 'are' : 'is');
   const entityPositions = entityNode !== undefined ? ctx.tokens.filter((t) => !t.isPadding && t.nodeIdx === entityNode).map((t) => t.pos) : [];
   const entityChildren = entityNode !== undefined ? new Set(ctx.tokens.filter((t) => !t.isPadding && t.f2pNbrIdxs.includes(entityNode)).map((t) => t.nodeIdx)).size : 0;
   const entRange = entityPositions.length ? `${entityPositions[0]}–${entityPositions[entityPositions.length - 1]}` : '';
@@ -71,6 +79,23 @@ export default function MasksChapter() {
   const forecast = !!seed && seed.tableType !== null && seed.tableType !== 'Db';
   const targetNbrKeys = seed ? masks.nbr.subarray(target * S, (target + 1) * S).reduce((a, b) => a + b, 0) : 0;
   const parentTables = db.tables.map((t) => t.schema.name).filter((n) => !childless.includes(n));
+  // task rows present in the context (forecast tasks only: fly.rs:415-418) and their cell count
+  const taskTable = grouping.tables.find((t) => t.isTask);
+  // the entity's child rows in the context, per table (task rows first)
+  const entityChildRows = useMemo(() => {
+    if (entityNode === undefined) return [] as { table: string; task: boolean; rows: number }[];
+    const m = new Map<string, { table: string; task: boolean; rows: Set<number> }>();
+    for (const t of ctx.tokens) {
+      if (t.isPadding || !t.f2pNbrIdxs.includes(entityNode)) continue;
+      let e = m.get(t.tableName);
+      if (!e) m.set(t.tableName, (e = { table: t.tableName, task: !!t.tableType && t.tableType !== 'Db', rows: new Set() }));
+      e.rows.add(t.nodeIdx);
+    }
+    return [...m.values()].sort((a, b) => Number(b.task) - Number(a.task)).map((e) => ({ table: e.table, task: e.task, rows: e.rows.size }));
+  }, [ctx, entityNode]);
+  const childRowsText = listAnd(
+    entityChildRows.map((c) => (c.task ? `${c.rows} task ${c.rows === 1 ? 'row' : 'rows'} with their labels` : `${c.rows} ${c.table} ${c.rows === 1 ? 'row' : 'rows'}`)),
+  );
 
   return (
     <ChapterPage slug="masks">
@@ -110,15 +135,24 @@ export default function MasksChapter() {
         <p>
           Inside every attention layer, RT computes standard scaled dot-product attention. Each token’s query vector is compared with every key
           vector, the scores pass through a softmax, and the resulting weights average the value vectors <Cite kind="paper" ref="p.5 §3.2" />. Each
-          of the four layers has its own query, key, value and output weights and its own RMSNorm{' '}
-          <Cite kind="code" ref="rt/model.py:70-78" />. What makes them <Term id="relational-attention">relational attention</Term> layers is
-          the <strong>attention mask</strong>{' '}
+          of the four layers has its own query, key, value and output weights <Cite kind="code" ref="rt/model.py:25-28" /> and its own RMSNorm{' '}
+          <Cite kind="code" ref="rt/model.py:71-79" />. What sets the four layers apart is the <strong>attention mask</strong>{' '}
           <TeX tex="\mathbf{M}\in\{0,1\}^{n\times n}" />: <TeX tex="\mathbf{M}[q,k]=1" /> means that token <em>q</em> may attend to token{' '}
           <em>k</em>, and 0 means it cannot <Cite kind="paper" ref="p.5 §3.2" />.
         </p>
+        <p>
+          You may know masks from GPT-style language models, which use the causal mask <TeX tex="\mathbf{M}^{\text{causal}}[q,k]=\mathbf{1}\{k\le q\}" />{' '}
+          so that no token reads the tokens after it <Cite kind="paper" ref="p.5 §3.2" />. RT has no causal mask: its attention is
+          bidirectional, and its masks are built from row, column and table ids, so they say nothing about token order{' '}
+          <Cite kind="spec" ref="§6.1" /> <Cite kind="spec" ref="§6.5" />. They encode relations instead. A word on names: paper Figure 1 brackets
+          the column, feature and neighbor layers as the <Term id="relational-attention">Relational Attention layers</Term>, and the fourth, full
+          attention, is unrestricted <Cite kind="paper" ref="p.2 Fig. 1" /> (App. J uses the name for all four{' '}
+          <Cite kind="paper" ref="p.26 App. J" />). This chapter says “the three relational masks” for the first three and “the four masks”
+          when full is included.
+        </p>
         <MathBlock
           tex={SDPA_TEX}
-          className="text-[15px] sm:text-[19px]"
+          className="text-[17.5px] sm:text-[19px]"
           label={<Cite kind="paper" ref="p.5 §3.2" />}
           caption={<span className="text-[15.5px]">Scaled dot-product attention with masking, as printed in the paper (v3).</span>}
         />
@@ -149,11 +183,18 @@ export default function MasksChapter() {
         </p>
         <SoftmaxDemo live={live} />
         <p>
-          In the code the mask never appears in the arithmetic itself. Each layer hands a precompiled block mask to FlexAttention. The plain
-          scaled-dot-product branch is never taken, because all four layers always receive a mask <Cite kind="spec" ref="§6.1" />.
+          The Python code never writes the −∞ itself. Each layer hands a precompiled block mask to FlexAttention, whose kernel sets the blocked
+          scores to −∞ and skips tiles of the score matrix that are blocked entirely <Cite kind="code" ref="rt/model.py:43" />{' '}
+          <Cite kind="spec" ref="§6.1" />. The plain scaled-dot-product branch is never taken, because all four layers always receive a mask{' '}
+          <Cite kind="spec" ref="§6.1" />.
         </p>
         <CodeRef
-          title="MaskedAttention.forward: the mask goes straight into flex_attention"
+          title={
+            <>
+              MaskedAttention.<wbr />
+              forward: the mask goes straight into flex_attention
+            </>
+          }
           file="rt/model.py"
           lines="30-47"
           code={MODEL_ATTN_FWD_30_47}
@@ -174,14 +215,14 @@ export default function MasksChapter() {
           {seed && (
             <>
               {' '}
-              In the live context, the OutLinks of the seed row {rowName(seed)} {parentsOf(seed).length > 1 ? 'are' : 'is'}{' '}
-              {listAnd(parentsOf(seed)) || 'empty'}
+              In the live context, the OutLinks of the seed row {rowName(seed)} {outLinksVerb(seed)} {outLinksText(seed)}
               {childTok ? (
                 <>
-                  ; the OutLinks of {rowName(childTok)} {parentsOf(childTok).length > 1 ? 'are' : 'is'} {listAnd(parentsOf(childTok))}
+                  ; the OutLinks of {rowName(childTok)} {outLinksVerb(childTok)} {outLinksText(childTok)}
                 </>
               ) : null}
-              .
+              . OutLinks is defined on the database, so it can name a row the sampler left out; such a row has no tokens and cannot be read{' '}
+              <Cite kind="spec" ref="§4.13" />.
             </>
           )}
         </p>
@@ -197,7 +238,13 @@ export default function MasksChapter() {
         <p>
           Each mask has a shape you can read. The <Term id="column-attention">column</Term> mask is made of diagonal stripes. Rows of one table
           emit their cells in the same column order, so where such rows follow each other, the cells of one column recur at a fixed stride and
-          their pairs line up parallel to the diagonal. Task rows have only two cells, so a run of task rows makes a small checkerboard. The{' '}
+          their pairs line up parallel to the diagonal.
+          {taskTable
+            ? taskTable.columns.length === 2
+              ? ` Task rows have only two cells (${taskTable.columns.join(' and ')}), so a run of task rows makes a small checkerboard.`
+              : ` Task rows have ${taskTable.columns.length} cells each, so a run of task rows makes tight stripes ${taskTable.columns.length} positions apart.`
+            : ''}{' '}
+          The{' '}
           <Term id="feature-attention">feature</Term> mask has a small block on the diagonal for each row, because a row’s cells are emitted
           together and read each other.
           {entityTok && entRange ? (
@@ -214,7 +261,9 @@ export default function MasksChapter() {
               in it.
             </>
           )}{' '}
-          The <Term id="full-attention">full</Term> mask is solid{hasPad ? ', apart from the padding rows and columns' : ''}.
+          The <Term id="full-attention">full</Term> mask is solid{hasPad ? ', apart from the padding rows and columns' : ''}. The tick numbers
+          on the axes are token positions. To read the blocks cell by cell, switch the figure to “First {Math.min(FOURMASKS_ZOOM, ctx.numReal)},
+          labelled”.
         </p>
         <CodeRef
           title="The four masks, built from ids"
@@ -230,7 +279,9 @@ export default function MasksChapter() {
           paper={
             <>
               §3.2 lists “four attention types: column, feature, neighbor, and global”, and App. E and J also say “global”{' '}
-              <Cite kind="paper" ref="p.5 §3.2" /> <Cite kind="paper" ref="p.19 App. E" />. The bullet title and Algorithm 2 say “Full attention”.
+              <Cite kind="paper" ref="p.5 §3.2" /> <Cite kind="paper" ref="p.19 App. E" /> <Cite kind="paper" ref="p.26 App. J" />. The §3.2
+              bullet title and Figure 1 say “Full attention” <Cite kind="paper" ref="p.2 Fig. 1" />, and Algorithm 2 writes{' '}
+              <TeX tex="\operatorname{MHA}(X;\,M^{\text{full}})" /> <Cite kind="paper" ref="p.26 Alg. 2" />.
             </>
           }
           code={
@@ -293,10 +344,31 @@ export default function MasksChapter() {
         </Callout>
         <Callout variant="note" title="How information can reach the target (a teaching interpretation, not a paper claim)">
           <p>
-            Reading the masks in block order: in the column layer the target reads every visible label directly, but cannot yet tell which are
-            its own entity’s. In the feature layer, the target and every past task row read their customer, so all of them now carry information
-            about which entity they concern. In the neighbor layer the customer reads its children, labelled task rows and orders included. The
-            full layer mixes everything, and stacking blocks composes these hops <Cite kind="spec" ref="§6.4" />. Chapter 11 follows this path
+            Reading the masks in block order, for the live {dbShort} task:{' '}
+            {forecast && seed && entityTok ? (
+              <>
+                in the column layer the target reads every visible label of the task directly, but at that point those label cells carry only
+                their own value, so it cannot tell which belong to its own {singular(entityTok.tableName)}. In the feature layer, the target and
+                every other task row read their parent {singular(entityTok.tableName)} row, so each of them now carries information about which{' '}
+                {singular(entityTok.tableName)} it concerns. In the neighbor layer, {rowName(entityTok)} reads its children in the context:{' '}
+                {childRowsText || 'none here'}.
+              </>
+            ) : !forecast && seed ? (
+              <>
+                in the column layer the target reads the other visible <code>{seed.colName}</code> values of {seed.tableName} directly, but at
+                that point those cells carry only their own value, so it cannot tell which rows they come from. In the feature layer, the target
+                reads {parentsOf(seed).length ? `its parent ${parentsOf(seed).length === 1 ? 'row' : 'rows'} ${listAnd(parentsOf(seed))}` : 'its own row only'}, and
+                every other {seed.tableName} row reads its own parents. In the neighbor layer, those parents read their children, which include
+                other {seed.tableName} rows and their visible <code>{seed.colName}</code> values. There are no task rows in this context: an
+                autocomplete target is a cell of a database row.
+              </>
+            ) : (
+              <>
+                the column layer reads values of the same column, the feature layer reads parent rows, and the neighbor layer lets a parent read
+                its children.
+              </>
+            )}{' '}
+            The full layer mixes everything, and stacking blocks composes these hops <Cite kind="spec" ref="§6.4" />. Chapter 11 follows this path
             through the residual stream.
           </p>
         </Callout>
@@ -305,14 +377,13 @@ export default function MasksChapter() {
       {/* ───────────────────────────────────────────────────────────── 5 */}
       <Section id="counts" title="How much each mask lets through" kicker="Step 5">
         <p>
-          The masks differ widely in density. In the live context of {S} positions, full attention allows {int(byLayer.full.pairs)} ordered
-          pairs
+          The masks differ widely in density. In the live context of {S} positions, full attention allows{' '}
           {hasPad
-            ? `: every pair of the ${int(ctx.numReal)} non-padding tokens (padding is excluded), ${pct(byLayer.full.density)} of the ${int(S * S)}`
-            : `, all ${int(S * S)} of them`}
+            ? `${int(byLayer.full.pairs)} ordered pairs: every pair of the ${int(ctx.numReal)} non-padding tokens (padding is excluded), ${pct(byLayer.full.density)} of the ${int(S * S)}`
+            : `every one of the ${int(S * S)} ordered pairs`}
           . The relational masks allow a small share of the {int(S * S)}: column {pct(byLayer.col.density)}, feature{' '}
-          {pct(byLayer.feat.density)}, neighbor {pct(byLayer.nbr.density)}. The paper implements the layers “with sparse attention masks, and compiled to efficient FlashAttention-based
-          kernels using FlexAttention” <Cite kind="paper" ref="p.5 §3.2" />.
+          {pct(byLayer.feat.density)}, neighbor {pct(byLayer.nbr.density)}. The paper implements the layers “with sparse attention masks, and
+          compiled to efficient FlashAttention-based kernels using FlexAttention” <Cite kind="paper" ref="p.5 §3.2" />.
         </p>
         <MaskCounts live={live} />
         <ScaleNote paper={`L = 1024: ${int(1024 * 1024)} pairs per mask`} ours={`L = ${S}: ${int(S * S)} pairs per mask`} />
@@ -331,7 +402,10 @@ export default function MasksChapter() {
         <PaddingDemo />
         <p>
           With the AND in place, a padding query has an all-zero row in every mask and a padding key is never read. Padding inputs are the zero
-          vector as well <Cite kind="spec" ref="§5.2" />.
+          vector{' '}
+          <span className="whitespace-nowrap">
+            as well <Cite kind="spec" ref="§5.2" />.
+          </span>
         </p>
 
         <h3>An empty row gives exactly zero</h3>
@@ -409,7 +483,12 @@ export default function MasksChapter() {
         <CodeRef title="Dense masks become block masks, once per forward pass" file="rt/model.py" lines="193-206" code={MODEL_BLOCK_MASKS_193_206} />
         <CodeRef title="The same block masks go to every block" file="rt/model.py" lines="226-227" code={MODEL_BLOCKS_LOOP_226_227} />
         <CodeRef
-          title="RelationalBlock.forward: each layer reads its own mask"
+          title={
+            <>
+              RelationalBlock.<wbr />
+              forward: each layer reads its own mask
+            </>
+          }
           file="rt/model.py"
           lines="82-86"
           code={MODEL_BLOCK_FWD_82_86}
@@ -421,8 +500,11 @@ export default function MasksChapter() {
       <Section id="worked-example" title="Worked example: the spec’s toy database" kicker="Step 7">
         <p>
           The technical specification prints the masks of a toy ShopDB, three customers, two products, five orders and a churn task table,
-          computed by an independent re-implementation <Cite kind="spec" ref="§6.3" />. Our engine reproduces them character for character. Its context, seeded at customer c0’s validation row with L = 24 and w = 1, holds 19 cells and 5
-          padding tokens. Step through the query rows; the line under the player explains why each key is allowed.
+          computed by an independent re-implementation <Cite kind="spec" ref="§6.3" />. Its context, seeded at customer c0’s validation row
+          with L = 24 and w = 1, holds 19 cells and 5 padding tokens. Given the spec’s token list (copied verbatim below), the engine’s{' '}
+          <code>buildMasks</code> reproduces all four printed masks character for character. A unit test also checks that our sampler emits
+          the same 19 tokens for a suitable RNG seed; it has to search for one, because the w = 1 subsample is random{' '}
+          <Cite kind="spec" ref="§6.3" />. Step through the query rows; the line under the player explains why each key is allowed.
         </p>
         <WorkedExample />
         <h3>Reading the toy masks</h3>

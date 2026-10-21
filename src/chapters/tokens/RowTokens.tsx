@@ -9,7 +9,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Figure, Segmented, Select, SemBadge, TableSwatch, cx, formatRaw, formatSigned, semOfDType, truncate } from '@/components';
-import { SemType, type Token } from '@/engine/types';
+import { SEM_TYPE_NAMES, SemType, type Token } from '@/engine/types';
 import { ParentSlots } from './fields';
 import { nodeLabel, nodeRef, sourceTable, type TokensLive } from './live';
 
@@ -84,13 +84,24 @@ export function RowTokens({ live }: { live: TokensLive }) {
   const seedNode = pdb.nodes[ctx.params.seedNode];
 
   if (!row || !gnode || !raw || !rec) return null;
+  // Global node ids: table offset + row position (pre.rs:302-305, 537); FK value + parent offset (pre.rs:477).
+  const offset = pdb.tableInfo[`${row.table}:${row.tableType ?? 'Db'}`]?.nodeIdxOffset ?? node - row.rowPos;
 
   // Fate of every column of the raw row.
   const fates = raw.schema.columns.map((c) => {
     const v = rec[c.name];
     const isNull = v === null || v === undefined || (typeof v === 'number' && Number.isNaN(v));
     if (c.name === raw.schema.pkey)
-      return { col: c, kind: 'pk' as const, v, note: <>row position → <span className="num">node_idxs = {node}</span></> };
+      return {
+        col: c,
+        kind: 'pk' as const,
+        v,
+        note: (
+          <>
+            no token · node_idxs = offset {offset} + row {row.rowPos} = <span className="num font-semibold text-ink">{node}</span>
+          </>
+        ),
+      };
     if (c.name in raw.schema.fkeys) {
       if (isNull) return { col: c, kind: 'null' as const, v, note: <>missing: no parent</> };
       const parentTable = raw.schema.fkeys[c.name];
@@ -102,7 +113,8 @@ export function RowTokens({ live }: { live: TokensLive }) {
         v,
         note: (
           <>
-            → parent <span className="num">{pid ?? '?'}</span> in <span className="font-mono">f2p_nbr_idxs</span>
+            no token · parent = {parentTable} offset {info?.nodeIdxOffset ?? '?'} + {String(v)} = <span className="num font-semibold text-ink">{pid ?? '?'}</span>{' '}
+            in <span className="font-mono">f2p_nbr_idxs</span>
           </>
         ),
       };
@@ -233,7 +245,7 @@ export function RowTokens({ live }: { live: TokensLive }) {
                   <button
                     type="button"
                     className="inline-flex items-center gap-1 text-left text-accent-text hover:underline"
-                    onClick={() => inspectAndGo(f.tok!.pos)}
+                    onClick={() => inspectAndGo(f.tok!.pos, 'Back to Step 2')}
                     title="Inspect this token in Step 1"
                   >
                     {f.note} <ArrowUp aria-hidden="true" size={14} />
@@ -257,7 +269,14 @@ export function RowTokens({ live }: { live: TokensLive }) {
       </div>
 
       {/* tokens grid */}
-      {k > 1 && <div className="mb-2 text-[14.5px] text-ink-2 sm:hidden">Scroll sideways to see all {k} tokens →</div>}
+      <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[14.5px] text-ink-2">
+        {k > 1 && (
+          <span>
+            <span className="num font-semibold text-accent-text">× {k}</span> = the same value written {k} times, once per cell
+          </span>
+        )}
+        {k > 1 && <span className="sm:hidden">Scroll sideways to see all {k} tokens →</span>}
+      </div>
       <div className="scroll-quiet relative -mx-1 overflow-x-auto px-1 pb-1">
         <div className="grid min-w-max gap-x-1.5 gap-y-1.5" style={{ gridTemplateColumns: cellCols }}>
           <div />
@@ -265,7 +284,7 @@ export function RowTokens({ live }: { live: TokensLive }) {
             <button
               key={t.pos}
               type="button"
-              onClick={() => inspectAndGo(t.pos)}
+              onClick={() => inspectAndGo(t.pos, 'Back to Step 2')}
               className="num inline-flex items-center justify-center gap-0.5 rounded-[6px] py-0.5 text-[14.5px] text-accent-text hover:bg-surface-2 hover:underline"
               title="Inspect this token in Step 1"
             >
@@ -301,6 +320,7 @@ export function RowTokens({ live }: { live: TokensLive }) {
             <>
               <span className="num font-semibold text-ink">{t.sem}</span>
               <SemBadge sem={t.sem} size="sm" bare />
+              <span className="truncate text-[14px] text-ink-2">{SEM_TYPE_NAMES[t.sem]}</span>
             </>
           ))}
 
@@ -343,7 +363,7 @@ export function RowTokens({ live }: { live: TokensLive }) {
           pdb={pdb}
           slots={slots}
           present={present}
-          onPick={(p) => inspectAndGo(p)}
+          onPick={(p) => inspectAndGo(p, 'Back to Step 2')}
         />
         {gnode.f2pNbrIdxs.length > 0 && (
           <div className="mt-2 text-[14.5px] text-ink-2">

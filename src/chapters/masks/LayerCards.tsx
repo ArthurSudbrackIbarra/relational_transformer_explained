@@ -6,7 +6,7 @@
 import { RotateCcw } from 'lucide-react';
 import { useInView } from 'motion/react';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { Cite, LayerLabel, TeX, cx } from '@/components';
+import { Cite, LayerLabel, ScaleNote, TeX, cx } from '@/components';
 import type { AttnLayer } from '@/engine/types';
 import { useInContextLabels, useTask } from '@/state/hooks';
 import { ContextTables } from './ContextTables';
@@ -198,7 +198,15 @@ export function LayerCards({ live }: { live: LiveMasks }) {
   ];
 
   return (
-    <div className="wide my-8 grid gap-5 md:grid-cols-2">
+    <div className="wide my-8">
+      <p className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[15.5px] text-ink-2">
+        <span>
+          Each diagram is an excerpt of the {int(ctx.numReal)} non-padding tokens of the live context (L = {ctx.params.L} here, 1024 in the
+          paper).
+        </span>
+        <ScaleNote inline />
+      </p>
+      <div className="grid gap-5 md:grid-cols-2">
       {cards.map((c) => (
         <LayerCard
           key={c.layer}
@@ -228,6 +236,7 @@ export function LayerCards({ live }: { live: LiveMasks }) {
           total={ctx.numReal}
         />
       ))}
+      </div>
     </div>
   );
 }
@@ -265,7 +274,7 @@ function LayerCard({
           <LayerLabel layer={layer} size={16} /> <span className="font-normal text-muted">attention</span>
         </h3>
         <span className="text-[15.5px] text-ink-2">
-          <TeX tex={`M^{\\text{${LAYER_TEX[layer]}}}[q,k] = ${PAPER_MASK[layer]}`} />
+          <TeX tex={`\\mathbf{M}[q,k] = ${PAPER_MASK[layer]}`} />
         </span>
       </div>
 
@@ -301,5 +310,4 @@ function LayerCard({
   );
 }
 
-const LAYER_TEX: Record<AttnLayer, string> = { col: 'column', feat: 'feature', nbr: 'neighbor', full: 'full' };
 

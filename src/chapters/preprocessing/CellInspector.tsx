@@ -13,7 +13,7 @@ import { SEM_TYPE_NAMES, SemType, type Cell } from '@/engine/types';
 import { catVar } from '@/styles/palette';
 import { useAssets, useContextWindow } from '@/state/hooks';
 import { DAY_MS, fileLabel, isoDay, isoSeconds, rowFates, toBf16, type Fate, type TableFile } from './data';
-import { PickChip, signed, texNum, texText, usePhone, type ChapterData } from './shared';
+import { PickChip, Sub, signed, texNum, texText, usePhone, type ChapterData } from './shared';
 
 export interface CellPick {
   label: string;
@@ -44,28 +44,44 @@ function Step({ n, title, children, last, delay }: { n: number; title: ReactNode
   );
 }
 
-function TexBox({ tex, small }: { tex: string; small?: boolean }) {
+/** KaTeX box at 18px, so script-size subscripts (W_col, z_true) stay at 13px or more. */
+function TexBox({ tex }: { tex: string }) {
   return (
-    <div className={cx('scroll-quiet mt-1 overflow-x-auto rounded-lg bg-surface-2 px-2.5 py-1.5 text-ink', small ? 'text-[15px]' : 'text-[16.5px]')}>
+    <div className="scroll-quiet mt-1 overflow-x-auto rounded-lg bg-surface-2 px-2.5 py-1.5 text-[18px] text-ink">
       <TeX tex={tex} />
     </div>
   );
 }
 
-function slotRows(cell: Cell, phrase: string): { k: string; v: string; active: boolean; note?: string }[] {
+const ARBITRARY = (
+  <>
+    string index; the numbering is arbitrary <Cite kind="spec" ref="§3.6" />
+  </>
+);
+
+function slotRows(cell: Cell, phrase: string): { k: string; v: string; active: boolean; note?: ReactNode }[] {
   return [
     { k: 'sem_types', v: `${cell.sem} (${TYPE_NAME[cell.sem]})`, active: true },
-    { k: 'col_name_idxs', v: String(cell.colNameIdx), active: true, note: `“${phrase}”` },
+    {
+      k: 'col_name_idxs',
+      v: String(cell.colNameIdx),
+      active: true,
+      note: (
+        <>
+          “{phrase}” · {ARBITRARY}
+        </>
+      ),
+    },
     { k: 'number_values', v: cell.sem === SemType.Number ? signed(cell.number, 5) : '0', active: cell.sem === SemType.Number },
-    { k: 'text_values', v: String(cell.textIdx), active: cell.sem === SemType.Text, note: cell.sem === SemType.Text ? 'string index' : 'index 0, gated out later' },
+    { k: 'text_values', v: String(cell.textIdx), active: cell.sem === SemType.Text, note: cell.sem === SemType.Text ? ARBITRARY : 'index 0, gated out later' },
     { k: 'datetime_values', v: cell.sem === SemType.DateTime ? signed(cell.datetime, 5) : '0', active: cell.sem === SemType.DateTime },
     { k: 'boolean_values', v: cell.sem === SemType.Boolean ? signed(cell.boolean, 5) : '0', active: cell.sem === SemType.Boolean },
     { k: 'class_value_idx', v: cell.sem === SemType.Text ? String(cell.textIdx) : '−1', active: false, note: 'carried along, never used by the model' },
   ];
 }
 
-function Panel({ data, file, row, col }: { data: ChapterData; file: TableFile; row: number; col: string }) {
-  const { pdb } = data;
+function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: TableFile; row: number; col: string; roomy: boolean }) {
+  const { pdb, files, task, seedNode } = data;
   const fate = useMemo(() => rowFates(pdb, file, row).find((f) => f.col.name === col), [pdb, file, row, col]);
   const ctx = useContextWindow();
   const assets = useAssets();
@@ -142,11 +158,28 @@ function Panel({ data, file, row, col }: { data: ChapterData; file: TableFile; r
     let norm: ReactNode;
     const statsKey = file.tableType === 'Val' || file.tableType === 'Test' ? `${file.tableName}:Train` : file.key;
     const st = pdb.colStats[file.key]?.[col];
+    // the number guard fired: σ undefined (n ≤ 1) or 0 (constant column) became 1 (pre.rs:338-339)
+    const guarded =
+      cell.sem === SemType.Number &&
+      !!st &&
+      (() => {
+        const src = files.find((f) => f.key === statsKey);
+        const vals = (src?.table.rows ?? []).map((r) => r[col]).filter((v): v is number => typeof v === 'number' && !Number.isNaN(v));
+        return vals.length <= 1 || vals.every((v) => v === vals[0]);
+      })();
     if (cell.sem === SemType.Number && st) {
       norm = (
         <>
           Per-column z-score with the statistics of <code>{statsKey}</code>
-          {statsKey !== file.key ? ' (copied to this split)' : ''}: {st.count} values, sample std.
+          {statsKey !== file.key ? ' (copied to this split)' : ''}: {st.count} values,{' '}
+          {guarded ? (
+            <>
+              σ set to 1 by the guard <Cite kind="code" ref="rustler/src/pre.rs:338-339" />
+            </>
+          ) : (
+            'sample std'
+          )}
+          .
           <TexBox tex={`z = \\dfrac{${texNum(fate.value as number, 3, { trim: true })} - ${texNum(st.mean, 3)}}{${texNum(st.std, 3)}} = ${texNum(cell.number, 4, { sign: true })}`} />
         </>
       );
@@ -162,7 +195,7 @@ function Panel({ data, file, row, col }: { data: ChapterData; file: TableFile; r
       const { mean, std, count } = pdb.datetimeStats;
       norm = (
         <>
-          The one global z-score of the database: μ<sub>T</sub> and σ<sub>T</sub> over all {count.toLocaleString('en-US')} datetime values, population std.
+          The one global z-score of the database: μ<Sub>T</Sub> and σ<Sub>T</Sub> over all {count.toLocaleString('en-US')} datetime values, population std.
           <TexBox
             tex={`z = \\dfrac{\\text{${isoDay(fate.value as number)}} - \\text{${isoDay(mean)}}}{${texNum(std / DAY_MS, 1)}\\text{ days}} = ${texNum(cell.datetime, 4, { sign: true })}`}
           />
@@ -204,14 +237,6 @@ function Panel({ data, file, row, col }: { data: ChapterData; file: TableFile; r
         </table>
       ),
     });
-    steps[steps.length - 1].body = (
-      <>
-        {steps[steps.length - 1].body}
-        <div className="mt-1.5 text-[14px] leading-snug text-muted">
-          Index numbers depend on the order in which the strings were first met. The model only compares them or looks up their embeddings, so the numbering itself carries no meaning <Cite kind="spec" ref="§3.6" />.
-        </div>
-      </>
-    );
 
     if (cell.sem !== SemType.Text) {
       const v = cell.sem === SemType.Number ? cell.number : cell.sem === SemType.DateTime ? cell.datetime : cell.boolean;
@@ -234,21 +259,40 @@ function Panel({ data, file, row, col }: { data: ChapterData; file: TableFile; r
     const phraseVec = store && store.has(phrase) ? store.get(phrase) : null;
     const valueVec = cell.sem === SemType.Text && store && store.has(pdb.text[cell.textIdx]) ? store.get(pdb.text[cell.textIdx]) : null;
     const stored = cell.sem === SemType.Number ? cell.number : cell.sem === SemType.DateTime ? cell.datetime : cell.boolean;
-    // on phones the long arguments become symbols (c, s, v), spelled out under the formula
+    // fly.rs:457-460: the task's leakage columns ("<col> of <seed table>") are left out for the seed row and rows with its timestamp
+    const seedN = seedNode >= 0 ? pdb.nodes[seedNode] : undefined;
+    const seedF = seedNode >= 0 ? data.fileOfNode(seedNode) : undefined;
+    const leaked =
+      !!seedN && !!seedF && seedF.tableName === file.tableName && task.columnsToDrop.includes(col) && (file.offset + row === seedNode || (node?.ts ?? null) === (seedN.ts ?? null));
+    const taskLabel = task.kind === 'autocomplete' ? `${task.table}.${task.targetCol}` : task.name;
+    // long arguments become symbols (c, s, v), spelled out under the formula, so it never needs a sideways scroll
+    const textVal = pdb.text[cell.textIdx];
+    // the literal form only when the panel spans the figure (stacked layout, tablet and up) and the strings are short
+    const sym = phone || !roomy || phrase.length > 36 || (cell.sem === SemType.Text && textVal.length > 24);
     const valueTex =
       cell.sem === SemType.Text
-        ? `\\mathrm{RMSNorm}_{\\text{text}}\\!\\big(W_{\\text{text}}\\,E(${phone ? 's' : `\\text{“${texText(pdb.text[cell.textIdx], 26)}”}`}) + b\\big)`
-        : `\\mathrm{RMSNorm}_{\\text{${tname}}}\\!\\big(W_{\\text{${tname}}} \\cdot ${phone ? 'v' : `(${texNum(stored, 3, { sign: true })})`} + b\\big)`;
-    const colArg = phone ? 'c' : `\\text{“${texText(phrase, 48)}”}`;
+        ? `\\mathrm{RMSNorm}_{\\text{text}}\\!\\big(W_{\\text{text}}\\,E(${sym ? 's' : `\\text{“${texText(textVal, 26)}”}`}) + b\\big)`
+        : `\\mathrm{RMSNorm}_{\\text{${tname}}}\\!\\big(W_{\\text{${tname}}} \\cdot ${sym ? 'v' : `(${texNum(stored, 3, { sign: true })})`} + b\\big)`;
+    const colArg = sym ? 'c' : `\\text{“${texText(phrase, 48)}”}`;
+    // phones: one bracket per line, so the 18px formula fits without a sideways scroll
+    const embTex = phone
+      ? `\\begin{aligned} x &= \\mathrm{RMSNorm}_{\\text{col}}\\big( \\\\ &\\qquad W_{\\text{col}}\\,E(c) + b\\big) \\\\ &\\quad + ${
+          tok?.isTarget
+            ? `m_{\\text{${tname}}}`
+            : cell.sem === SemType.Text
+              ? `\\mathrm{RMSNorm}_{\\text{text}}\\big( \\\\ &\\qquad W_{\\text{text}}\\,E(s) + b\\big)`
+              : `\\mathrm{RMSNorm}_{\\text{${tname}}}\\big( \\\\ &\\qquad W_{\\text{${tname}}} \\cdot v + b\\big)`
+        } \\end{aligned}`
+      : `\\begin{aligned} x &= \\mathrm{RMSNorm}_{\\text{col}}\\!\\big(W_{\\text{col}}\\,E(${colArg}) + b\\big) \\\\ &\\quad + ${tok?.isTarget ? `m_{\\text{${tname}}}` : valueTex} \\end{aligned}`;
+    const ctxStepNo = steps.length + 2;
     steps.push({
-      title: 'Embedding term it will feed (Chapter 8)',
+      title: leaked ? 'Embedding term it would feed (Chapter 8)' : 'Embedding term it will feed (Chapter 8)',
       body: (
         <>
           <TexBox
-            small={phone}
-            tex={`\\begin{aligned} x &= \\mathrm{RMSNorm}_{\\text{col}}\\!\\big(W_{\\text{col}}\\,E(${colArg}) + b\\big) \\\\ &\\quad + ${tok?.isTarget ? `m_{\\text{${tname}}}` : valueTex} \\end{aligned}`}
+            tex={embTex}
           />
-          {phone && (
+          {sym && (
             <div className="mt-1 text-[15px]">
               <span className="font-mono">c</span> = “{phrase}”
               {!tok?.isTarget && (
@@ -256,7 +300,7 @@ function Panel({ data, file, row, col }: { data: ChapterData; file: TableFile; r
                   ,{' '}
                   {cell.sem === SemType.Text ? (
                     <>
-                      <span className="font-mono">s</span> = “{pdb.text[cell.textIdx]}”
+                      <span className="font-mono">s</span> = “{textVal}”
                     </>
                   ) : (
                     <>
@@ -273,6 +317,10 @@ function Panel({ data, file, row, col }: { data: ChapterData; file: TableFile; r
                 In the live context this cell is the <strong className="text-ink">masked target</strong>: its stored value stays in the batch, but the model adds the learned mask
                 vector <code>mask_embs["{tname}"]</code> instead of the value term.
               </>
+            ) : leaked ? (
+              <>
+                This term arises only in other tasks’ contexts: the live task drops this column for this row (step {ctxStepNo}).
+              </>
             ) : (
               <>
                 The value goes through <code>enc_dict["{tname}"]</code> and <code>norm_dict["{tname}"]</code>; the other three types’ terms are multiplied by 0.
@@ -286,7 +334,7 @@ function Panel({ data, file, row, col }: { data: ChapterData; file: TableFile; r
           )}
           {valueVec && (
             <div className="mt-2">
-              <VectorStrip values={valueVec} label={`E(“${pdb.text[cell.textIdx]}”), the raw string only`} columns={64} cellHeight={7} showNorm={false} />
+              <VectorStrip values={valueVec} label={`E(“${textVal}”), the raw string only`} columns={64} cellHeight={7} showNorm={false} />
             </div>
           )}
           {!store && assets.status === 'loading' && <div className="mt-1.5 text-[14.5px] text-muted">Loading the precomputed MiniLM embeddings…</div>}
@@ -301,6 +349,12 @@ function Panel({ data, file, row, col }: { data: ChapterData; file: TableFile; r
           Token at position <strong className="num text-ink">{tok.pos}</strong> of the current context window (seed #{ctx.params.seedNode}, L = {ctx.params.L}{' '}
           <ScaleNote inline />
           ).{tok.isTarget && ' It is the one masked cell.'}
+        </>
+      ) : leaked ? (
+        <>
+          Never a token in this task’s contexts: <code>{taskLabel}</code> drops <code>{col}</code> as a leakage column for the seed row and for every row with the seed’s
+          timestamp <Cite kind="code" ref="rustler/src/fly.rs:457-460" /> <Cite kind="spec" ref="§4.9" />. The cell record itself is unchanged; preprocessing knows nothing about
+          tasks.
         </>
       ) : (
         <>Not in the current context window: the sampler did not emit this cell for seed #{ctx.params.seedNode} (Chapter 6). Its record still exists, ready for other contexts.</>
@@ -328,9 +382,9 @@ function Panel({ data, file, row, col }: { data: ChapterData; file: TableFile; r
   );
 }
 
-/** True below the lg breakpoint (the inspector stacks there). */
+/** True below the xl breakpoint (the inspector stacks there, table on top at full width). */
 function useNarrow(): boolean {
-  const q = '(max-width: 1023px)';
+  const q = '(max-width: 1279px)';
   return useSyncExternalStore(
     (cb) => {
       try {
@@ -379,8 +433,8 @@ export function CellInspectorFigure({ data, picks }: { data: ChapterData; picks:
           </PickChip>
         ))}
       </div>
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <div className="min-w-0">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <div className="min-w-0 xl:sticky xl:top-[calc(var(--topbar-h)+16px)] xl:self-start">
           <div className="mb-3 grid grid-cols-[minmax(0,1.3fr)_84px_minmax(0,1fr)] gap-2">
             <Select label="Table file" value={file.key} onChange={(e) => setSel({ key: e.target.value, row: 0, col: sel.col })}>
               {files.map((f) => (
@@ -417,16 +471,18 @@ export function CellInspectorFigure({ data, picks }: { data: ChapterData; picks:
             onCellClick={(r, c) => setSel({ key: file.key, row: r, col: c })}
             onRowClick={(r) => setSel({ key: file.key, row: r, col })}
             scrollToRow={row}
+            scrollToCol={col}
             maxHeight={narrow ? 300 : 560}
             footer={
               <>
-                Click any cell. {seedRow !== null ? `Shaded row ${seedRow}: the live seed. ` : ''}The toggle shows the values exactly as stored for the model.
+                Click any cell. {seedRow !== null ? `Shaded row ${seedRow}: the live seed. ` : ''}The z-scored toggle shows numbers, booleans and datetimes exactly as pre.rs
+                stores them; text is stored as a string index, and keys store no cell.
               </>
             }
           />
         </div>
         <div className="min-w-0 rounded-xl border border-border bg-surface px-4 py-3.5">
-          <Panel data={data} file={file} row={row} col={col} />
+          <Panel data={data} file={file} row={row} col={col} roomy={narrow} />
         </div>
       </div>
     </div>

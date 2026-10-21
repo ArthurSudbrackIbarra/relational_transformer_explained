@@ -33,6 +33,12 @@ export function PaddingDemo() {
   const withPad = useMemo(() => buildMasks(TOY_TOKENS), []);
   const noPad = useMemo(() => masksWithoutPad(TOY_TOKENS), []);
   const changed = diffCount(withPad[layer], noPad[layer]);
+  // pairs that differ from the code's mask (q·24 + k), outlined in the counterfactual matrix
+  const diffCells = useMemo(() => {
+    const out: number[] = [];
+    for (let i = 0; i < TOY_L * TOY_L; i++) if (withPad[layer][i] !== noPad[layer][i]) out.push(i);
+    return out;
+  }, [withPad, noPad, layer]);
   const changedRows = useMemo(() => {
     const rows: number[] = [];
     for (let q = 0; q < TOY_L; q++) {
@@ -61,15 +67,17 @@ export function PaddingDemo() {
         <>
           Left: the mask the code builds, <code>{layer === 'feat' ? '(same_node | kv_in_f2p) & pad' : 'q_in_f2p & pad'}</code>. Right: the same
           expression without <code>& pad</code>, evaluated on the raw ids (padding has node −1 and parents −1×5). The five padding tokens are the
-          last rows and columns (gray strips). Without the AND, {changedRows.length} of the 24 query rows change. On a narrow screen the labelled
-          matrices scroll sideways.
+          last rows and columns (gray strips). Without the AND, {changedRows.length} of the 24 query rows change; the changed pairs are outlined
+          in red. Where the labels do not fit (narrow screens), the axes show token positions instead.
         </>
       }
     >
-      <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
+      <div className="grid gap-x-6 gap-y-6 md:grid-cols-2">
         <FitMask
           n={TOY_L}
           labelled
+          fitLabels
+          ticks={4}
           maxCell={15}
           header={<div className="mb-2 text-[16px] font-medium text-ink">With &amp; pad (the code)</div>}
           matrix={{ mask: withPad[layer], S: TOY_L, labels: TOY_LABELS, slots: TOY_TOKEN_SLOTS, title: `${layer} mask with the padding AND`, showLegend: false }}
@@ -77,10 +85,19 @@ export function PaddingDemo() {
         <FitMask
           n={TOY_L}
           labelled
+          fitLabels
+          ticks={4}
           maxCell={15}
+          marks={diffCells}
           header={
-            <div className="mb-2 text-[16px] font-medium text-ink">
-              Without &amp; pad <span className="font-normal text-muted">(counterfactual)</span>
+            <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 text-[16px] font-medium text-ink">
+              <span>
+                Without &amp; pad <span className="font-normal text-muted">(counterfactual)</span>
+              </span>
+              <span className="num text-[15px] font-normal text-ink-2">
+                <span aria-hidden="true" className="mr-1 inline-block h-3 w-3 rounded-[2px] align-[-1px]" style={{ border: '2px solid var(--critical)' }} />
+                {int(changed)} pairs differ
+              </span>
             </div>
           }
           matrix={{ mask: noPad[layer], S: TOY_L, labels: TOY_LABELS, slots: TOY_TOKEN_SLOTS, title: `${layer} mask without the padding AND`, showLegend: false }}
@@ -93,7 +110,7 @@ export function PaddingDemo() {
         <strong className="text-ink">{int(changed)} pairs</strong> would change.{' '}
         {layer === 'feat'
           ? `Every real cell whose parent list has an empty (−1) slot would match the padding keys (node −1) as if they were a parent, and the ${TOY_L - TOY_REAL} padding tokens would all share one “row”.`
-          : `Every padding query (node −1) would be found in the −1-padded parent lists of all keys, so it would “see” every token as its child.`}
+          : `Every padding query (node −1) would be found in the parent list of every key that has an empty (−1) slot, which here is every token, since no row has five parents; so it would “see” those tokens as its children.`}
       </p>
     </Figure>
   );
@@ -190,11 +207,13 @@ export function TransposeFlip({ live }: { live: LiveMasks }) {
       </div>
       <div className="mt-3 flex justify-center">
         {diff === 0 ? (
-          <StatusBadge status="good">
+          <StatusBadge status="good" className="!rounded-lg">
             Checked on the live context: nbr = (parent part of feat)ᵀ on all {int(S * S)} pairs
           </StatusBadge>
         ) : (
-          <StatusBadge status="critical">{int(diff)} pairs differ</StatusBadge>
+          <StatusBadge status="critical" className="!rounded-lg">
+            {int(diff)} pairs differ
+          </StatusBadge>
         )}
       </div>
     </Figure>
@@ -252,12 +271,13 @@ export function ZeroUpdateCheck({ live }: { live: LiveMasks }) {
   if (res.blocks === 0) return <p className="text-[16.5px] text-ink-2">The neighbor sublayer is switched off in the playground’s ablation settings.</p>;
   return (
     <div className="my-5 flex flex-wrap items-center gap-2">
-      <StatusBadge status={res.maxEmpty === 0 ? 'good' : 'critical'}>
-        Live forward pass: max |update| = {res.maxEmpty === 0 ? '0' : formatNumber(res.maxEmpty, 6)} at the {int(res.empty)} tokens with an empty
-        neighbor row, in all {res.blocks} blocks
+      <StatusBadge status={res.maxEmpty === 0 ? 'good' : 'critical'} className="!rounded-lg">
+        max |update| = {res.maxEmpty === 0 ? '0' : formatNumber(res.maxEmpty, 6)} at {int(res.empty)} empty-neighbor tokens, all {res.blocks} blocks
       </StatusBadge>
       {Number.isFinite(res.minOther) && (
-        <StatusBadge status="info">smallest max |update| among the other tokens: {formatNumber(res.minOther, 4)}</StatusBadge>
+        <StatusBadge status="info" className="!rounded-lg">
+          other tokens: smallest max |update| {formatNumber(res.minOther, 4)}
+        </StatusBadge>
       )}
       <ScaleNote inline />
     </div>
@@ -268,7 +288,7 @@ export function ZeroUpdateCheck({ live }: { live: LiveMasks }) {
 export function ColumnTableCheck({ live }: { live: LiveMasks }) {
   const n = useMemo(() => sameColumnOtherTable(live.ctx.tokens), [live.ctx]);
   return (
-    <StatusBadge status={n === 0 ? 'good' : 'warning'}>
+    <StatusBadge status={n === 0 ? 'good' : 'warning'} className="!rounded-lg">
       Live context: {n === 0 ? 'no pair' : `${int(n)} pairs`} with the same column id but a different table id
     </StatusBadge>
   );

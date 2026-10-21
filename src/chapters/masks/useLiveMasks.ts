@@ -31,7 +31,7 @@ export function useLiveMasks() {
   const pinned = valid ? selectedPos : target;
   const setPinned = useCallback((pos: number | null) => setSelectedPos(pos === null || pos === target ? null : pos), [setSelectedPos, target]);
 
-  return { db, ctx, masks, slots, S, prefixes, grouping, holeKind, labels, tokenSlots, target, pinned, setPinned };
+  return { db, pdb, ctx, masks, slots, S, prefixes, grouping, holeKind, labels, tokenSlots, target, pinned, setPinned };
 }
 
 export type LiveMasks = ReturnType<typeof useLiveMasks>;

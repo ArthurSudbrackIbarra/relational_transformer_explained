@@ -8,7 +8,6 @@ import { ArrowDown, ArrowUp, Crosshair, KeyRound, Link2, Undo2 } from 'lucide-re
 import { Fragment, memo, useMemo, useState } from 'react';
 import {
   Button,
-  Cite,
   EntityGraph,
   SemBadge,
   TableSwatch,
@@ -42,10 +41,24 @@ export interface LinkExplorerProps {
   onBack: () => void;
   example: RowRef;
   /** Optional action that makes the focus row the simulation's running example. */
-  adopt?: { label: string; onClick: () => void } | null;
+  adopt?: { label: string; title: string; onClick: () => void } | null;
+  /** Task tables whose rows are also children of rows of `focus.table` (they join in chapter 3). */
+  taskChildTables?: string[];
 }
 
-export const LinkExplorer = memo(function LinkExplorer({ db, idx, slots, focus, graphFocus = focus, onFocus, history, onBack, example, adopt }: LinkExplorerProps) {
+export const LinkExplorer = memo(function LinkExplorer({
+  db,
+  idx,
+  slots,
+  focus,
+  graphFocus = focus,
+  onFocus,
+  history,
+  onBack,
+  example,
+  adopt,
+  taskChildTables = [],
+}: LinkExplorerProps) {
   const table = idx.table(focus.table) ?? db.tables[0];
   const rec = table.rows[focus.row] ?? {};
   const parents = useMemo(() => idx.parentsOf(focus), [idx, focus]);
@@ -62,7 +75,7 @@ export const LinkExplorer = memo(function LinkExplorer({ db, idx, slots, focus, 
       const k = rowKey(r);
       if (seen.has(k)) return;
       seen.add(k);
-      nodes.push({ id: k, label: `${r.table.slice(0, 1)}${r.row}`, table: r.table, slot: slots[r.table] ?? 0, title: `${rowLabel(r)} ${rowCaption(db, r)}` });
+      nodes.push({ id: k, label: rowLabel(r), table: r.table, slot: slots[r.table] ?? 0, title: `${rowLabel(r)} ${rowCaption(db, r)}` });
     };
     add(graphFocus);
     for (const p of idx.parentsOf(graphFocus)) {
@@ -87,22 +100,26 @@ export const LinkExplorer = memo(function LinkExplorer({ db, idx, slots, focus, 
   const focusRing = useMemo(() => new Map<NodeId, RingStyle>([[rowKey(graphFocus), 'accent']]), [graphFocus]);
   const graphHighlight = useMemo(() => [rowKey(graphFocus)], [graphFocus]);
   const noHighlight = useMemo(() => [] as string[], []);
+  const drawnIds = useMemo(() => new Set(graph.nodes.map((n) => String(n.id))), [graph]);
+  // a hovered chip whose row is not drawn (display limit) must not grey out the whole graph
+  const hoverDrawn = hover !== null && drawnIds.has(hover);
+  const graphH = Math.round(Math.min(380, Math.max(220, 140 + 40 * Math.sqrt(graph.nodes.length))));
 
   return (
     <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
       <div className="min-w-0">
         {/* trail */}
-        <div className="mb-3 flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1.5 text-[15px] text-ink-2">
+        <div className="mb-3 flex h-9 min-w-0 flex-nowrap items-center gap-x-2 text-[15px] text-ink-2">
           <Button size="sm" variant="secondary" icon={<Undo2 size={14} />} disabled={history.length === 0} onClick={onBack}>
             Back
           </Button>
           {!sameRow(focus, example) && (
-            <Button size="sm" variant="ghost" icon={<Crosshair size={14} />} onClick={() => onFocus(example)}>
+            <Button size="sm" variant="ghost" icon={<Crosshair size={14} />} onClick={() => onFocus(example)} title={`Back to the running example, ${rowLabel(example)}`}>
               {rowLabel(example)}
             </Button>
           )}
           {history.length > 0 && (
-            <span className="min-w-0 truncate font-mono text-[14px] text-muted" title="The rows you walked through">
+            <span className="min-w-0 flex-1 truncate font-mono text-[14px] text-muted" title="The rows you walked through">
               {history
                 .slice(-4)
                 .map((r) => rowLabel(r))
@@ -172,7 +189,14 @@ export const LinkExplorer = memo(function LinkExplorer({ db, idx, slots, focus, 
                 <span className="font-mono text-[17.5px] font-semibold text-ink">{rowLabel(focus)}</span>
                 <span className="text-[15.5px] text-ink-2">{rowCaption(db, focus, 40)}</span>
               </span>
-              <span className="eyebrow !text-[13px]">focus row</span>
+              <span className="flex flex-wrap items-center gap-2">
+                {adopt && (
+                  <Button size="sm" variant="secondary" icon={<Crosshair size={14} />} onClick={adopt.onClick} title={adopt.title}>
+                    {adopt.label}
+                  </Button>
+                )}
+                <span className="eyebrow">focus row</span>
+              </span>
             </div>
             <dl className="grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] items-baseline gap-x-4 gap-y-1 border-t border-grid px-4 py-2.5 text-[15px]">
               {table.schema.columns.map((c) => {
@@ -289,14 +313,13 @@ export const LinkExplorer = memo(function LinkExplorer({ db, idx, slots, focus, 
               })}
             </div>
           )}
+          {taskChildTables.length > 0 && (
+            <p className="!mt-2.5 !mb-0 text-[15px] leading-snug text-ink-2">
+              Chapter 3 adds more children here: the rows of the {taskChildTables.join(' and ')} task table
+              {taskChildTables.length === 1 ? '' : 's'} point to {focus.table} rows too.
+            </p>
+          )}
         </div>
-        {adopt && (
-          <div className="mt-3">
-            <Button size="sm" variant="secondary" onClick={adopt.onClick}>
-              {adopt.label}
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* ±1 hop graph */}
@@ -308,28 +331,30 @@ export const LinkExplorer = memo(function LinkExplorer({ db, idx, slots, focus, 
           <EntityGraph
             nodes={graph.nodes}
             edges={graph.edges}
-            selected={hover}
+            selected={hoverDrawn ? hover : null}
             rings={focusRing}
-            highlight={hover ? noHighlight : graphHighlight}
+            highlight={hoverDrawn ? noHighlight : graphHighlight}
             dimOthers={false}
             onNodeClick={(id: NodeId) => onFocus(parseRowKey(String(id)))}
             onNodeHover={(id) => setHover(id === null ? null : String(id))}
-            height={340}
-            labels={graph.nodes.length <= 24 ? 'all' : 'highlighted'}
+            height={graphH}
+            labels="all"
             linkDistance={46}
             charge={-90}
+            roving
             title={`Rows linked to ${rowLabel(graphFocus)}`}
           />
-          {graph.total > graph.shown && (
-            <p className="!mt-1.5 !mb-0 px-1.5 text-[14.5px] leading-snug text-ink-2">
-              Drawing {graph.shown} of {graph.total} children to keep the picture readable (a display limit, not part of RT).
-            </p>
-          )}
+          <p className="!mt-1.5 !mb-0 min-h-[1.4em] px-1.5 text-[14.5px] leading-snug text-ink-2" aria-live="polite">
+            {hover !== null && !hoverDrawn ? (
+              <>
+                <span className="font-mono text-ink">{rowLabel(parseRowKey(hover))}</span> is not drawn here (display limit).
+              </>
+            ) : graph.total > graph.shown ? (
+              <>Drawing {graph.shown} of {graph.total} children to keep the picture readable (a display limit, not part of RT).</>
+            ) : null}
+          </p>
         </div>
-        <p className="!mt-2.5 !mb-0 px-1 text-[15px] leading-snug text-ink-2">
-          Arrows always point from child to parent, the F→P direction <Cite kind="paper" ref="p.3 §2.1" />. Click a node or a chip to walk
-          there.
-        </p>
+        <p className="!mt-2.5 !mb-0 px-1 text-[15px] leading-snug text-ink-2">Click a node or a chip to walk there; Back retraces your steps.</p>
       </div>
     </div>
   );

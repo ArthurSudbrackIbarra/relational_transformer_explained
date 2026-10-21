@@ -127,6 +127,17 @@ export function PickChip({ active, onClick, children, title }: { active?: boolea
   );
 }
 
+/**
+ * A subscript that never shrinks below the 14px caption floor (a plain <sub> is 0.75em,
+ * i.e. 10.5px inside a 14px label). Used for μ_T, σ_T, μ_c, σ_c.
+ */
+export function Sub({ children }: { children: ReactNode }) {
+  return <span className="relative top-[0.3em] text-[length:max(14px,0.8em)] leading-none">{children}</span>;
+}
+
+/** Class for a chapter wrapper: inline code never drops below 14px (the base rule floors it at 13.5px). */
+export const CODE_FLOOR = '[&_:not(pre)>code]:text-[length:max(14px,0.86em)]!';
+
 /** Inline code-ish token in prose. */
 export function C({ children }: { children: ReactNode }) {
   return <code>{children}</code>;

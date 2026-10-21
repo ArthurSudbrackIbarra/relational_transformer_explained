@@ -17,7 +17,9 @@ import { useSim } from '@/state/store';
 import { ArrayStrip } from './ArrayStrip';
 import { afterPaint, contextFor, findMostPadded, type PaddedPick } from './compute';
 import { cutRow, nodeLabel, nodeRef, plural, taskShort, tsDate, type TokensLive } from './live';
+import { formatSlot } from './fields';
 import { useIdle, useInView } from './useInView';
+import { ZeroVec } from './ZeroVec';
 
 interface ScanState {
   done: number;
@@ -214,7 +216,7 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
               <div className="min-w-0">
                 <div className="eyebrow mb-2">A padding slot (position {firstPad})</div>
                 {padTok && (
-                  <dl className="grid grid-cols-[minmax(0,150px)_minmax(0,1fr)] gap-x-3 gap-y-1 text-[15px]">
+                  <dl className="grid grid-cols-[minmax(0,140px)_minmax(0,1fr)] gap-x-3 gap-y-1 text-[15px]">
                     {(
                       [
                         ['node_idxs', String(padTok.nodeIdx)],
@@ -222,12 +224,12 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
                         ['table_name_idxs', String(padTok.tableNameIdx)],
                         ['col_name_idxs', String(padTok.colNameIdx)],
                         ['class_value_idxs', String(padTok.classValueIdx)],
-                        ['col_name_values', '0⃗ (384 zeros)'],
+                        ['col_name_values', <><ZeroVec /> (384 zeros)</>],
                         ['sem_types', String(padTok.sem)],
-                        ['number_values', formatSigned(padTok.numberValue, 0)],
-                        ['text_values', '0⃗ (384 zeros)'],
-                        ['datetime_values', formatSigned(padTok.datetimeValue, 0)],
-                        ['boolean_values', formatSigned(padTok.booleanValue, 0)],
+                        ['number_values', formatSlot(padTok.numberValue)],
+                        ['text_values', <><ZeroVec /> (384 zeros)</>],
+                        ['datetime_values', formatSlot(padTok.datetimeValue)],
+                        ['boolean_values', formatSlot(padTok.booleanValue)],
                         ['masks', String(padTok.mask)],
                         ['is_targets', String(padTok.isTarget)],
                         ['is_task_nodes', String(padTok.isTaskNode)],
@@ -236,7 +238,7 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
                     ).map(([k, v]) => (
                       <div key={k} className="contents">
                         <dt className="font-mono text-ink-2">{k}</dt>
-                        <dd className={cx('num whitespace-nowrap', k === 'is_padding' ? 'font-semibold text-accent-text' : 'text-ink')}>{v}</dd>
+                        <dd className={cx('num min-w-0', k !== 'f2p_nbr_idxs' && 'whitespace-nowrap', k === 'is_padding' ? 'font-semibold text-accent-text' : 'text-ink')}>{v}</dd>
                       </div>
                     ))}
                   </dl>
@@ -253,8 +255,8 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
                       <div className="mb-1 text-[16px] font-semibold text-ink">1 · It enters as the zero vector</div>
                       <p className="text-[15.5px] leading-relaxed text-ink-2">
                         Its slots hold zeros, but that alone would not give a zero input: the encoders have biases{' '}
-                        <Cite kind="code" ref="rt/model.py:115-123" />, so W·0 + b = b. What zeroes the slot is the factor ¬is_padding on every term{' '}
-                        <Cite kind="code" ref="rt/model.py:213" /> <Cite kind="code" ref="rt/model.py:219" /> <Cite kind="code" ref="rt/model.py:223" />.
+                        <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:115-123" />,</span> so W·0 + b = b. What zeroes the slot is the factor ¬is_padding on every term{' '}
+                        <Cite kind="code" ref="rt/model.py:213" /> <Cite kind="code" ref="rt/model.py:219" /> <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:223" />.</span>
                       </p>
                       {checks.wouldBe && (
                         <table className="mt-2 w-full border-collapse text-[15px]">
@@ -275,17 +277,23 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
                             <tr className="border-b border-grid/60">
                               <td className="py-1 pr-2 text-ink">column name, RMSNorm(b)</td>
                               <td className="num py-1 pr-2 whitespace-nowrap text-ink">‖·‖ = {formatNumber(checks.wouldBe.colNorm, 2)}</td>
-                              <td className="num py-1 whitespace-nowrap text-ink">× 0 = 0⃗</td>
+                              <td className="num py-1 whitespace-nowrap text-ink">
+                                × 0 = <ZeroVec />
+                              </td>
                             </tr>
                             <tr className="border-b border-grid/60">
                               <td className="py-1 pr-2 text-ink">number value (sem_types = 0), RMSNorm(b)</td>
                               <td className="num py-1 pr-2 whitespace-nowrap text-ink">‖·‖ = {formatNumber(checks.wouldBe.valNorm, 2)}</td>
-                              <td className="num py-1 whitespace-nowrap text-ink">× 0 = 0⃗</td>
+                              <td className="num py-1 whitespace-nowrap text-ink">
+                                × 0 = <ZeroVec />
+                              </td>
                             </tr>
                             <tr>
-                              <td className="py-1 pr-2 text-ink">mask vectors m_t</td>
+                              <td className="py-1 pr-2 text-ink">the four mask vectors</td>
                               <td className="num py-1 pr-2 text-ink-2">masks = false</td>
-                              <td className="num py-1 whitespace-nowrap text-ink">× 0 = 0⃗</td>
+                              <td className="num py-1 whitespace-nowrap text-ink">
+                                × 0 = <ZeroVec />
+                              </td>
                             </tr>
                           </tbody>
                         </table>
@@ -333,16 +341,25 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
                       <div className="mb-1 text-[16px] font-semibold text-ink">3 · It stays 0 through every block</div>
                       <ul className="space-y-1 text-[15.5px] leading-snug text-ink-2">
                         <li>
-                          RMSNorm(0⃗) = 0⃗ <Cite kind="spec" ref="§7.2" />, and Q, K, V = W·0⃗ = 0⃗, because the projections have no bias{' '}
-                          <Cite kind="code" ref="rt/model.py:25-28" />.
+                          RMSNorm(<ZeroVec />) = <ZeroVec /> <span className="whitespace-nowrap"><Cite kind="spec" ref="§7.2" />,</span> and Q, K, V = W·<ZeroVec /> = <ZeroVec />, because the
+                          projections have no bias{' '}
+                          <span className="whitespace-nowrap">
+                            <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:25-27" />.</span>
+                          </span>
                         </li>
                         <li>
-                          A query with no allowed key outputs exactly 0⃗ <Cite kind="spec" ref="§6.1" />; W<sub>o</sub> has no bias, so the residual update
-                          is 0⃗ <Cite kind="code" ref="rt/model.py:46" />.
+                          A query with no allowed key outputs exactly <ZeroVec /> <span className="whitespace-nowrap"><Cite kind="spec" ref="§6.1" />.</span> The output projection{' '}
+                          <code>wo</code> has no bias either <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:28" />,</span> so the residual update is <ZeroVec />{' '}
+                          <span className="whitespace-nowrap">
+                            <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:46" />.</span>
+                          </span>
                         </li>
                         <li>
-                          FFN(0⃗) = W₂(SiLU(W₁0⃗) ⊙ W₃0⃗) = 0⃗, again without biases <Cite kind="code" ref="rt/model.py:54-59" />. The final RMSNorm keeps 0⃗{' '}
-                          <Cite kind="code" ref="rt/model.py:229" />.
+                          FFN(<ZeroVec />) = W₂(SiLU(W₁<ZeroVec />) ⊙ W₃<ZeroVec />) = <ZeroVec />, again without biases{' '}
+                          <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:54-59" />.</span> The final RMSNorm keeps <ZeroVec />{' '}
+                          <span className="whitespace-nowrap">
+                            <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:229" />.</span>
+                          </span>
                         </li>
                       </ul>
                       <p className="mt-1.5 text-[14.5px] leading-snug text-ink-2">
@@ -378,9 +395,9 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
 
                     {checks.dec && (
                       <li className="text-[15px] leading-snug text-ink-2">
-                        The decoders still run at every position <Cite kind="code" ref="rt/model.py:239" />. At padding position {firstPad} the{' '}
+                        The decoders still run at every position <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:239" />.</span> At padding position {firstPad} the{' '}
                         {checks.dec.head} decoder outputs <span className="num text-ink">{formatSigned(checks.dec.at, 4)}</span>, and its bias is b ={' '}
-                        <span className="num text-ink">{formatSigned(checks.dec.bias, 4)}</span>: the same number, because W·0⃗ = 0⃗. Nothing reads it:
+                        <span className="num text-ink">{formatSigned(checks.dec.bias, 4)}</span>: the same number, because W·<ZeroVec /> = <ZeroVec />. Nothing reads it:
                         the loss and the readout look only at the masked position.
                       </li>
                     )}
