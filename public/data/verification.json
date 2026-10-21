@@ -1,0 +1,145 @@
+{
+ "official_vs_port_max_abs_diff": 1.7583370208740234e-06,
+ "ts_vs_torch_max_abs_diff": 2.6226043701171875e-06,
+ "n_contexts": 28,
+ "checkpoints": [
+  "finetune-churn",
+  "finetune-sales",
+  "init",
+  "pretrain-churn",
+  "pretrain-final",
+  "pretrain-rating",
+  "pretrain-sales",
+  "pretrain-verified"
+ ],
+ "sampler_crosscheck": {
+  "contexts": 2144,
+  "mismatches": 0,
+  "note": "independent Python re-implementation of pre.rs+fly.rs"
+ },
+ "tests": 206,
+ "date": "2026-10-19",
+ "details": {
+  "note": "official = PE/rt/model.py (paper-era commit 2a899c8, FlexAttention on CPU, RMSNorm eps pinned to 2^-7); port = python/rt_model.py (dense masked attention); TS = src/engine/model/forward.ts. n_contexts = real exported contexts (all four DBs) on which every checkpoint was compared official vs port; the random-weight stage adds 2 synthetic contexts and the trained fixtures 3 real ones (each compared at every activation, TS vs PyTorch). All float32 on CPU.",
+  "officialVsPort": {
+   "randomWeights": 1.7583370208740234e-06,
+   "perCheckpoint": {
+    "init": 1.3113021850585938e-06,
+    "pretrain-churn": 7.152557373046875e-07,
+    "pretrain-sales": 9.5367431640625e-07,
+    "pretrain-rating": 1.0728836059570312e-06,
+    "pretrain-verified": 8.940696716308594e-07,
+    "pretrain-final": 7.748603820800781e-07,
+    "finetune-churn": 9.909272193908691e-07,
+    "finetune-sales": 1.0728836059570312e-06
+   },
+   "trainedFixtures": {
+    "parity-trained": 5.960464477539062e-07,
+    "parity-trained-sales": 1.1920928955078125e-06,
+    "parity-trained-forum": 7.152557373046875e-07
+   },
+   "attention": "compiled flex_attention (inductor, CPU)"
+  },
+  "tsVsTorch": {
+   "parity-random": {
+    "maxAbsDiff": 2.6226043701171875e-06,
+    "contexts": 2,
+    "worstStage": "block3.nbr"
+   },
+   "parity-trained-forum": {
+    "maxAbsDiff": 1.430511474609375e-06,
+    "contexts": 1,
+    "checkpoint": "pretrain-final",
+    "worstStage": "block1.ffn"
+   },
+   "parity-trained-sales": {
+    "maxAbsDiff": 2.1457672119140625e-06,
+    "contexts": 1,
+    "checkpoint": "pretrain-sales",
+    "worstStage": "block3.nbr"
+   },
+   "parity-trained": {
+    "maxAbsDiff": 1.9669532775878906e-06,
+    "contexts": 1,
+    "checkpoint": "pretrain-churn",
+    "worstStage": "block3.full"
+   }
+  },
+  "samplerCrosscheck": {
+   "contexts": 2144,
+   "listed": 2144,
+   "mismatches": 0,
+   "how": "python/sampler_dump.ts dumps the raw DBs and the TS preprocess/sampler/mask outputs (per task and split: 8 + 12 random seeds, at (L, w) = (128, 16), (512, 3), (64, 1), (1024, 256)); python/sampler_crosscheck.py rebuilds them from the Rust/Python sources with a bit-exact port of the site's PRNG and compares every token, visit order and mask."
+  },
+  "testsTotal": 206,
+  "testsFailed": 0,
+  "testFiles": 44,
+  "checkpoints": [
+   {
+    "name": "finetune-churn",
+    "bytes": 2155903,
+    "sha256": "0339567f51b1a9f30750cf4007e51a879df941197d475167a4ae529c0dedd342",
+    "step": 192,
+    "selection": "best ShopDB shop/customer-churn VAL",
+    "officialVsPortMaxAbsDiff": 9.909272193908691e-07
+   },
+   {
+    "name": "finetune-sales",
+    "bytes": 2155902,
+    "sha256": "d7d8f8d39ae6a6fdb77382c7dea3eb01146368702a126172a9895a0de6477a2d",
+    "step": 576,
+    "selection": "best ShopDB shop/product-sales VAL",
+    "officialVsPortMaxAbsDiff": 1.0728836059570312e-06
+   },
+   {
+    "name": "init",
+    "bytes": 2155854,
+    "sha256": "ae0b9ef2e522eb8dbdfe0063ae620f2e6a6a72a0cea8c7e16aebb1f56efc9d29",
+    "step": 0,
+    "selection": "random init: torch.manual_seed(0) + PyTorch defaults",
+    "officialVsPortMaxAbsDiff": 1.3113021850585938e-06
+   },
+   {
+    "name": "pretrain-churn",
+    "bytes": 2155888,
+    "sha256": "acb5c4e6103beb9912a9c9a32dd7a4fd0184657c3167108aae3087e6da63b97f",
+    "step": 2500,
+    "selection": "best ShopDB customer-churn VAL AUROC",
+    "officialVsPortMaxAbsDiff": 7.152557373046875e-07
+   },
+   {
+    "name": "pretrain-final",
+    "bytes": 2155952,
+    "sha256": "f6208bd478e2af56b746a66608c3cda0a7046bd57e7caf039097a2faf9b17c23",
+    "step": 4001,
+    "selection": "last step",
+    "officialVsPortMaxAbsDiff": 7.748603820800781e-07
+   },
+   {
+    "name": "pretrain-rating",
+    "bytes": 2155926,
+    "sha256": "797747f9ce9f7c51aad6e1794acaee82d83c73818a9afb2829437afe4f68be06",
+    "step": 400,
+    "selection": "best ShopDB reviews.rating VAL R\u00b2 (even review_ids)",
+    "officialVsPortMaxAbsDiff": 1.0728836059570312e-06
+   },
+   {
+    "name": "pretrain-sales",
+    "bytes": 2155888,
+    "sha256": "daacab2b4eb2d12bd771cb49529256d1f978a05f9f88c527e4e18be04fb01d3a",
+    "step": 600,
+    "selection": "best ShopDB product-sales VAL R\u00b2",
+    "officialVsPortMaxAbsDiff": 9.5367431640625e-07
+   },
+   {
+    "name": "pretrain-verified",
+    "bytes": 2155929,
+    "sha256": "ffc059dfc1eab60c5cf6c2103b3149fd5bc9cf796672514ff0c30eb579ef08f6",
+    "step": 2700,
+    "selection": "best ShopDB reviews.verified VAL AUROC (even review_ids)",
+    "officialVsPortMaxAbsDiff": 8.940696716308594e-07
+   }
+  ],
+  "torch": "2.12.0+cu126"
+ }
+}

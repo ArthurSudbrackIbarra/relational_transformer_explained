@@ -1,0 +1,332 @@
+/**
+ * Every paper-vs-code discrepancy and caveat of research/RT_TECHNICAL_SPEC.md §10 (26 rows), with the
+ * spec's citations. "Code" refers to the paper-era code at commit 2a899c8. Rows 25-26 are about the
+ * reported numbers rather than code.
+ */
+import type { CiteKind } from '@/components/glossary';
+
+export type Area = 'model' | 'data' | 'sampling' | 'training' | 'reporting';
+
+export const AREA_LABEL: Record<Area, string> = {
+  model: 'Model',
+  data: 'Data & preprocessing',
+  sampling: 'Sampling',
+  training: 'Training & evaluation',
+  reporting: 'Reported numbers',
+};
+
+export interface Ref {
+  kind: CiteKind;
+  ref: string;
+}
+
+export interface Discrepancy {
+  n: number;
+  topic: string;
+  area: Area;
+  paper: string;
+  paperRefs: Ref[];
+  code: string;
+  codeRefs: Ref[];
+  /** What this site shows (spec §10 last column). */
+  site: string;
+  /** Chapter slug where the site covers it. */
+  chapter: string;
+  /** Label of the second column when it is not about code. */
+  codeLabel?: string;
+}
+
+const P = (ref: string): Ref => ({ kind: 'paper', ref });
+const C = (ref: string): Ref => ({ kind: 'code', ref });
+const S = (ref: string): Ref => ({ kind: 'spec', ref });
+
+export const DISCREPANCIES: Discrepancy[] = [
+  {
+    n: 1,
+    topic: 'Block normalization',
+    area: 'model',
+    paper: 'X ← X + Norm(MHA(X; M)): the norm after each sublayer (Algorithm 2).',
+    paperRefs: [P('p.26 Alg. 2')],
+    code: 'Pre-norm: x + MHA(RMSNorm(x)), and the same for the SwiGLU.',
+    codeRefs: [C('rt/model.py:83-85')],
+    site: 'The code’s pre-norm block, with Algorithm 2 in a footnote.',
+    chapter: 'block',
+  },
+  {
+    n: 2,
+    topic: 'Token embedding',
+    area: 'model',
+    paper: 'x = W_d r + W E_schema(c, t).',
+    paperRefs: [P('p.5 §3.1')],
+    code: 'Every projection has a bias and is followed by an RMSNorm; the masked cell adds the raw mask vector mₜ instead of its value term.',
+    codeRefs: [C('rt/model.py:115-146'), C('rt/model.py:208-224')],
+    site: 'The code’s formula.',
+    chapter: 'embedding',
+  },
+  {
+    n: 3,
+    topic: 'Normalization statistics',
+    area: 'data',
+    paper: 'Statistics “computed on the training split”.',
+    paperRefs: [P('p.4-5 §3.1')],
+    code: 'Task labels: Train statistics. DB tables: all rows. Datetimes: one global z-score over all tables and splits, with the population std. Later called leaky and fixed in RT-J.',
+    codeRefs: [C('rustler/src/pre.rs:316-396'), S('§3.4')],
+    site: 'The code’s statistics.',
+    chapter: 'preprocessing',
+  },
+  {
+    n: 4,
+    topic: 'Datetime unit',
+    area: 'data',
+    paper: 'Seconds.',
+    paperRefs: [P('p.5 §3.1')],
+    code: 'Nanoseconds. The z-score is identical either way.',
+    codeRefs: [C('rustler/src/pre.rs:586')],
+    site: 'Mentioned only; the z-scored value does not change.',
+    chapter: 'preprocessing',
+  },
+  {
+    n: 5,
+    topic: 'F→P selection',
+    area: 'sampling',
+    paper: 'RandomSelect(R) over the F→P frontier (Algorithm 1).',
+    paperRefs: [P('p.15 Alg. 1')],
+    code: 'A LIFO stack: deterministic, and always served before any P→F row.',
+    codeRefs: [C('rustler/src/fly.rs:378-379')],
+    site: 'The code’s stack.',
+    chapter: 'sampling',
+  },
+  {
+    n: 6,
+    topic: 'P→F selection',
+    area: 'sampling',
+    paper: 'The row with minimum HopDistance.',
+    paperRefs: [P('p.15 Alg. 1')],
+    code: 'Uniform among the lowest non-empty depth bucket of the frontier (depth label of the entry, not a graph distance).',
+    codeRefs: [C('rustler/src/fly.rs:381-396'), S('§4.5')],
+    site: 'The code’s depth buckets.',
+    chapter: 'sampling',
+  },
+  {
+    n: 7,
+    topic: 'Width bound w',
+    area: 'sampling',
+    paper: 'Applies to all P→F neighbours.',
+    paperRefs: [P('p.15 Alg. 1')],
+    code: 'Only DB children are subsampled to w; task-table children are never subsampled.',
+    codeRefs: [C('rustler/src/fly.rs:426-452')],
+    site: 'The code’s rule.',
+    chapter: 'sampling',
+  },
+  {
+    n: 8,
+    topic: 'Row completeness',
+    area: 'sampling',
+    paper: '“All of its non-missing feature cells are added.”',
+    paperRefs: [P('p.4 §3.1')],
+    code: 'Hard stop at exactly L tokens, which may cut a row in the middle.',
+    codeRefs: [C('rustler/src/fly.rs:502-509')],
+    site: 'The code’s hard stop.',
+    chapter: 'sampling',
+  },
+  {
+    n: 9,
+    topic: 'Temporal filter',
+    area: 'sampling',
+    paper: '“Rows with timestamps later than the seed row are excluded.”',
+    paperRefs: [P('p.4 §3.1')],
+    code: 'Only P→F children are filtered, and only when both timestamps exist and the child’s is later. Children without a timestamp always pass; a seed without one disables the filter; parents are never filtered.',
+    codeRefs: [C('rustler/src/fly.rs:406-424'), S('§4.6')],
+    site: 'The code’s filter.',
+    chapter: 'sampling',
+  },
+  {
+    n: 10,
+    topic: 'Database cutoff',
+    area: 'data',
+    paper: '“Database rows only up to the training cutoff timestamps.”',
+    paperRefs: [P('p.6 §4.1')],
+    code: 'No cutoff anywhere; autocomplete seeds come from all periods.',
+    codeRefs: [C('rt/data.py:77-81')],
+    site: 'The code, with a note.',
+    chapter: 'tasks',
+  },
+  {
+    n: 11,
+    topic: 'Same-horizon labels',
+    area: 'sampling',
+    paper: 'Not discussed.',
+    paperRefs: [],
+    code: 'Other entities’ task rows with the seed’s own timestamp are visible (equal timestamps pass the filter). The ICLR-submission code and RT-J exclude them.',
+    codeRefs: [C('rustler/src/fly.rs:422'), S('§2.5')],
+    site: 'The code, highlighted.',
+    chapter: 'sampling',
+  },
+  {
+    n: 12,
+    topic: 'Column mask',
+    area: 'model',
+    paper: 'Col(k) = Col(q).',
+    paperRefs: [P('p.5 §3.2')],
+    code: 'Same column id and same table id.',
+    codeRefs: [C('rt/model.py:181-183')],
+    site: 'Equivalent: the column phrase already names the table.',
+    chapter: 'masks',
+  },
+  {
+    n: 13,
+    topic: 'Learning-rate schedule',
+    area: 'training',
+    paper: 'Linear warmup from zero for 20% of training, then linear decay to zero.',
+    paperRefs: [P('p.6 §4.1')],
+    code: 'OneCycleLR: 4e-5 → 1e-3 → 4e-9, with β₁ cycled 0.95 ↔ 0.85; gradients clipped to norm 1.0 (not in the paper).',
+    codeRefs: [C('rt/main.py:197-204'), C('rt/main.py:413-418'), S('§9.2')],
+    site: 'The code’s schedule.',
+    chapter: 'training',
+  },
+  {
+    n: 14,
+    topic: 'Masking',
+    area: 'training',
+    paper: 'Masked token prediction; Table 14 also masks extra cells.',
+    paperRefs: [P('p.6 §3.3'), P('p.24 Table 14')],
+    code: 'Only the target cell is masked; the P(mask) sampler of Table 14 is not released.',
+    codeRefs: [C('rustler/src/fly.rs:492-496')],
+    site: 'One masked target per context.',
+    chapter: 'tokens',
+  },
+  {
+    n: 15,
+    topic: 'Maskable types',
+    area: 'model',
+    paper: '“We only mask cells in boolean or numeric columns.”',
+    paperRefs: [P('p.6 §3.3')],
+    code: 'A datetime target would work (Huber loss); a text target raises an error.',
+    codeRefs: [C('rt/model.py:250-258')],
+    site: 'As the code.',
+    chapter: 'decoding',
+  },
+  {
+    n: 16,
+    topic: 'Text encoder',
+    area: 'data',
+    paper: '“MiniLMv2 [41]”, 384-dimensional.',
+    paperRefs: [P('p.6 §4.1')],
+    code: 'sentence-transformers/all-MiniLM-L12-v2, whose “-v2” is the sentence-transformers release, not MiniLMv2.',
+    codeRefs: [C('rt/embed.py:14-15'), C('scripts/example_pretrain.py:29'), S('§3.6')],
+    site: 'The real model name.',
+    chapter: 'semantics',
+  },
+  {
+    n: 17,
+    topic: 'Feature column types',
+    area: 'data',
+    paper: 'Numeric, text and datetime.',
+    paperRefs: [P('p.3 §2.1')],
+    code: 'A fourth semantic type, Boolean.',
+    codeRefs: [C('rustler/src/common.rs:38-44')],
+    site: 'Four types.',
+    chapter: 'preprocessing',
+  },
+  {
+    n: 18,
+    topic: 'Evaluation set',
+    area: 'training',
+    paper: '“We report the test set performance.”',
+    paperRefs: [P('p.6 §4.1')],
+    code: 'A fixed subset of at most 10,240 seeds per split. Under 8-rank DDP, a small split’s last batch can count 32 wrapped duplicates twice.',
+    codeRefs: [C('rt/main.py:299-300'), C('rustler/src/fly.rs:337-341'), S('§8.6')],
+    site: 'A note; a single-process demo is unaffected.',
+    chapter: 'decoding',
+  },
+  {
+    n: 19,
+    topic: 'Regression decoder',
+    area: 'model',
+    paper: 'Numeric targets only.',
+    paperRefs: [P('p.6 §3.3')],
+    code: 'The Huber loss also covers datetime targets.',
+    codeRefs: [C('rt/model.py:250-251')],
+    site: 'A note.',
+    chapter: 'decoding',
+  },
+  {
+    n: 20,
+    topic: 'Precision',
+    area: 'training',
+    paper: '“BFloat16 precision.”',
+    paperRefs: [P('p.6 §4.1')],
+    code: 'Pure bf16 weights, inputs and optimizer state, no fp32 master copy; RMSNorm ε = 2⁻⁷ in that environment.',
+    codeRefs: [C('rt/main.py:186-187'), S('§7.2')],
+    site: 'A note; this site runs float32 with the same ε.',
+    chapter: 'about',
+  },
+  {
+    n: 21,
+    topic: 'Fine-tuning script',
+    area: 'training',
+    paper: '33k steps, best validation checkpoint.',
+    paperRefs: [P('p.6 §4.1'), P('p.20 App. F.1')],
+    code: '32,769 steps; saves no checkpoint; eval_pow2=False cannot give Fig. 3’s log-spaced points; its init path is written by no other script.',
+    codeRefs: [C('scripts/example_finetune.py:10-14'), C('scripts/example_finetune.py:28'), S('§9.2')],
+    site: 'Follows the paper’s text.',
+    chapter: 'training',
+  },
+  {
+    n: 22,
+    topic: 'user-attendance task',
+    area: 'data',
+    paper: 'Not evaluated.',
+    paperRefs: [],
+    code: 'Listed as a regression task, cast to Boolean and trained with BCE.',
+    codeRefs: [C('rt/tasks.py:25'), C('rustler/src/pre.rs:272-278')],
+    site: 'Irrelevant to this demo.',
+    chapter: 'tasks',
+  },
+  {
+    n: 23,
+    topic: 'Attention order',
+    area: 'model',
+    paper: 'col → feat → nbr → full (Algorithm 2).',
+    paperRefs: [P('p.26 Alg. 2')],
+    code: 'The same since commit 7f891d1; the ICLR-submission code ran feat → nbr → col → full.',
+    codeRefs: [C('rt/model.py:83'), S('§6.6')],
+    site: 'col → feat → nbr → full.',
+    chapter: 'block',
+  },
+  {
+    n: 24,
+    topic: 'Attention equation',
+    area: 'model',
+    paper: 'arXiv v1/v2 wrote Softmax((QKᵀ ⊙ M)/√d); v3 masks with −∞.',
+    paperRefs: [P('p.5 §3.2')],
+    code: '−∞ semantics through FlexAttention’s block mask.',
+    codeRefs: [C('rt/model.py:43'), S('§6.6')],
+    site: 'The v3 equation.',
+    chapter: 'masks',
+  },
+  {
+    n: 25,
+    topic: 'Headline numbers',
+    area: 'reporting',
+    paper: 'Table 1: RT (No) mean AUROC 69.7.',
+    paperRefs: [P('p.8 Table 1')],
+    codeLabel: 'Elsewhere in the paper',
+    code: 'The ablation “none” columns say 70.1 (Tables 4, 11, 13, 14) and Table 15’s CFN says 70.0. The “none” columns are the arXiv v1 main results, before the sampler fixes; Tables 1 and 2 were re-run afterwards.',
+    codeRefs: [P('p.22 Table 11'), P('p.24 Table 15'), S('§13 #1')],
+    site: 'Tables 1 and 2 for headline numbers.',
+    chapter: 'results',
+  },
+  {
+    n: 26,
+    topic: '“93% of supervised AUROC”',
+    area: 'reporting',
+    paper: 'Abstract: zero-shot RT averages “93% of fully supervised AUROC”.',
+    paperRefs: [P('p.1 Abstract')],
+    codeLabel: 'Precisely',
+    code: '93.1% is continued pretraining on the target database, 71.9 / 77.2. On unseen databases it is 69.7 / 77.2 = 90.3%.',
+    codeRefs: [P('p.2 §1'), S('§10 #26')],
+    site: 'Both numbers, each with its setting.',
+    chapter: 'results',
+  },
+];

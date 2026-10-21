@@ -1,0 +1,139 @@
+/**
+ * Figure: what the model sees of a task row (spec §2.1): exactly two tokens (the timestamp cell
+ * and the label cell); the FK yields only a link (f2p_nbr_idxs), no token. Shown for the live
+ * seed row (label masked) and for one of the entity's past rows in the same context (label
+ * visible = an in-context label, spec §2.5). Tokens are the real sampled context's tokens.
+ */
+import { motion, useInView } from 'motion/react';
+import { ArrowDown, ArrowRight, Link2 } from 'lucide-react';
+import { useRef, type ReactNode } from 'react';
+import { SemBadge, TokenStrip, formatRaw, semOfDType } from '@/components';
+import { MAX_F2P_NBRS, type GraphNode, type PreprocessedDB, type RawDatabase, type SampledContext } from '@/engine/types';
+import { isoDay } from './taskData';
+
+function RawRow({ db, node, masked }: { db: RawDatabase; node: GraphNode; masked: boolean }) {
+  const task = db.tasks.find((t) => t.name === node.tableName && t.tables);
+  const split = node.tableType === 'Db' ? null : node.tableType;
+  const rec = task && split ? task.tables![split].rows[node.rowPos] : undefined;
+  const schema = task?.tables?.Train.schema;
+  if (!rec || !schema) return null;
+  return (
+    <div className="card min-w-0 overflow-hidden" style={{ borderLeft: '3px solid var(--cat-5)' }}>
+      <div className="border-b border-grid px-3 py-1.5 font-mono text-[14.5px] text-ink-2">
+        {node.tableName}:{node.tableType}[{node.rowPos}] · node {node.nodeIdx}
+      </div>
+      <div className="grid grid-cols-3 text-[14.5px]">
+        {schema.columns.map((c) => {
+          const isFk = c.name in schema.fkeys;
+          const isTarget = c.name === task!.targetCol;
+          return (
+            <div key={c.name} className="min-w-0 border-r border-grid px-2.5 py-2 last:border-r-0">
+              <div className="flex items-center gap-1 text-[13.5px] text-ink-2">
+                {isFk ? <Link2 size={11} aria-label="foreign key" /> : <SemBadge sem={semOfDType(c.dtype)} size="xs" bare />}
+                <span className="truncate font-mono">{c.name}</span>
+              </div>
+              <div className={isTarget && masked ? 'num mt-1 py-px pl-0.5 text-[15.5px] text-ink' : 'num mt-1 truncate text-[15.5px] text-ink'}>
+                {isTarget && masked ? (
+                  <span className="target-outline inline-flex h-[20px] min-w-[22px] items-center justify-center rounded-[4px] bg-accent-soft px-1 font-bold text-accent-text">
+                    ?
+                  </span>
+                ) : c.dtype === 'datetime' ? (
+                  isoDay(rec[c.name] as number)
+                ) : (
+                  formatRaw(rec[c.name], c.dtype)
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Flow({ left, right, inView, delay = 0 }: { left: ReactNode; right: ReactNode; inView: boolean; delay?: number }) {
+  return (
+    <div className="grid items-center gap-3 md:grid-cols-[minmax(0,1fr)_28px_minmax(0,1.15fr)]">
+      <div className="min-w-0">{left}</div>
+      <div className="flex justify-center text-accent" aria-hidden="true">
+        <ArrowRight size={20} className="hidden md:block" />
+        <ArrowDown size={20} className="md:hidden" />
+      </div>
+      <motion.div
+        className="min-w-0"
+        initial={{ opacity: 0, x: -14 }}
+        animate={inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -14 }}
+        transition={{ duration: 0.45, delay }}
+      >
+        {right}
+      </motion.div>
+    </div>
+  );
+}
+
+export function TaskRowTokens({
+  db,
+  pdb,
+  ctx,
+  slots,
+  pastNode,
+}: {
+  db: RawDatabase;
+  pdb: PreprocessedDB;
+  ctx: SampledContext;
+  slots: Record<string, number>;
+  /** A past row of the same entity that is in the context (a self in-context label), or null. */
+  pastNode: number | null;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.3 });
+  const seed = pdb.nodes[ctx.params.seedNode];
+  const seedTokens = ctx.tokens.filter((t) => t.nodeIdx === seed.nodeIdx);
+  const past = pastNode !== null ? pdb.nodes[pastNode] : null;
+  const pastTokens = past ? ctx.tokens.filter((t) => t.nodeIdx === past.nodeIdx) : [];
+  const parent = seed.f2pNbrIdxs[0] !== undefined ? pdb.nodes[seed.f2pNbrIdxs[0]] : null;
+  const nbrs = [...seed.f2pNbrIdxs, ...Array(Math.max(0, MAX_F2P_NBRS - seed.f2pNbrIdxs.length)).fill(-1)];
+
+  return (
+    <div ref={ref} className="flex min-w-0 flex-col gap-6">
+      <div>
+        <div className="eyebrow mb-2">The seed row (label masked)</div>
+        <Flow
+          inView={inView}
+          left={<RawRow db={db} node={seed} masked />}
+          right={
+            <div className="flex flex-col gap-2">
+              <TokenStrip tokens={seedTokens} tableSlots={slots} showPadding={false} label="Tokens of the seed task row" />
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-dashed border-border-strong px-2.5 py-1.5 text-[14.5px] text-ink-2">
+                <Link2 size={13} aria-hidden="true" />
+                <span>no token for the FK, only</span>
+                <span className="num text-ink">f2p_nbr_idxs = [{nbrs.join(', ')}]</span>
+                {parent && (
+                  <span>
+                    → <span className="font-mono text-ink">{parent.tableName}[{parent.rowPos}]</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          }
+        />
+      </div>
+      <div>
+        <div className="eyebrow mb-2">A past row of the same entity, in the same context (label visible)</div>
+        {past && pastTokens.length > 0 ? (
+          <Flow
+            inView={inView}
+            delay={0.25}
+            left={<RawRow db={db} node={past} masked={false} />}
+            right={<TokenStrip tokens={pastTokens} tableSlots={slots} showPadding={false} label="Tokens of a past task row" />}
+          />
+        ) : (
+          <p className="text-[16px] text-ink-2">
+            The live context holds none of this entity’s past rows (for example, the seed is the entity’s earliest row, or the context
+            filled up first).
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,587 @@
+/*
+ * Relational Transformer, Step by Step: design tokens and base styles.
+ *
+ * BUILD_PLAN §5. Calm, scholarly, modern (distill.pub × Observable). One accent
+ * (violet = categorical slot 7), data is the loudest thing.
+ *
+ * Every colour is a CSS custom property defined for light (default) and dark.
+ * Dark values apply (a) when the OS prefers dark AND the viewer has not stamped
+ * data-theme="light" on <html>, and (b) whenever data-theme="dark". The toggle
+ * therefore wins both ways (dataviz skill, references/palette.md).
+ *
+ * The same hex values are mirrored in src/styles/palette.ts for canvas code.
+ * Keep the two files in lockstep.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Palette validation (dataviz skill, scripts/validate_palette.js), run 2026-10-19:
+ *
+ *   node validate_palette.js "#2a78d6,#eb6834,#1baf7a,#eda100,#e87ba4,#008300,#6250d6,#e34948" \
+ *        --mode light --surface "#fcfcfb"
+ *     [PASS] Lightness band       all 8 inside L 0.43–0.77
+ *     [PASS] Chroma floor         all 8 >= 0.1
+ *     [PASS] CVD separation       worst adjacent #eda100↔#1baf7a ΔE 9.1 (protan) · tritan 5.8
+ *     [PASS] Normal-vision floor  worst adjacent #e87ba4↔#eda100 ΔE 19.6
+ *     [WARN] Contrast vs surface  below 3:1: aqua #1baf7a 2.74, yellow #eda100 2.11,
+ *                                 magenta #e87ba4 2.62  → relief required
+ *     → ALL CHECKS PASS (exit 0)
+ *
+ *   node validate_palette.js "#3987e5,#d95926,#199e70,#c98500,#d55181,#008300,#9085e9,#e66767" \
+ *        --mode dark --surface "#1a1a19"
+ *     [PASS] Lightness band       all 8 inside L 0.48–0.67
+ *     [PASS] Chroma floor         all 8 >= 0.1
+ *     [PASS] CVD separation       worst adjacent #c98500↔#199e70 ΔE 8.4 (protan) · tritan 8.7
+ *     [PASS] Normal-vision floor  worst adjacent #d55181↔#c98500 ΔE 19.3
+ *     [PASS] Contrast vs surface  all 8 >= 3:1
+ *     → ALL CHECKS PASS (exit 0)
+ *
+ *   All-pairs check for the ShopDB table slots used together in graph views
+ *   (slots 1,2,3,7,5; --pairs all): FAILS in both modes (blue↔violet ΔE 10.5
+ *   light / 9.8 dark normal-vision; magenta↔aqua CVD 1.6 dark). As the skill
+ *   prescribes, table identity is therefore NEVER carried by hue alone:
+ *     - EntityGraph uses composite encoding (hue × node shape) plus a legend;
+ *     - TokenStrip / TableView / SchemaDiagram always pair the swatch with the
+ *       table name (label, legend or tooltip), and every chart has a table view.
+ *   The light-mode contrast WARN (aqua, yellow, magenta < 3:1) is relieved the
+ *   same way: visible labels next to every coloured mark, and table views.
+ *
+ *   Sequential blue ramp (--seq-*): continuous encoding (heatmaps), so the
+ *   lightest step is allowed to recede toward the surface (palette.md); the
+ *   categorical validator does not apply to ramps by design.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+@import "tailwindcss";
+
+/* `dark:` variant that follows the same two scopes as the tokens below. */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+}
+
+/* Tailwind utilities read the runtime tokens (bg-surface, text-ink-2, border-grid, …). */
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-grid: var(--grid);
+  --color-axis: var(--axis);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-cat-1: var(--cat-1);
+  --color-cat-2: var(--cat-2);
+  --color-cat-3: var(--cat-3);
+  --color-cat-4: var(--cat-4);
+  --color-cat-5: var(--cat-5);
+  --color-cat-6: var(--cat-6);
+  --color-cat-7: var(--cat-7);
+  --color-cat-8: var(--cat-8);
+  --color-seq-100: var(--seq-100);
+  --color-seq-200: var(--seq-200);
+  --color-seq-300: var(--seq-300);
+  --color-seq-400: var(--seq-400);
+  --color-seq-500: var(--seq-500);
+  --color-seq-600: var(--seq-600);
+  --color-seq-700: var(--seq-700);
+  --color-good: var(--good);
+  --color-good-text: var(--good-text);
+  --color-warning: var(--warning);
+  --color-serious: var(--serious);
+  --color-critical: var(--critical);
+}
+
+/*
+ * Type scale (BUILD_PLAN §5, readability first; the user asked for no small text).
+ * Floors, never go below: prose 18px · UI text 15px · captions / table cells /
+ * tooltips 14px · dense chips and labels 13px · SVG / canvas labels 12px
+ * (charts use 13.5px ticks, 14.5px axis titles: SVG_TYPE in components/viz/text.ts).
+ * If something does not fit, make room, wrap, abbreviate with a tooltip, or show
+ * fewer items. Utilities: text-prose, text-lead, text-ui, text-ui-sm,
+ * text-caption, text-chip (plain text-[Npx] is fine too, above the floors).
+ */
+@theme {
+  --text-prose: 18px; /* long-form prose, callouts, quiz prompts */
+  --text-prose--line-height: 1.65;
+  --text-lead: 21px; /* chapter ledes */
+  --text-lead--line-height: 1.55;
+  --text-ui: 16px; /* figure titles, step descriptions, primary controls */
+  --text-ui-sm: 15px; /* control labels, legends, readouts, tooltips */
+  --text-caption: 14.5px; /* captions, hints, table cells, footers */
+  --text-chip: 13.5px; /* dense chips, badges, inline citations, eyebrows */
+}
+
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --breakpoint-lg: 64rem; /* 1024px: sidebar ↔ drawer */
+}
+
+/* ── Light tokens (default) ─────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+
+  /* surfaces */
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f3f2ee; /* one step off the surface: wells, hovered rows */
+  --surface-3: #ebeae4; /* two steps: pressed, selected chips */
+
+  /* ink */
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+
+  /* lines */
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --border-strong: rgba(11, 11, 11, 0.18);
+
+  /* categorical, FIXED order, never cycled (palette.md) */
+  --cat-1: #2a78d6; /* blue */
+  --cat-2: #eb6834; /* orange */
+  --cat-3: #1baf7a; /* aqua */
+  --cat-4: #eda100; /* yellow */
+  --cat-5: #e87ba4; /* magenta: all task tables (BUILD_PLAN §3.5) */
+  --cat-6: #008300; /* green */
+  --cat-7: #6250d6; /* violet: also the UI accent */
+  --cat-8: #e34948; /* red */
+
+  /* sequential blue ramp (attention weights, magnitudes) */
+  --seq-100: #cde2fb;
+  --seq-150: #b7d3f6;
+  --seq-200: #9ec5f4;
+  --seq-250: #86b6ef;
+  --seq-300: #6da7ec;
+  --seq-350: #5598e7;
+  --seq-400: #3987e5;
+  --seq-450: #2a78d6;
+  --seq-500: #256abf;
+  --seq-550: #1c5cab;
+  --seq-600: #184f95;
+  --seq-650: #104281;
+  --seq-700: #0d366b;
+
+  /* diverging blue ↔ red, neutral gray midpoint (signed vector values) */
+  --div-neg: #2a78d6;
+  --div-mid: #f0efec;
+  --div-pos: #e34948;
+
+  /* accent = categorical slot 7 (UI chrome: active nav, focus, primary buttons) */
+  --accent: #6250d6;
+  --accent-ink: #ffffff; /* text on an accent fill (5.6:1) */
+  --accent-text: #5242c4; /* accent used as text on page/surface (≥ 4.5:1) */
+  --accent-soft: rgba(98, 80, 214, 0.09);
+  --accent-ring: rgba(98, 80, 214, 0.45);
+
+  /* status: reserved for verification badges + warnings, always with icon + label */
+  --good: #0ca30c;
+  --good-text: #006300;
+  --warning: #fab219;
+  --warning-text: #8a5a00;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+
+  /* code (prism-react-renderer reads these through var()) */
+  --code-bg: #f5f4f0;
+  --code-ink: #2b2a27;
+  --code-comment: #74726b;
+  --code-keyword: #6250d6;
+  --code-string: #0f7a52;
+  --code-number: #b4471b;
+  --code-function: #1c5cab;
+  --code-punct: #6d6b65;
+  --code-line-hl: rgba(98, 80, 214, 0.08);
+
+  --shadow-pop: 0 1px 2px rgba(11, 11, 11, 0.06), 0 8px 28px rgba(11, 11, 11, 0.1);
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.04);
+
+  /* layout */
+  --topbar-h: 56px;
+  --sidebar-w: 284px;
+  --content-max: 1200px;
+  --prose-size: 18px;
+  --prose-max: 66ch; /* ≈ 70ch target, tuned for wide-"0" fallback fonts (DejaVu) */
+}
+
+/* ── Dark tokens: selected steps, not an automatic flip ─────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #222221;
+    --surface-3: #2b2b29;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --cat-1: #3987e5;
+    --cat-2: #d95926;
+    --cat-3: #199e70;
+    --cat-4: #c98500;
+    --cat-5: #d55181;
+    --cat-6: #008300;
+    --cat-7: #9085e9;
+    --cat-8: #e66767;
+    --div-neg: #3987e5;
+    --div-mid: #383835;
+    --div-pos: #e66767;
+    --accent: #9085e9;
+    --accent-ink: #0d0d0d;
+    --accent-text: #a79ef0;
+    --accent-soft: rgba(144, 133, 233, 0.12);
+    --accent-ring: rgba(144, 133, 233, 0.5);
+    --good-text: #0ca30c;
+    --warning-text: #fab219;
+    --code-bg: #161615;
+    --code-ink: #e6e5e0;
+    --code-comment: #8a887f;
+    --code-keyword: #a79ef0;
+    --code-string: #4fc493;
+    --code-number: #f0956b;
+    --code-function: #7fb2ef;
+    --code-punct: #a3a29a;
+    --code-line-hl: rgba(144, 133, 233, 0.12);
+    --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 32px rgba(0, 0, 0, 0.5);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #222221;
+  --surface-3: #2b2b29;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --cat-1: #3987e5;
+  --cat-2: #d95926;
+  --cat-3: #199e70;
+  --cat-4: #c98500;
+  --cat-5: #d55181;
+  --cat-6: #008300;
+  --cat-7: #9085e9;
+  --cat-8: #e66767;
+  --div-neg: #3987e5;
+  --div-mid: #383835;
+  --div-pos: #e66767;
+  --accent: #9085e9;
+  --accent-ink: #0d0d0d;
+  --accent-text: #a79ef0;
+  --accent-soft: rgba(144, 133, 233, 0.12);
+  --accent-ring: rgba(144, 133, 233, 0.5);
+  --good-text: #0ca30c;
+  --warning-text: #fab219;
+  --code-bg: #161615;
+  --code-ink: #e6e5e0;
+  --code-comment: #8a887f;
+  --code-keyword: #a79ef0;
+  --code-string: #4fc493;
+  --code-number: #f0956b;
+  --code-function: #7fb2ef;
+  --code-punct: #a3a29a;
+  --code-line-hl: rgba(144, 133, 233, 0.12);
+  --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 32px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+
+  html {
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-padding-top: calc(var(--topbar-h) + 16px);
+  }
+
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-size: 17px;
+    line-height: 1.55;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
+  }
+
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  input[type="range"] {
+    accent-color: var(--accent);
+  }
+}
+
+/* ── Reading layout: distill-style grid; prose column ~70ch, figures wider ── */
+@layer components {
+  /*
+   * Every Section / ChapterHeader is a `.page-grid`: children sit in the prose
+   * column by default; `.wide` children span the full content width (≤ 1200px).
+   */
+  .page-grid {
+    display: grid;
+    font-size: var(--prose-size);
+    grid-template-columns:
+      [full-start] minmax(0, 1fr)
+      [prose-start] minmax(0, var(--prose-max))
+      [prose-end] minmax(0, 1fr)
+      [full-end];
+  }
+  .page-grid > * {
+    grid-column: prose;
+    min-width: 0;
+  }
+  .page-grid > .wide {
+    grid-column: full;
+  }
+
+  /* Long-form text */
+  .prose {
+    font-size: var(--prose-size);
+    line-height: 1.65;
+    color: var(--ink);
+  }
+  .prose p,
+  .page-grid > p {
+    margin: 0 0 1.05em;
+    line-height: 1.65;
+  }
+  .prose strong,
+  .page-grid strong {
+    font-weight: 620;
+  }
+  .prose a:not([data-plain]),
+  .page-grid a:not([data-plain]) {
+    color: var(--accent-text);
+    text-decoration: underline;
+    text-decoration-color: var(--accent-ring);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  .prose a:not([data-plain]):hover,
+  .page-grid a:not([data-plain]):hover {
+    text-decoration-color: currentColor;
+  }
+  .page-grid > ul,
+  .page-grid > ol,
+  .prose ul,
+  .prose ol {
+    margin: 0 0 1.1em;
+    padding-left: 1.3em;
+    line-height: 1.6;
+  }
+  .page-grid > ul,
+  .prose ul {
+    list-style: disc;
+  }
+  .page-grid > ol,
+  .prose ol {
+    list-style: decimal;
+  }
+  .page-grid li,
+  .prose li {
+    margin: 0.3em 0;
+    padding-left: 0.15em;
+  }
+  .page-grid li::marker,
+  .prose li::marker {
+    color: var(--muted);
+  }
+  .page-grid > h3,
+  .prose h3 {
+    font-size: 1.08em;
+    font-weight: 620;
+    letter-spacing: -0.005em;
+    margin: 1.7em 0 0.5em;
+    line-height: 1.35;
+  }
+  .page-grid > h4,
+  .prose h4 {
+    font-size: 0.95em;
+    font-weight: 620;
+    margin: 1.4em 0 0.4em;
+    color: var(--ink-2);
+  }
+  .page-grid > blockquote,
+  .prose blockquote {
+    margin: 1.2em 0;
+    padding: 0.1em 0 0.1em 1em;
+    border-left: 2px solid var(--axis);
+    color: var(--ink-2);
+  }
+  .page-grid :not(pre) > code,
+  .prose :not(pre) > code,
+  .inline-code {
+    font-family: var(--font-mono);
+    font-size: max(13.5px, 0.86em);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.06em 0.32em;
+    white-space: nowrap;
+  }
+  .page-grid hr,
+  .prose hr {
+    border: 0;
+    border-top: 1px solid var(--grid);
+    margin: 2.4em 0;
+  }
+
+  /* Values, ids, code in tables: monospace + tabular numbers */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Small-caps style label used for eyebrows / axis titles */
+  .eyebrow {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Card surface used by figures, callouts, panels */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Masked target, everywhere: dashed accent outline + "?" glyph (BUILD_PLAN §5) */
+  .target-outline {
+    outline: 1.5px dashed var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* Thin, quiet scrollbars inside figures */
+  .scroll-quiet {
+    scrollbar-width: thin;
+    scrollbar-color: var(--axis) transparent;
+  }
+  .scroll-quiet::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scroll-quiet::-webkit-scrollbar-thumb {
+    background: var(--axis);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  /* Visually hidden but available to assistive tech */
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* ── KaTeX tweaks ───────────────────────────────────────────────────────── */
+.katex {
+  font-size: 1.06em;
+  color: var(--ink);
+}
+.katex-display {
+  margin: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+/* ── Code blocks (CodeRef) ──────────────────────────────────────────────── */
+.code-block {
+  font-family: var(--font-mono);
+  font-size: 14.5px;
+  line-height: 1.6;
+  font-variant-ligatures: none;
+  tab-size: 4;
+}
+
+/* ── Motion: honour prefers-reduced-motion everywhere ───────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Forced colours: keep focus and target outlines visible */
+@media (forced-colors: active) {
+  .target-outline {
+    outline-color: Highlight;
+  }
+}

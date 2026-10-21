@@ -1,0 +1,313 @@
+{
+ "L": 128,
+ "w": 16,
+ "batchSize": 32,
+ "generator": "scripts/export-contexts.ts",
+ "pretrain": {
+  "dbs": [
+   "school",
+   "racing",
+   "forum"
+  ],
+  "heldOut": "shop",
+  "numTasks": 10,
+  "tasks": [
+   {
+    "id": "school/student-dropout",
+    "kind": "forecast",
+    "targetType": "binary",
+    "seeds": 1001
+   },
+   {
+    "id": "racing/driver-dnf",
+    "kind": "forecast",
+    "targetType": "binary",
+    "seeds": 242
+   },
+   {
+    "id": "forum/user-engagement",
+    "kind": "forecast",
+    "targetType": "binary",
+    "seeds": 1083
+   },
+   {
+    "id": "school/course-submissions",
+    "kind": "forecast",
+    "targetType": "regression",
+    "seeds": 288
+   },
+   {
+    "id": "racing/driver-points",
+    "kind": "forecast",
+    "targetType": "regression",
+    "seeds": 242
+   },
+   {
+    "id": "forum/post-votes",
+    "kind": "forecast",
+    "targetType": "regression",
+    "seeds": 765
+   },
+   {
+    "id": "school/submissions.late",
+    "kind": "autocomplete",
+    "targetType": "binary",
+    "seeds": 4277
+   },
+   {
+    "id": "forum/votes.is_upvote",
+    "kind": "autocomplete",
+    "targetType": "binary",
+    "seeds": 3587
+   },
+   {
+    "id": "school/submissions.grade",
+    "kind": "autocomplete",
+    "targetType": "regression",
+    "seeds": 4117
+   },
+   {
+    "id": "racing/results.position",
+    "kind": "autocomplete",
+    "targetType": "regression",
+    "seeds": 618
+   }
+  ],
+  "itemsPerEpoch": 16220,
+  "exportedEpochs": 11,
+  "exportedContexts": 178420,
+  "steps": 4001,
+  "contextsSeen": 128032,
+  "tokensSeen": 16388096,
+  "epochsSeen": 7.89
+ },
+ "paper": {
+  "steps": 50001,
+  "batch": 256,
+  "L": 1024,
+  "contextsSeen": 12800256,
+  "tokensSeen": 13107462144,
+  "note": "tokens = steps \u00d7 256 \u00d7 1024 \u2248 13.1B (slides: '13B tokens')"
+ },
+ "sets": {
+  "pretrain": {
+   "contexts": 178420,
+   "epochs": 11,
+   "itemsPerEpoch": 16220,
+   "tasks": [
+    "school/student-dropout",
+    "racing/driver-dnf",
+    "forum/user-engagement",
+    "school/course-submissions",
+    "racing/driver-points",
+    "forum/post-votes",
+    "school/submissions.late",
+    "forum/votes.is_upvote",
+    "school/submissions.grade",
+    "racing/results.position"
+   ],
+   "split": "Train",
+   "tokens": 22837760,
+   "realTokens": 22675965,
+   "meanRealTokens": 127.09,
+   "meanSelfLabels": 0.97,
+   "meanOtherLabels": 15.18
+  },
+  "eval/shop/customer-churn/Val": {
+   "contexts": 71,
+   "epochs": 1,
+   "itemsPerEpoch": 71,
+   "tasks": [
+    "shop/customer-churn"
+   ],
+   "split": "Val",
+   "tokens": 9088,
+   "realTokens": 9088,
+   "meanRealTokens": 128,
+   "meanSelfLabels": 8.46,
+   "meanOtherLabels": 0.2
+  },
+  "eval/shop/customer-churn/Test": {
+   "contexts": 74,
+   "epochs": 1,
+   "itemsPerEpoch": 74,
+   "tasks": [
+    "shop/customer-churn"
+   ],
+   "split": "Test",
+   "tokens": 9472,
+   "realTokens": 9472,
+   "meanRealTokens": 128,
+   "meanSelfLabels": 9.08,
+   "meanOtherLabels": 0.09
+  },
+  "eval/shop/product-sales/Val": {
+   "contexts": 30,
+   "epochs": 1,
+   "itemsPerEpoch": 30,
+   "tasks": [
+    "shop/product-sales"
+   ],
+   "split": "Val",
+   "tokens": 3840,
+   "realTokens": 3840,
+   "meanRealTokens": 128,
+   "meanSelfLabels": 10.1,
+   "meanOtherLabels": 0
+  },
+  "eval/shop/product-sales/Test": {
+   "contexts": 30,
+   "epochs": 1,
+   "itemsPerEpoch": 30,
+   "tasks": [
+    "shop/product-sales"
+   ],
+   "split": "Test",
+   "tokens": 3840,
+   "realTokens": 3840,
+   "meanRealTokens": 128,
+   "meanSelfLabels": 10.63,
+   "meanOtherLabels": 0
+  },
+  "eval/shop/reviews.verified/All": {
+   "contexts": 303,
+   "epochs": 1,
+   "itemsPerEpoch": 303,
+   "tasks": [
+    "shop/reviews.verified"
+   ],
+   "split": "All",
+   "tokens": 38784,
+   "realTokens": 38755,
+   "meanRealTokens": 127.9,
+   "meanSelfLabels": 0,
+   "meanOtherLabels": 3.4
+  },
+  "eval/shop/reviews.rating/All": {
+   "contexts": 303,
+   "epochs": 1,
+   "itemsPerEpoch": 303,
+   "tasks": [
+    "shop/reviews.rating"
+   ],
+   "split": "All",
+   "tokens": 38784,
+   "realTokens": 38752,
+   "meanRealTokens": 127.89,
+   "meanSelfLabels": 0,
+   "meanOtherLabels": 3.48
+  },
+  "diag/school/student-dropout/Val": {
+   "contexts": 110,
+   "epochs": 1,
+   "itemsPerEpoch": 110,
+   "tasks": [
+    "school/student-dropout"
+   ],
+   "split": "Val",
+   "tokens": 14080,
+   "realTokens": 14080,
+   "meanRealTokens": 128,
+   "meanSelfLabels": 9.1,
+   "meanOtherLabels": 0
+  },
+  "diag/racing/driver-dnf/Val": {
+   "contexts": 22,
+   "epochs": 1,
+   "itemsPerEpoch": 22,
+   "tasks": [
+    "racing/driver-dnf"
+   ],
+   "split": "Val",
+   "tokens": 2816,
+   "realTokens": 2816,
+   "meanRealTokens": 128,
+   "meanSelfLabels": 9.14,
+   "meanOtherLabels": 0
+  },
+  "diag/forum/user-engagement/Val": {
+   "contexts": 158,
+   "epochs": 1,
+   "itemsPerEpoch": 158,
+   "tasks": [
+    "forum/user-engagement"
+   ],
+   "split": "Val",
+   "tokens": 20224,
+   "realTokens": 20106,
+   "meanRealTokens": 127.25,
+   "meanSelfLabels": 5.75,
+   "meanOtherLabels": 0.05
+  },
+  "diag/school/course-submissions/Val": {
+   "contexts": 24,
+   "epochs": 1,
+   "itemsPerEpoch": 24,
+   "tasks": [
+    "school/course-submissions"
+   ],
+   "split": "Val",
+   "tokens": 3072,
+   "realTokens": 3072,
+   "meanRealTokens": 128,
+   "meanSelfLabels": 11.75,
+   "meanOtherLabels": 0
+  },
+  "diag/racing/driver-points/Val": {
+   "contexts": 22,
+   "epochs": 1,
+   "itemsPerEpoch": 22,
+   "tasks": [
+    "racing/driver-points"
+   ],
+   "split": "Val",
+   "tokens": 2816,
+   "realTokens": 2816,
+   "meanRealTokens": 128,
+   "meanSelfLabels": 9,
+   "meanOtherLabels": 0
+  },
+  "diag/forum/post-votes/Val": {
+   "contexts": 150,
+   "epochs": 1,
+   "itemsPerEpoch": 150,
+   "tasks": [
+    "forum/post-votes"
+   ],
+   "split": "Val",
+   "tokens": 19200,
+   "realTokens": 19082,
+   "meanRealTokens": 127.21,
+   "meanSelfLabels": 5.1,
+   "meanOtherLabels": 0.21
+  },
+  "finetune/shop/customer-churn": {
+   "contexts": 62504,
+   "epochs": 104,
+   "itemsPerEpoch": 601,
+   "tasks": [
+    "shop/customer-churn"
+   ],
+   "split": "Train",
+   "tokens": 8000512,
+   "realTokens": 7988552,
+   "meanRealTokens": 127.81,
+   "meanSelfLabels": 4.61,
+   "meanOtherLabels": 0.31
+  },
+  "finetune/shop/product-sales": {
+   "contexts": 33384,
+   "epochs": 104,
+   "itemsPerEpoch": 321,
+   "tasks": [
+    "shop/product-sales"
+   ],
+   "split": "Train",
+   "tokens": 4273152,
+   "realTokens": 4261192,
+   "meanRealTokens": 127.64,
+   "meanSelfLabels": 5.07,
+   "meanOtherLabels": 0.26
+  }
+ }
+}
