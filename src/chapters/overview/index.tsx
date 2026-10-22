@@ -488,8 +488,8 @@ export default function OverviewChapter() {
           The paper defines <Term id="zero-shot">zero-shot relational learning</Term> as “predicting new targets on a new RDB with a new schema,
           without weight updates. Information about the new RDB is available only at inference time, solely through the context window”{' '}
           <Cite kind="paper" ref="p.4 §2.3" />. To test it, the authors pretrain separately for each target database on all tasks of all the other
-          databases, a <Term id="leave-one-db-out">leave-one-database-out</Term> protocol <Cite kind="paper" ref="p.6 §4.1" />. This site does the
-          same with its four synthetic databases.
+          databases, a <Term id="leave-one-db-out">leave-one-database-out</Term> protocol <Cite kind="paper" ref="p.6 §4.1" />. This site runs one
+          such split: it pretrains on SchoolDB, RacingDB and ForumDB and holds out ShopDB.
         </p>
         <Figure wide title="Leave one database out, on this site">
           <LeaveOneOut weightsKind={assets.weightsKind} />

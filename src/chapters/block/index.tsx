@@ -216,7 +216,7 @@ export default function BlockChapter() {
           update it adds, ‖Δ‖, from the live forward pass. Click a box to inspect that sublayer.
         </p>
         <Figure wide id="block-diagram" title="An RT block, with the live numbers of one token">
-          <BlockDiagram live={live} />
+          <BlockDiagram live={live} follow={follow} setFollow={setFollow} />
         </Figure>
         {targetNbrKeys === 0 && (
           <p>
@@ -365,7 +365,7 @@ export default function BlockChapter() {
           information moves between tokens only in the four attention sublayers.
         </p>
         <Figure wide title="SiLU, the gate, and the hidden units of a live token">
-          <SwiGLUFigure live={live} />
+          <SwiGLUFigure live={live} follow={follow} setFollow={setFollow} />
         </Figure>
         <Callout variant="note" title="The only gate in the block">
           <p>
@@ -420,7 +420,7 @@ export default function BlockChapter() {
           colour scale. Pick another token to compare.
         </p>
         <Figure wide title="One token through the whole stack">
-          <ResidualStream live={live} />
+          <ResidualStream live={live} follow={follow} setFollow={setFollow} />
         </Figure>
         {facts && (
           <p>
@@ -608,7 +608,7 @@ export default function BlockChapter() {
                   text: 'After: x + Norm(MHA(x)), as in Algorithm 2.',
                   why: 'That is how Algorithm 2 (p.26) prints it, but the code is pre-norm. The site follows the code.',
                 },
-                { text: 'Both before and after.', why: 'Each sublayer has exactly one RMSNorm, on its input. The only other norm is norm_out after the last block.' },
+                { text: 'Both before and after.', why: 'Each sublayer has exactly one RMSNorm, on its input. The other RMSNorms are outside the blocks: one per input projection in the embedding, and norm_out after the last block.' },
               ],
               explanation: (
                 <>
@@ -628,7 +628,7 @@ export default function BlockChapter() {
                 { text: 'The average of its child rows.', why: 'A task row has no children in the context: nothing points to it.' },
                 { text: 'The same as the full layer.', why: 'The two masks differ: full allows every non-padding key, neighbor only rows that point to the query’s row.' },
               ],
-              explanation: 'Information still reaches the target from the entity’s children, but indirectly: the entity reads them in the neighbor layer, and the target reads the entity in the next feature layer.',
+              explanation: 'Information still reaches the target from the entity’s children. Full attention lets the target read them directly in every block, and along the relational path the entity reads them in the neighbor layer and the target reads the entity in the next feature layer.',
             },
           ]}
         />

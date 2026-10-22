@@ -375,10 +375,7 @@ export default function SemanticsChapter() {
               onChange={setFocus}
               compare={compareWith}
               onCompare={setCompare}
-              compareReason={compareReason}
               presets={presets}
-              suggestions={suggestions}
-              dbName={live.dbName}
             />
           ) : storeState.status === 'error' ? (
             <LoadError error={storeState.error} />
@@ -585,7 +582,7 @@ export default function SemanticsChapter() {
           title="Two vectors per text token"
           caption="Pick a text cell of the live context. The token holds two separate rows of the string table: its column phrase and its raw value."
         >
-          {store ? <TextCells live={live} store={store} narrow={narrow} /> : storeState.status === 'error' ? <LoadError error={storeState.error} /> : <Loading height={360} />}
+          {store ? <TextCells live={live} store={store} /> : storeState.status === 'error' ? <LoadError error={storeState.error} /> : <Loading height={360} />}
         </Figure>
         <p>
           The column context of a text cell therefore comes only from the separate column{' '}
@@ -734,7 +731,7 @@ export default function SemanticsChapter() {
         <h3>Not lexical copying</h3>
         <p>
           Could the model simply match identical column names across databases? The paper checks with the{' '}
-          <Term id="jaccard">Jaccard overlap</Term> of the column names of two databases: the number of shared names divided by the number of
+          Jaccard overlap of the column names of two databases: the number of shared names divided by the number of
           distinct names in the two databases together, <TeX tex="|A \cap B| \,/\, |A \cup B|" />. Between RelBench databases it is tiny, at
           most 0.043 (rel-amazon vs rel-hm), and fuzzy string matching gives only 0.47 to{' '}
           <Nw>

@@ -421,6 +421,7 @@ function Dumbbells({
                     {row.label}
                   </text>
                   <motion.line
+                    key={`line-${col}`}
                     initial={false}
                     animate={{ x1: x(row.ref), x2: x(row.v) }}
                     transition={tr}
@@ -440,6 +441,7 @@ function Dumbbells({
                     strokeWidth={2}
                   />
                   <motion.circle
+                    key={`dot-${col}`}
                     initial={false}
                     animate={{ cx: x(row.v) }}
                     transition={tr}

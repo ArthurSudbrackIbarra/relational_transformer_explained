@@ -428,8 +428,8 @@ export function MiniLabelAblation() {
       caption={
         <>
           This site’s zero-shot checkpoints on ShopDB’s test split, with every visible cell of the target column turned into padding at inference time
-          (self and other labels together). The paper instead removes self or other labels separately and re-samples the context{' '}
-          <Cite kind="paper" ref="p.9 §5.1" />, so the setups differ; the paper’s Table 4 numbers are shown for direction only. Our test sets are
+          (self and other labels together). The paper removes self and other labels as separate ablations{' '}
+          <Cite kind="paper" ref="p.9 §5.1" />, and its implementation is not released <Cite kind="spec" ref="§13 #3" />, so the setups differ; the paper’s Table 4 numbers are shown for direction only. Our test sets are
           tiny, so expect large variance.
         </>
       }

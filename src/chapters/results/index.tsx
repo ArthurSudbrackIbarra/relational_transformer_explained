@@ -179,7 +179,7 @@ export default function ResultsChapter() {
           <AblationExplorer spec={CONTEXT_SPEC} initial={{ variant: 'selfLabels', setting: 'zs', metric: 'clf' }} />
         </Figure>
         <p>
-          Only one ablation matters on average. Without self labels, zero-shot AUROC falls from {f1(T4.none.zsClf)} to {f1(T4.selfLabels.zsClf)} and
+          Self labels dominate. Without them, zero-shot AUROC falls from {f1(T4.none.zsClf)} to {f1(T4.selfLabels.zsClf)} and
           R² from {f1(T4.none.zsReg)} to {f1(T4.selfLabels.zsReg)}, worse than predicting the mean. “Zero-shot transfer is driven primarily by the
           model’s ability to leverage past labels of the target entity” <Cite kind="paper" ref="p.9 §5.1" />. Yet RT is not just averaging them: it
           beats EntityMean, which does exactly that <Cite kind="paper" ref="p.9 §5.1" />. After fine-tuning, the ablations barely move the means,

@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Button, IconButton, LAYER_INFO, Segmented, Slider, Switch, cx } from '@/components';
 import { ATTN_ORDER, type AttnLayer } from '@/engine/types';
+import { DEFAULT_L } from '@/engine/model/config';
 import { useSim } from '@/state/store';
 import type { RemoveWhat } from './ablate';
 import { RadioList } from './bits';
@@ -165,7 +166,7 @@ export function AblationPanel() {
         title="Context length"
         note={
           <>
-            Trained at L = {globalL}; the paper at 1024.{' '}
+            Trained at L = {DEFAULT_L}; the paper at 1024.{' '}
             {p.L !== null && (
               <button type="button" className="font-medium text-accent-text hover:underline" onClick={() => p.set({ L: null })}>
                 Back to {globalL}
