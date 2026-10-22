@@ -7,3 +7,8 @@ python/data/
 .DS_Store
 test-results
 playwright-report
+
+# Stray QA screenshots and the local copy of the paper (link to arXiv instead)
+/*.png
+/*.jpg
+/*.pdf
