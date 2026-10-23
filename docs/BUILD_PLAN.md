@@ -1,4 +1,4 @@
-# Build plan: "Relational Transformer, Step by Step"
+# Build plan: "Relational Transformer Explained"
 
 An interactive website that walks a learner through **every step** of the Relational Transformer (RT; Ranjan et al., ICLR 2026, arXiv 2510.06377v3). It runs a **real, faithful miniature RT** in the browser on dummy relational databases.
 

@@ -3,11 +3,12 @@
  * from any path:
  *   /#/                 Landing
  *   /#/<slug>           chapters (lazy, via src/chapters/registry.ts)
+ *   /#/qa, /#/qa/<id>   questions & answers (lazy, src/qa)
  *   /#/dev/components   component gallery (not in the navigation)
  *   anything else       NotFound
  */
 import { MotionConfig } from 'motion/react';
-import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, type ReactNode } from 'react';
 import { HashRouter, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { getChapterComponent } from '@/chapters/registry';
 import { Layout } from '@/components/shell/Layout';
@@ -15,14 +16,26 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { Landing } from '@/pages/Landing';
 import { NotFound } from '@/pages/NotFound';
 import { useSim } from '@/state/store';
-import { applyTheme } from '@/styles/theme';
+import { applyReading, applyTheme } from '@/styles/theme';
 
 const DevGallery = lazy(() => import('@/pages/DevGallery').then((m) => ({ default: m.DevGallery })));
+const QAIndex = lazy(() => import('@/qa/QAPages').then((m) => ({ default: m.QAIndex })));
+const QAPage = lazy(() => import('@/qa/QAPages').then((m) => ({ default: m.QAPage })));
 
-/** Keeps <html data-theme> in sync with the store's theme choice. */
+function Lazy({ children, resetKey }: { children: ReactNode; resetKey?: string }) {
+  return (
+    <ErrorBoundary resetKey={resetKey}>
+      <Suspense fallback={<PageLoading />}>{children}</Suspense>
+    </ErrorBoundary>
+  );
+}
+
+/** Keeps <html data-theme> and <html data-reading> in sync with the store. */
 function ThemeSync() {
   const theme = useSim((s) => s.theme);
+  const reading = useSim((s) => s.reading);
   useLayoutEffect(() => applyTheme(theme), [theme]);
+  useLayoutEffect(() => applyReading(reading), [reading]);
   return null;
 }
 
@@ -66,6 +79,15 @@ function ChapterRoute() {
   );
 }
 
+function QARoute() {
+  const { qid = '' } = useParams();
+  return (
+    <Lazy resetKey={qid}>
+      <QAPage />
+    </Lazy>
+  );
+}
+
 export default function App() {
   return (
     <HashRouter>
@@ -78,13 +100,20 @@ export default function App() {
             <Route
               path="dev/components"
               element={
-                <ErrorBoundary>
-                  <Suspense fallback={<PageLoading />}>
-                    <DevGallery />
-                  </Suspense>
-                </ErrorBoundary>
+                <Lazy>
+                  <DevGallery />
+                </Lazy>
               }
             />
+            <Route
+              path="qa"
+              element={
+                <Lazy>
+                  <QAIndex />
+                </Lazy>
+              }
+            />
+            <Route path="qa/:qid" element={<QARoute />} />
             <Route path=":slug" element={<ChapterRoute />} />
             <Route path="*" element={<NotFound />} />
           </Route>

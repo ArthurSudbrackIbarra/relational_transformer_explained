@@ -1,5 +1,5 @@
 /*
- * Relational Transformer, Step by Step: design tokens and base styles.
+ * Relational Transformer Explained: design tokens and base styles.
  *
  * BUILD_PLAN §5. Calm, scholarly, modern (distill.pub × Observable). One accent
  * (violet = categorical slot 7), data is the loudest thing.
@@ -212,6 +212,7 @@
   /* layout */
   --topbar-h: 56px;
   --sidebar-w: 284px;
+  --rail-w: 60px; /* folded sidebar */
   --content-max: 1200px;
   --prose-size: 18px;
   --prose-max: 66ch; /* ≈ 70ch target, tuned for wide-"0" fallback fonts (DejaVu) */
@@ -306,6 +307,120 @@
   --code-line-hl: rgba(144, 133, 233, 0.12);
   --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 32px rgba(0, 0, 0, 0.5);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/*
+ * ── Reading mode: <html data-reading="on"> (toggle in the top bar, off by default) ──
+ * A book page: Libron (OFL, github.com/nicoverbruggen/libron, files in ./fonts/libron)
+ * for all text, monospace kept for values and code. Light = warm paper; dark =
+ * a lamplit page (warm charcoal, cream ink) instead of the neutral dark theme.
+ * Only the neutrals change: categorical and sequential data colours keep their
+ * meaning across modes. These rules come after the dark tokens on purpose:
+ * `:root[data-reading]` ties their specificity and wins by order, and the two
+ * dark reading rules below out-rank it.
+ */
+@font-face {
+  font-family: "Libron";
+  src: url("./fonts/libron/Libron-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Libron";
+  src: url("./fonts/libron/Libron-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Libron";
+  src: url("./fonts/libron/Libron-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Libron";
+  src: url("./fonts/libron/Libron-BoldItalic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root[data-reading="on"] {
+  color-scheme: light;
+  --font-sans: "Libron", "Iowan Old Style", Charter, Georgia, serif;
+  --prose-size: 19px;
+  --page: #f2e9d5;
+  --surface: #f8f1e1;
+  --surface-2: #ece1c8;
+  --surface-3: #e3d5b7;
+  --ink: #2a2118;
+  --ink-2: #574838;
+  --muted: #7d6c57;
+  --grid: #e0d2b4;
+  --axis: #c2b08d;
+  --border: rgba(84, 58, 20, 0.14);
+  --border-strong: rgba(84, 58, 20, 0.24);
+  --code-bg: #efe5cf;
+  --code-ink: #2f261c;
+  --code-comment: #7a6a55;
+  --code-punct: #6b5d4c;
+  --shadow-pop: 0 1px 2px rgba(84, 58, 20, 0.08), 0 8px 28px rgba(84, 58, 20, 0.14);
+  --shadow-card: 0 1px 2px rgba(84, 58, 20, 0.06);
+  /* faint paper fibre, tiled on the page background only (never over figures) */
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.33 0 0 0 0 0.23 0 0 0 0 0.08 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-reading="on"]:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #1a1713;
+    --surface: #23201b;
+    --surface-2: #2b2721;
+    --surface-3: #35302a;
+    --ink: #ece2cf;
+    --ink-2: #c9bba3;
+    --muted: #968871;
+    --grid: #342e27;
+    --axis: #4a4238;
+    --border: rgba(236, 214, 178, 0.11);
+    --border-strong: rgba(236, 214, 178, 0.2);
+    --code-bg: #1f1c17;
+    --code-ink: #e8dec9;
+    --code-comment: #998b74;
+    --code-punct: #b1a48d;
+    --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 32px rgba(0, 0, 0, 0.55);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.93 0 0 0 0 0.84 0 0 0 0 0.68 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+:root[data-reading="on"][data-theme="dark"] {
+  color-scheme: dark;
+  --page: #1a1713;
+  --surface: #23201b;
+  --surface-2: #2b2721;
+  --surface-3: #35302a;
+  --ink: #ece2cf;
+  --ink-2: #c9bba3;
+  --muted: #968871;
+  --grid: #342e27;
+  --axis: #4a4238;
+  --border: rgba(236, 214, 178, 0.11);
+  --border-strong: rgba(236, 214, 178, 0.2);
+  --code-bg: #1f1c17;
+  --code-ink: #e8dec9;
+  --code-comment: #998b74;
+  --code-punct: #b1a48d;
+  --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 32px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.93 0 0 0 0 0.84 0 0 0 0 0.68 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+:root[data-reading="on"] .site-bg {
+  background-image: var(--paper-grain);
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */

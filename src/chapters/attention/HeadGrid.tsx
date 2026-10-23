@@ -13,7 +13,7 @@ import { Button, Heatmap, LayerLabel, LAYER_INFO, Segmented, TableSwatch, cx, di
 import { useElementSize } from '@/components/viz/useSize';
 import { ATTN_ORDER, type AttnLayer } from '@/engine/types';
 import { TOKENS } from '@/styles/palette';
-import { useResolvedTheme } from '@/styles/theme';
+import { useReadingMode, useResolvedTheme } from '@/styles/theme';
 import { SelectionBar } from './Controls';
 import { int, pctw } from './utils';
 import type { AttnLive } from './useAttnLive';
@@ -462,6 +462,7 @@ const SmallPanel = memo(function SmallPanel(p: SmallPanelProps) {
 
 function GridLegend({ scale }: { scale: ScaleMode }) {
   const mode = useResolvedTheme();
+  useReadingMode(); // TOKENS follow reading mode
   const blockedBg = scale === 'diff' ? DIFF_BLOCKED[mode] : TOKENS[mode].surface2;
   const stops = Array.from({ length: 11 }, (_, i) => i / 10);
   const grad =

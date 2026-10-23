@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { CHAPTERS, PARTS, prefetchChapter } from '@/chapters/registry';
 import { Cite } from '@/components/prose/Cite';
-import { CODE, PAPER } from '@/components/prose/sources';
+import { CODE, PAPER, SITE_TITLE } from '@/components/prose/sources';
 import { SCALE_ROWS } from '@/components/prose/ScaleNote';
 import { ContentColumn } from '@/components/shell/Layout';
 import { cx } from '@/components/ui/cx';
@@ -56,7 +56,7 @@ export function Landing() {
   const nextUnvisited = CHAPTERS.find((c) => !visited[c.slug]) ?? CHAPTERS[0];
 
   useEffect(() => {
-    document.title = 'Relational Transformer, Step by Step';
+    document.title = SITE_TITLE;
   }, []);
 
   return (
@@ -67,7 +67,7 @@ export function Landing() {
           <div className="min-w-0">
             <div className="eyebrow">An interactive, code-faithful walkthrough</div>
             <h1 className="mt-4 text-[40px] leading-[1.05] font-semibold tracking-[-0.03em] text-balance text-ink sm:text-[54px]">
-              Relational Transformer, Step by Step
+              {SITE_TITLE}
             </h1>
             <p className="mt-5 max-w-[34em] text-[20.5px] leading-[1.6] text-pretty text-ink-2 sm:text-[21.5px]">
               Follow one prediction through every operation of the Relational Transformer, from database rows to cell tokens,

@@ -98,6 +98,10 @@ export interface InspectState {
 export interface UiState {
   /** null = follow prefers-color-scheme. */
   theme: ThemeChoice;
+  /** Book-like reading mode (Libron serif on a paper-toned page). Off by default. */
+  reading: boolean;
+  /** Desktop sidebar folded into a narrow rail of chapter numbers. */
+  sidebarCollapsed: boolean;
   /** Chapter slugs the reader has opened (sidebar ticks). */
   visited: Record<string, true>;
 }
@@ -120,9 +124,11 @@ export interface SimActions {
   toggleLayer: (layer: AttnLayer) => void;
   setDisabledLayers: (layers: AttnLayer[]) => void;
   setTheme: (theme: ThemeChoice) => void;
+  setReading: (reading: boolean) => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   markVisited: (slug: string) => void;
   clearVisited: () => void;
-  /** Restore every simulation knob to SIM_DEFAULTS (keeps theme and visited). */
+  /** Restore every simulation knob to SIM_DEFAULTS (keeps theme, reading mode, sidebar and visited). */
   resetSimulation: () => void;
 }
 
@@ -182,6 +188,8 @@ export const useSim = create<SimState>()(
       head: 0,
       disabledLayers: [],
       theme: null,
+      reading: false,
+      sidebarCollapsed: false,
       visited: {},
 
       // Changing anything that alters the context invalidates the selected token.
@@ -209,6 +217,8 @@ export const useSim = create<SimState>()(
         })),
       setDisabledLayers: (disabledLayers) => set({ disabledLayers: [...disabledLayers] }),
       setTheme: (theme) => set({ theme }),
+      setReading: (reading) => set({ reading }),
+      setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
       markVisited: (slug) =>
         set((s) => (s.visited[slug] ? s : { visited: { ...s.visited, [slug]: true as const } })),
       clearVisited: () => set({ visited: {} }),
@@ -234,6 +244,8 @@ export const useSim = create<SimState>()(
         layer: s.layer,
         head: s.head,
         theme: s.theme,
+        reading: s.reading,
+        sidebarCollapsed: s.sidebarCollapsed,
         visited: s.visited,
       }),
       // Defensive merge: ignore malformed persisted values.
@@ -254,6 +266,8 @@ export const useSim = create<SimState>()(
         if (p.layer === 'col' || p.layer === 'feat' || p.layer === 'nbr' || p.layer === 'full') out.layer = p.layer;
         if (typeof p.head === 'number') out.head = Math.max(0, Math.round(p.head));
         if (p.theme === 'light' || p.theme === 'dark' || p.theme === null) out.theme = p.theme;
+        if (typeof p.reading === 'boolean') out.reading = p.reading;
+        if (typeof p.sidebarCollapsed === 'boolean') out.sidebarCollapsed = p.sidebarCollapsed;
         if (p.visited && typeof p.visited === 'object') out.visited = { ...(p.visited as Record<string, true>) };
         // keep db consistent with the task id
         const taskDb = out.taskId.split('/')[0] as DbName;

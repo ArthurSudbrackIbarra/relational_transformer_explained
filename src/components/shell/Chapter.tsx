@@ -19,6 +19,7 @@ import { ArrowLeft, ArrowRight, Link as LinkIcon } from 'lucide-react';
 import { useEffect, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getChapter, getNeighbors, PARTS, prefetchChapter } from '@/chapters/registry';
+import { SITE_TITLE } from '../prose/sources';
 import { cx } from '../ui/cx';
 import { ContentColumn } from './Layout';
 
@@ -65,7 +66,7 @@ export function ChapterHeader({ slug, number, title, lede, learn, children }: Ch
   const t = title ?? meta?.title;
   const part = meta ? PARTS.find((p) => p.id === meta.part) : undefined;
   useEffect(() => {
-    if (typeof t === 'string') document.title = `${n ? `${n}. ` : ''}${t} · Relational Transformer, Step by Step`;
+    if (typeof t === 'string') document.title = `${n ? `${n}. ` : ''}${t} · ${SITE_TITLE}`;
   }, [t, n]);
   return (
     <header className="page-grid mb-12">

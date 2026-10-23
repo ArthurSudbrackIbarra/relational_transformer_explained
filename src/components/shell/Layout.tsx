@@ -1,21 +1,24 @@
 /**
  * App shell (BUILD_PLAN §5): sticky top bar (title, simulation indicator,
- * theme toggle, paper & code links), left chapter sidebar ≥ 1024px that
- * becomes a drawer below, and the content column (prose ~70ch, figures up to
- * 1200px). The landing page hides the fixed sidebar (the drawer stays available).
+ * reading mode and theme toggles, paper & code links), left chapter sidebar
+ * ≥ 1024px that folds into a rail of chapter numbers and becomes a drawer
+ * below, the content column (prose ~70ch, figures up to 1200px), and a footer
+ * with the author's note. The landing page hides the fixed sidebar (the drawer
+ * stays available).
  */
-import { BookOpen, Code2, Menu, X } from 'lucide-react';
+import { Code2, FileText, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { getChapter } from '@/chapters/registry';
 import { IconButton } from '../ui/controls';
 import { cx } from '../ui/cx';
-import { CODE, PAPER } from '../prose/sources';
+import { useSim } from '@/state/store';
+import { CODE, PAPER, SITE_REPO, SITE_TITLE } from '../prose/sources';
 import { Logo } from './Logo';
-import { ChapterList } from './Sidebar';
+import { ChapterList, ChapterRail, QA_PATH } from './Sidebar';
 import { SimIndicator } from './SimIndicator';
-import { ThemeToggle } from './ThemeToggle';
+import { ReadingToggle, ThemeToggle } from './ThemeToggle';
 
 function currentSlug(pathname: string): string | undefined {
   const slug = pathname.replace(/^\/+/, '').split('/')[0];
@@ -38,12 +41,13 @@ function TopBar({ onMenu, menuOpen, showMenuAlways }: { onMenu: () => void; menu
         <Link to="/" data-plain className="flex min-w-0 items-center gap-2.5 rounded-md pr-1 text-ink">
           <Logo />
           <span className="truncate text-[17.5px] font-semibold tracking-[-0.01em]">
-            <span className="hidden sm:inline">Relational Transformer, Step by Step</span>
-            <span className="sm:hidden">RT, Step by Step</span>
+            <span className="hidden sm:inline">{SITE_TITLE}</span>
+            <span className="sm:hidden">RT Explained</span>
           </span>
         </Link>
         <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-1.5">
           <SimIndicator className="shrink-0 lg:max-w-[440px]" />
+          <ReadingToggle />
           <ThemeToggle />
           <a
             href={PAPER.url}
@@ -53,7 +57,7 @@ function TopBar({ onMenu, menuOpen, showMenuAlways }: { onMenu: () => void; menu
             className="hidden h-9 items-center gap-1.5 rounded-lg px-2 text-[15.5px] font-medium text-ink-2 hover:bg-surface-2 hover:text-ink sm:inline-flex"
             title={`${PAPER.authors}, ${PAPER.title} (${PAPER.venue})`}
           >
-            <BookOpen aria-hidden="true" size={16} />
+            <FileText aria-hidden="true" size={16} />
             <span className="hidden xl:inline">Paper</span>
             <span className="sr-only xl:hidden">Paper</span>
           </a>
@@ -75,7 +79,7 @@ function TopBar({ onMenu, menuOpen, showMenuAlways }: { onMenu: () => void; menu
   );
 }
 
-function Drawer({ open, onClose, slug }: { open: boolean; onClose: () => void; slug?: string }) {
+function Drawer({ open, onClose, slug, qaCurrent }: { open: boolean; onClose: () => void; slug?: string; qaCurrent: boolean }) {
   const panel = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!open) return;
@@ -124,7 +128,7 @@ function Drawer({ open, onClose, slug }: { open: boolean; onClose: () => void; s
                 <X size={18} />
               </IconButton>
             </div>
-            <ChapterList onNavigate={onClose} currentSlug={slug} />
+            <ChapterList onNavigate={onClose} currentSlug={slug} qaCurrent={qaCurrent} />
             <div className="mt-4 flex flex-col gap-1 border-t border-grid px-1 pt-4">
               <a
                 href={PAPER.url}
@@ -133,7 +137,7 @@ function Drawer({ open, onClose, slug }: { open: boolean; onClose: () => void; s
                 data-plain
                 className="flex items-center gap-2 rounded-lg px-2 py-2 text-[16.5px] text-ink-2 hover:bg-surface-2 hover:text-ink"
               >
-                <BookOpen aria-hidden="true" size={16} /> Paper (arXiv {PAPER.arxiv})
+                <FileText aria-hidden="true" size={16} /> Paper (arXiv {PAPER.arxiv})
               </a>
               <a
                 href={`${CODE.url}/tree/${CODE.commitFull}`}
@@ -162,7 +166,10 @@ export function Layout({ children }: LayoutProps) {
   const { pathname } = useLocation();
   const slug = currentSlug(pathname);
   const isLanding = pathname === '/' || pathname === '';
+  const qaCurrent = pathname === QA_PATH || pathname.startsWith(`${QA_PATH}/`);
   const [drawer, setDrawer] = useState(false);
+  const collapsed = useSim((s) => s.sidebarCollapsed);
+  const setCollapsed = useSim((s) => s.setSidebarCollapsed);
 
   // close the drawer on navigation
   useEffect(() => setDrawer(false), [pathname]);
@@ -170,7 +177,7 @@ export function Layout({ children }: LayoutProps) {
   const withSidebar = !isLanding;
 
   return (
-    <div className="min-h-screen bg-page">
+    <div className="site-bg flex min-h-screen flex-col bg-page">
       <a
         href="#main"
         onClick={(e) => {
@@ -182,23 +189,75 @@ export function Layout({ children }: LayoutProps) {
         Skip to content
       </a>
       <TopBar onMenu={() => setDrawer((d) => !d)} menuOpen={drawer} showMenuAlways={!withSidebar} />
-      <Drawer open={drawer} onClose={() => setDrawer(false)} slug={slug} />
-      <div className="flex">
+      <Drawer open={drawer} onClose={() => setDrawer(false)} slug={slug} qaCurrent={qaCurrent} />
+      <div className="flex flex-1">
         {withSidebar && (
-          <div className="hidden w-[var(--sidebar-w)] shrink-0 border-r border-border lg:block">
+          <div
+            className={cx(
+              'hidden shrink-0 border-r border-border transition-[width] duration-200 ease-out motion-reduce:transition-none lg:block',
+              collapsed ? 'w-[var(--rail-w)]' : 'w-[var(--sidebar-w)]',
+            )}
+          >
             <aside
-              className="scroll-quiet sticky top-[var(--topbar-h)] h-[calc(100vh-var(--topbar-h))] overflow-y-auto px-2 pt-6 pb-10"
+              className={cx(
+                'scroll-quiet sticky top-[var(--topbar-h)] h-[calc(100vh-var(--topbar-h))] overflow-x-hidden overflow-y-auto pb-10',
+                collapsed ? 'px-1 pt-3' : 'px-2 pt-6',
+              )}
               aria-label="Course navigation"
             >
-              <ChapterList currentSlug={slug} />
+              {collapsed ? (
+                <ChapterRail
+                  currentSlug={slug}
+                  qaCurrent={qaCurrent}
+                  action={
+                    <IconButton label="Expand the sidebar" onClick={() => setCollapsed(false)} aria-expanded={false}>
+                      <PanelLeftOpen size={18} />
+                    </IconButton>
+                  }
+                />
+              ) : (
+                <div className="w-[calc(var(--sidebar-w)-17px)]">
+                  <ChapterList
+                    currentSlug={slug}
+                    qaCurrent={qaCurrent}
+                    action={
+                      <IconButton label="Collapse the sidebar" size="sm" onClick={() => setCollapsed(true)} aria-expanded={true}>
+                        <PanelLeftClose size={17} />
+                      </IconButton>
+                    }
+                  />
+                </div>
+              )}
             </aside>
           </div>
         )}
-        <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
-          {children ?? <Outlet />}
+        <main id="main" tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
+          <div className="flex-1">{children ?? <Outlet />}</div>
+          <SiteFooter />
         </main>
       </div>
     </div>
+  );
+}
+
+/** Quiet footer on every page: the author's note and where the source lives. */
+function SiteFooter() {
+  return (
+    <footer className="border-t border-grid">
+      <ContentColumn className="page-grid py-7">
+        <p className="!m-0 text-[14.5px] leading-[1.6] text-muted">
+          <span className="font-semibold text-ink-2">Author’s note.</span> I built this site with Claude to help me study the
+          Relational Transformer, and I made it public because it could help other people too. To be clear, Claude created
+          everything here, so there may be errors or inaccuracies.
+          <span className="mt-2 block">
+            Arthur Sudbrack Ibarra ·{' '}
+            <a href={SITE_REPO} target="_blank" rel="noreferrer noopener" className="underline decoration-axis underline-offset-[3px] hover:text-ink-2">
+              Source of this site
+            </a>
+          </span>
+        </p>
+      </ContentColumn>
+    </footer>
   );
 }
 

@@ -16,7 +16,7 @@ import { cx, sequentialCss } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import type { Token } from '@/engine/types';
 import { TOKENS, catVar } from '@/styles/palette';
-import { useResolvedTheme } from '@/styles/theme';
+import { useReadingMode, useResolvedTheme } from '@/styles/theme';
 import { pctw, sgn, type KeyGroup } from './utils';
 
 export type BarStage = 'scores' | 'mask' | 'softmax';
@@ -47,6 +47,7 @@ export function KeyBars({ tokens, groups, order, scores, probs, allowed, stage, 
   const uid = useId().replace(/:/g, '');
   const [ref, size] = useElementSize<HTMLDivElement>();
   const mode = useResolvedTheme();
+  useReadingMode(); // TOKENS follow reading mode
   const reduce = useReducedMotion();
   const [hover, setHover] = useState<number | null>(null);
   const W = Math.max(280, size.width || 720);

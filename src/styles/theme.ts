@@ -29,6 +29,13 @@ export function applyTheme(choice: ThemeChoice): void {
   else root.removeAttribute('data-theme');
 }
 
+/** Stamp (or clear) reading mode on <html> (index.css: Libron + paper tones). */
+export function applyReading(on: boolean): void {
+  if (typeof document === 'undefined') return;
+  if (on) document.documentElement.setAttribute('data-reading', 'on');
+  else document.documentElement.removeAttribute('data-reading');
+}
+
 /** The mode actually on screen right now. */
 export function resolvedTheme(): ThemeMode {
   if (typeof document === 'undefined') return 'light';
@@ -57,6 +64,22 @@ function subscribe(onChange: () => void): () => void {
 /** React hook: the resolved theme, re-rendering on toggle and on OS changes. */
 export function useResolvedTheme(): ThemeMode {
   return useSyncExternalStore(subscribe, resolvedTheme, () => 'light');
+}
+
+function subscribeReading(onChange: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  const obs = new MutationObserver(onChange);
+  obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-reading'] });
+  return () => obs.disconnect();
+}
+
+/** React hook: true while reading mode is on. Canvas code reads TOKENS, so it re-draws on this. */
+export function useReadingMode(): boolean {
+  return useSyncExternalStore(
+    subscribeReading,
+    () => document.documentElement.getAttribute('data-reading') === 'on',
+    () => false,
+  );
 }
 
 /** React hook: true when the viewer asked for reduced motion. */

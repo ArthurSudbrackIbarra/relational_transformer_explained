@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { catHex, TOKENS } from '@/styles/palette';
-import { useResolvedTheme } from '@/styles/theme';
+import { useReadingMode, useResolvedTheme } from '@/styles/theme';
 import { cx } from '../ui/cx';
 import { formatNumber, formatSigned } from './format';
 import { divergingRgb, maxAbs as maxAbsOf, rgbCss, sequentialRgb, type RGB } from './scales';
@@ -147,6 +147,7 @@ export function Heatmap(props: HeatmapProps) {
   } = props;
 
   const mode = useResolvedTheme();
+  const reading = useReadingMode();
   const [wrapRef, size] = useElementSize<HTMLDivElement>();
   const R = Math.min(rows, crop?.rows ?? rows);
   const C = Math.min(cols, crop?.cols ?? cols);
@@ -286,7 +287,7 @@ export function Heatmap(props: HeatmapProps) {
               }
               return img;
             }}
-            drawKey={`${mode}|${scale}|${domainResolved.join(',')}|${R}|${C}|${s}|${blockedFill ?? ''}`}
+            drawKey={`${mode}|${reading}|${scale}|${domainResolved.join(',')}|${R}|${C}|${s}|${blockedFill ?? ''}`}
             data={data}
             blocked={blocked}
             hlRows={hlRows}
@@ -477,7 +478,7 @@ function HeatmapPanel(p: PanelProps) {
       const off = (s - cell) / 2;
       band(x0 + p.selected.col * cell - off, y0 + p.selected.row * cell - off, s, s, accent, 2);
     }
-  }, [p.hlRows, p.hlCols, p.hover, p.focusCell, p.selected, W, H, cell, dpr, mode, R, C, plotW, plotH, stripW, colStripH]);
+  }, [p.hlRows, p.hlCols, p.hover, p.focusCell, p.selected, W, H, cell, dpr, mode, p.drawKey, R, C, plotW, plotH, stripW, colStripH]);
 
   const locate = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();

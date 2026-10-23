@@ -3,6 +3,11 @@
  * citation to the spec, the paper or the paper-era code).
  */
 
+/** The site's name: top bar, landing hero, document titles. */
+export const SITE_TITLE = 'Relational Transformer Explained';
+/** This site's own repository. */
+export const SITE_REPO = 'https://github.com/ArthurSudbrackIbarra/relational_transformer_explained';
+
 export const PAPER = {
   title: 'Relational Transformer: Toward Zero-Shot Foundation Models for Relational Data',
   authors: 'Ranjan et al.',

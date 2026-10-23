@@ -52,7 +52,7 @@ export interface ModeTokens {
   seqStops: readonly string[];
 }
 
-export const TOKENS: Record<ThemeMode, ModeTokens> = {
+const BASE_TOKENS: Record<ThemeMode, ModeTokens> = {
   light: {
     page: '#f9f9f7',
     surface: '#fcfcfb',
@@ -84,6 +84,33 @@ export const TOKENS: Record<ThemeMode, ModeTokens> = {
     divPos: '#e66767',
     // dark: anchor flips: 700 (near zero, sits by the dark surface) → 100 (max)
     seqStops: ['#0d366b', '#184f95', '#256abf', '#3987e5', '#6da7ec', '#9ec5f4', '#cde2fb'],
+  },
+};
+
+/**
+ * Reading mode (<html data-reading="on">, index.css) swaps only the neutrals for paper tones;
+ * data colours (categorical, sequential, diverging) keep their meaning.
+ */
+const READING_NEUTRALS: Record<ThemeMode, Partial<ModeTokens>> = {
+  light: { page: '#f2e9d5', surface: '#f8f1e1', surface2: '#ece1c8', ink: '#2a2118', ink2: '#574838', muted: '#7d6c57', grid: '#e0d2b4', axis: '#c2b08d' },
+  dark: { page: '#1a1713', surface: '#23201b', surface2: '#2b2721', ink: '#ece2cf', ink2: '#c9bba3', muted: '#968871', grid: '#342e27', axis: '#4a4238' },
+};
+const READING_TOKENS: Record<ThemeMode, ModeTokens> = {
+  light: { ...BASE_TOKENS.light, ...READING_NEUTRALS.light },
+  dark: { ...BASE_TOKENS.dark, ...READING_NEUTRALS.dark },
+};
+
+function readingOn(): boolean {
+  return typeof document !== 'undefined' && document.documentElement.getAttribute('data-reading') === 'on';
+}
+
+/** Theme tokens for canvas code; follows reading mode (re-render with `useReadingMode()` from ./theme). */
+export const TOKENS: Record<ThemeMode, ModeTokens> = {
+  get light() {
+    return readingOn() ? READING_TOKENS.light : BASE_TOKENS.light;
+  },
+  get dark() {
+    return readingOn() ? READING_TOKENS.dark : BASE_TOKENS.dark;
   },
 };
 

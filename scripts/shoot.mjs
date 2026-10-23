@@ -5,6 +5,9 @@
  * Usage:
  *   node scripts/shoot.mjs --port 5301 --routes overview,database --out /path/to/dir \
  *        [--themes light,dark] [--widths 1440,390] [--full] [--wait 1500] [--click "selector"]
+ *        [--reading] [--collapsed]
+ *
+ * --reading / --collapsed pre-set reading mode / the folded sidebar in the persisted store.
  *
  * Start the server yourself first, e.g. `npx vite --port 5301 --strictPort &`.
  * Exit code 1 if any page logged a console error / page error / failed request.
@@ -26,6 +29,8 @@ const themes = String(args.themes ?? 'light,dark').split(',');
 const widths = String(args.widths ?? '1440,390').split(',').map(Number);
 const full = args.full !== undefined ? args.full === 'true' : true;
 const wait = Number(args.wait ?? 1500);
+const preset = { ...(args.reading ? { reading: true } : {}), ...(args.collapsed ? { sidebarCollapsed: true } : {}) };
+const tag = [args.reading && 'reading', args.collapsed && 'collapsed'].filter(Boolean).join('-');
 fs.mkdirSync(out, { recursive: true });
 
 let browser;
@@ -45,6 +50,14 @@ for (const theme of themes) {
     });
     // The app follows prefers-color-scheme when no theme is persisted (store key 'rt-sbs:sim', theme=null),
     // and Playwright emulates it via `colorScheme` above.
+    if (Object.keys(preset).length)
+      await ctx.addInitScript((state) => {
+        try {
+          localStorage.setItem('rt-sbs:sim', JSON.stringify({ state, version: 1 }));
+        } catch {
+          /* storage blocked */
+        }
+      }, preset);
     for (const route of routes) {
       const page = await ctx.newPage();
       const errs = [];
@@ -57,7 +70,7 @@ for (const theme of themes) {
       if (args.click) await page.click(args.click).catch(() => {});
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       if (overflow > 1) errs.push(`horizontal overflow: ${overflow}px`);
-      const file = path.join(out, `${route.replace(/\//g, '_')}-${theme}-${width}.png`);
+      const file = path.join(out, `${route.replace(/\//g, '_')}-${theme}-${width}${tag ? `-${tag}` : ''}.png`);
       await page.screenshot({ path: file, fullPage: full });
       console.log(`${errs.length ? 'FAIL' : 'ok  '} ${file}${errs.length ? '\n   ' + errs.join('\n   ') : ''}`);
       problems += errs.length;

@@ -2,12 +2,13 @@
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { CHAPTERS } from '@/chapters/registry';
+import { SITE_TITLE } from '@/components/prose/sources';
 import { ContentColumn } from '@/components/shell/Layout';
 
 export function NotFound() {
   const { pathname } = useLocation();
   useEffect(() => {
-    document.title = 'Not found · Relational Transformer, Step by Step';
+    document.title = `Not found · ${SITE_TITLE}`;
   }, []);
   const q = pathname.replace(/^\/+/, '').toLowerCase();
   const suggestions = CHAPTERS.filter((c) => q && (c.slug.includes(q) || q.includes(c.slug) || c.title.toLowerCase().includes(q))).slice(0, 4);

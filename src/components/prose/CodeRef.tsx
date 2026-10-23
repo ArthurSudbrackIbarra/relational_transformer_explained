@@ -45,6 +45,8 @@ export interface CodeRefProps {
   dedent?: boolean;
   /** Span the full content width when placed on the reading grid. */
   wide?: boolean;
+  /** Code from another repository (e.g. RelBench): its name, pinned ref and the permalink. Default: the paper-era RT code. */
+  source?: { repo: string; ref: string; url: string };
   className?: string;
 }
 
@@ -82,6 +84,7 @@ export function CodeRef({
   note,
   dedent = true,
   wide = false,
+  source,
   className,
 }: CodeRefProps) {
   const [open, setOpen] = useState(defaultOpen);
@@ -93,6 +96,9 @@ export function CodeRef({
   const lineLabel = end && end !== start ? `${start}-${end}` : `${start}`;
   const hl = new Set(highlightLines ?? []);
   const lang = language ?? inferLanguage(file);
+  const repo = source ? `${source.repo} @${source.ref}` : `${CODE.repo} @${CODE.commit}`;
+  const href = source ? source.url : codeUrl(file, start, end);
+  const linkTitle = source ? `Open on GitHub (${repo})` : 'Open on GitHub at the paper-era commit';
 
   const copy = async () => {
     try {
@@ -117,14 +123,12 @@ export function CodeRef({
           <FileCode2 aria-hidden="true" size={16} className="mt-[3px] shrink-0 text-muted" />
           <span className="min-w-0 flex-1">
             <span className="block text-[17px] font-semibold text-ink">{title}</span>
-            <span className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-2 font-mono text-[14.5px] text-ink-2" title={`${CODE.repo} @${CODE.commit} · ${file}:${lineLabel}`}>
+            <span className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-2 font-mono text-[14.5px] text-ink-2" title={`${repo} · ${file}:${lineLabel}`}>
               <span className="[overflow-wrap:anywhere]">
                 {file}
                 <span className="whitespace-nowrap">:{lineLabel}</span>
               </span>
-              <span className="min-w-0 truncate text-muted">
-                {CODE.repo} @{CODE.commit}
-              </span>
+              <span className="min-w-0 truncate text-muted">{repo}</span>
             </span>
           </span>
           <ChevronDown aria-hidden="true" size={16} className={cx('mt-[3px] shrink-0 text-muted transition-transform', open && 'rotate-180')} />
@@ -141,12 +145,12 @@ export function CodeRef({
             {copied ? <Check size={14} /> : <Copy size={14} />}
           </button>
           <a
-            href={codeUrl(file, start, end)}
+            href={href}
             target="_blank"
             rel="noreferrer noopener"
             data-plain
-            title="Open on GitHub at the paper-era commit"
-            aria-label="Open on GitHub at the paper-era commit"
+            title={linkTitle}
+            aria-label={linkTitle}
             className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-surface-2 hover:text-ink"
           >
             <ExternalLink size={14} />

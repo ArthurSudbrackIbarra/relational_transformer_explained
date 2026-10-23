@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { divergingRgb, rgbCss, sequentialCss } from '@/components/viz/scales';
 import { TOKENS } from '@/styles/palette';
-import { useResolvedTheme } from '@/styles/theme';
+import { useReadingMode, useResolvedTheme } from '@/styles/theme';
 import { cx } from '@/components';
 
 export interface MatrixCanvasProps {
@@ -31,6 +31,7 @@ export interface MatrixCanvasProps {
 
 export function MatrixCanvas({ data, rows, cols, cellW, cellH, maxAbs, bandRows, bandCols, label, onHover, className }: MatrixCanvasProps) {
   const mode = useResolvedTheme();
+  const reading = useReadingMode();
   const ref = useRef<HTMLCanvasElement | null>(null);
   const W = Math.max(1, cols * cellW);
   const H = Math.max(1, rows * cellH);
@@ -70,7 +71,7 @@ export function MatrixCanvas({ data, rows, cols, cellW, cellH, maxAbs, bandRows,
     ctx.clearRect(0, 0, cv.width, cv.height);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(off, 0, 0, W * dpr, H * dpr);
-  }, [data, rows, cols, W, H, dpr, maxAbs, mode, bandRows, bandCols]);
+  }, [data, rows, cols, W, H, dpr, maxAbs, mode, reading, bandRows, bandCols]);
 
   const band = bandRows
     ? { x: 0, y: bandRows[0] * cellH, w: W, h: (bandRows[1] - bandRows[0]) * cellH }
