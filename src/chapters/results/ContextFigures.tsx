@@ -89,7 +89,7 @@ export function SelfLabelScatter() {
     const out = new Map<TaskKey, { x: number; y: number; anchor: 'start' | 'end' | 'middle' }>();
     const order = [...pts].sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
     for (const p of order) {
-      const w = textWidth(p.label, 13.5, { mono: true });
+      const w = textWidth(p.label, 13.5);
       const px = x(p.self);
       const py = yS(p.d);
       const cands = [
@@ -221,7 +221,6 @@ export function SelfLabelScatter() {
                   style={{
                     fill: 'var(--ink-2)',
                     fontSize: 13.5,
-                    fontFamily: 'var(--font-mono)',
                     stroke: 'var(--surface)',
                     strokeWidth: 4,
                     paintOrder: 'stroke',
@@ -235,7 +234,7 @@ export function SelfLabelScatter() {
           </svg>
           {hp && (
             <Tip x={x(hp.self)} y={yS(hp.d) + 14} width={W} flip={x(hp.self) > W * 0.6}>
-              <div className="mb-1 font-mono text-[14.5px] text-ink">{hp.label}</div>
+              <div className="mb-1 text-[14.5px] text-ink">{hp.label}</div>
               <div className="text-ink-2">
                 self labels:{' '}
                 <span className="num text-ink">
@@ -452,7 +451,7 @@ export function MiniLabelAblation() {
             const b = d.withoutLabels * 100;
             return (
               <div key={it.task} className="rounded-xl border border-border bg-surface px-4 py-3.5">
-                <div className="font-mono text-[15px] text-ink">{it.task}</div>
+                <div className="text-[15px] text-ink">{it.task}</div>
                 <div className="text-[15px] text-ink-2">
                   zero-shot test {it.metric}
                   {n ? `, ${n} seeds` : ''}, checkpoint <code>{it.ckpt}</code>

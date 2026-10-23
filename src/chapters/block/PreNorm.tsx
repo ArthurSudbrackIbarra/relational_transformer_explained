@@ -71,7 +71,7 @@ export function WiringCompare() {
           <div className="eyebrow mb-1">{v === 'paper' ? 'Paper, Algorithm 2 as printed' : 'Code, rt/model.py:84-85 (this site)'}</div>
           <div className="mb-2 text-[17px] text-ink">
             {v === 'paper' ? (
-              <span className="font-mono text-[16px]">X ← X + Norm(MHA(X; M))</span>
+              <span className="text-[16px]">X ← X + Norm(MHA(X; M))</span>
             ) : (
               <span className="font-mono text-[16px]">x = x + attns[l](norms[l](x), …)</span>
             )}

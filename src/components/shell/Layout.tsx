@@ -48,8 +48,8 @@ function TopBar({ onMenu, menuOpen, showMenuAlways }: { onMenu: () => void; menu
         </Link>
         <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-1.5">
           <SimIndicator className="shrink-0 lg:max-w-[440px]" />
-          <ReadingToggle />
           <ThemeToggle />
+          <ReadingToggle />
           <a
             href={PAPER.url}
             target="_blank"
@@ -242,22 +242,36 @@ export function Layout({ children }: LayoutProps) {
   );
 }
 
-/** Quiet footer on every page: the author's note and where the source lives. */
+/** Quiet footer on every page: the author's note, the disclaimer and where the sources live. */
 function SiteFooter() {
+  const link = 'underline decoration-axis underline-offset-[3px] hover:text-ink';
   return (
     <footer className="border-t border-grid">
-      <ContentColumn className="page-grid py-7">
-        <p className="!m-0 text-[14.5px] leading-[1.6] text-ink-2">
-          <span className="font-semibold text-ink">Author’s note.</span> I built this site with Claude to help me study the
-          Relational Transformer, and I made it public because it could help other people too. To be clear, Claude created
-          everything here, so there may be errors or inaccuracies.
-          <span className="mt-2 block">
+      <ContentColumn className="page-grid py-6">
+        <div className="text-[13.5px] leading-[1.6] text-ink-2">
+          <p className="!m-0">
+            <span className="font-semibold text-ink">Author’s note.</span> I built this site with Claude to help me study the
+            Relational Transformer, and I made it public because it could help other people too. To be clear, Claude created
+            everything here, so there may be errors or inaccuracies.
+          </p>
+          <p className="!mt-1.5 !mb-0">
+            An independent educational simulation, not affiliated with the authors. Paper:{' '}
+            <a href={PAPER.url} target="_blank" rel="noreferrer noopener" data-plain className={link}>
+              arXiv {PAPER.arxiv}
+            </a>
+            . Code:{' '}
+            <a href={`${CODE.url}/tree/${CODE.commitFull}`} target="_blank" rel="noreferrer noopener" data-plain className={link}>
+              {CODE.repo} @{CODE.commit}
+            </a>
+            .
+          </p>
+          <p className="!mt-1.5 !mb-0">
             Arthur Sudbrack Ibarra ·{' '}
-            <a href={SITE_REPO} target="_blank" rel="noreferrer noopener" className="underline decoration-axis underline-offset-[3px] hover:text-ink">
+            <a href={SITE_REPO} target="_blank" rel="noreferrer noopener" data-plain className={link}>
               Source of this site
             </a>
-          </span>
-        </p>
+          </p>
+        </div>
       </ContentColumn>
     </footer>
   );

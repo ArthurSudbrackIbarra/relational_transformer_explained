@@ -24,7 +24,7 @@ const STAGE: Record<string, { label: string; icon: LucideIcon }> = {
 };
 
 export function CourseMap({ current }: { current: string }) {
-  const visited = useSim((s) => s.visited);
+  const completed = useSim((s) => s.completed);
   return (
     <div className="wide mt-6 grid gap-8">
       {PARTS.map((part) => (
@@ -66,8 +66,8 @@ export function CourseMap({ current }: { current: string }) {
                         </span>
                         {here ? (
                           <span className="font-medium text-accent-text">you are here</span>
-                        ) : visited[c.slug] ? (
-                          <span className="text-muted">visited</span>
+                        ) : completed[c.slug] ? (
+                          <span className="text-muted">completed</span>
                         ) : null}
                       </span>
                     </span>

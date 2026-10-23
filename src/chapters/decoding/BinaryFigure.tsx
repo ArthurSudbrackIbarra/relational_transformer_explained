@@ -115,7 +115,7 @@ export function BinaryFigure({ lane }: { lane: Lane }) {
                 value={`${fmtS(storedZ, 4)}`}
                 note={
                   <>
-                    The raw value is <span className="font-mono text-ink">{rawLabelText(tok?.raw ?? null)}</span>; it sits in{' '}
+                    The raw value is <span className="text-ink">{rawLabelText(tok?.raw ?? null)}</span>; it sits in{' '}
                     <span className="font-mono">boolean_values</span> but is gated out of the input.
                   </>
                 }
@@ -127,7 +127,7 @@ export function BinaryFigure({ lane }: { lane: Lane }) {
                 <div className="mb-1 font-semibold text-ink">
                   Why 1{'{'}z &gt; 0{'}'} is the label
                 </div>
-                The <span className="font-mono text-ink">{task.targetCol}</span> column was z-scored with its{' '}
+                The <span className="text-ink">{task.targetCol}</span> column was z-scored with its{' '}
                 {task.kind === 'forecast' ? 'Train-split' : 'whole-table'} statistics: μ = <span className="num text-ink">{fmt(stats.mean, 4)}</span>{' '}
                 (the share of true among {int(stats.count)} labels, {int(nTrue)} true) and σ ={' '}
                 <span className="num text-ink">{fmt(stats.std, 4)}</span> (sample std). So true ↦ (1 − μ)/σ ={' '}

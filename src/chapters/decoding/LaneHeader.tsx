@@ -15,7 +15,7 @@ export function LaneHeader({ lane, className }: { lane: Lane; className?: string
     <div className={`mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg bg-surface-2 px-3 py-2 text-[15px] text-ink-2 ${className ?? ''}`}>
       <span className="font-semibold text-ink">{lane.isGlobal ? 'Live context' : 'Local preview'}</span>
       <span>
-        task <span className="font-mono text-ink">{taskLabel(lane.task)}</span> ({lane.task.targetType})
+        task <span className="text-ink">{taskLabel(lane.task)}</span> ({lane.task.targetType})
       </span>
       <span>
         seed: <span className="text-ink">{ent.label}</span>

@@ -127,7 +127,6 @@ export const DegreeChart = memo(function DegreeChart({ db, idx, slots, focus, on
                   x={Math.min(width - M.right - 4, Math.max(M.left + 4, M.left + focusIdx * band + band / 2))}
                   y={y(0) + 24}
                   textAnchor={focusIdx < data.length * 0.15 ? 'start' : focusIdx > data.length * 0.85 ? 'end' : 'middle'}
-                  className="font-mono"
                   style={{ fill: 'var(--ink)', fontSize: 13 }}
                 >
                   {rowLabel(focus)}
@@ -162,7 +161,7 @@ export const DegreeChart = memo(function DegreeChart({ db, idx, slots, focus, on
                 top: Math.max(0, y(hd.total) - 78),
               }}
             >
-              <div className="font-mono font-semibold text-ink">{rowLabel({ table, row: hd.row })}</div>
+              <div className="font-semibold text-ink">{rowLabel({ table, row: hd.row })}</div>
               <div className="mb-1 text-ink-2">{rowCaption(db, { table, row: hd.row }, 26)}</div>
               {groups.map((g, s) => (
                 <div key={s} className="flex items-center gap-1.5 text-ink-2">

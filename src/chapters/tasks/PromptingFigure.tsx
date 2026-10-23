@@ -40,7 +40,7 @@ function CompactSchema({ specs, task }: { specs: SchemaTableSpec[]; task: TaskDe
         <div className="card relative overflow-hidden ring-2 ring-accent">
           <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px]" style={{ background: catVar(taskSpec.slot) }} />
           <div className="flex items-baseline justify-between gap-2 px-3 pt-3 pb-1">
-            <span className="truncate font-mono text-[16.5px] font-semibold text-ink">{taskSpec.schema.name}</span>
+            <span className="truncate text-[16.5px] font-semibold text-ink">{taskSpec.schema.name}</span>
             <span className="shrink-0 text-[14.5px] text-muted">task table</span>
           </div>
           {taskSpec.subtitle && <div className="px-3 pb-2 text-[14.5px] text-muted">{taskSpec.subtitle}</div>}
@@ -54,8 +54,8 @@ function CompactSchema({ specs, task }: { specs: SchemaTableSpec[]; task: TaskDe
                   <span className="flex w-[20px] shrink-0 justify-center text-ink-2">
                     {fk ? <Link2 aria-label="foreign key" size={15} /> : <SemBadge sem={semOfDType(c.dtype)} size="xs" />}
                   </span>
-                  <span className={fk ? 'min-w-0 flex-1 truncate font-mono text-ink-2' : 'min-w-0 flex-1 truncate font-mono text-ink'}>{c.name}</span>
-                  {fk && <span className="shrink-0 font-mono text-[14px] text-accent-text">→ {fk}</span>}
+                  <span className={fk ? 'min-w-0 flex-1 truncate text-ink-2' : 'min-w-0 flex-1 truncate text-ink'}>{c.name}</span>
+                  {fk && <span className="shrink-0 text-[14px] text-accent-text">→ {fk}</span>}
                   {isTime && (
                     <span className="inline-flex shrink-0 items-center gap-1 rounded bg-surface-3 px-1.5 text-[13.5px] font-medium text-ink-2">
                       <Clock aria-hidden="true" size={12} /> time
@@ -171,7 +171,7 @@ export function PromptingFigure({
             onChange={setChoice}
             options={[
               { value: 'none', label: 'none' },
-              ...forecast.map((t) => ({ value: t.name, label: <span className="font-mono">{t.name}</span> })),
+              ...forecast.map((t) => ({ value: t.name, label: <span>{t.name}</span> })),
             ]}
           />
         </div>
@@ -196,7 +196,7 @@ export function PromptingFigure({
         {task && (
           <>
             {' '}
-            The task table is listed in full; its label column <span className="font-mono text-ink-2">{task.targetCol}</span>, the cell a
+            The task table is listed in full; its label column <span className="text-ink-2">{task.targetCol}</span>, the cell a
             seed masks, is shaded.
           </>
         )}
@@ -204,8 +204,8 @@ export function PromptingFigure({
 
       <div className="mt-5 rounded-xl border border-border bg-surface-2 px-4 py-3">
         <div className="text-[15.5px] text-ink-2">
-          Children of <span className="font-mono text-ink">{entityTable}[{entityRow}]</span> ({entityName(db, entityTable, entityRow)}) that pass
-          the sampler’s table test for {task ? <>a <span className="font-mono text-ink">{task.name}</span> seed</> : 'a seed in a database table'}{' '}
+          Children of <span className="text-ink">{entityTable}[{entityRow}]</span> ({entityName(db, entityTable, entityRow)}) that pass
+          the sampler’s table test for {task ? <>a <span className="text-ink">{task.name}</span> seed</> : 'a seed in a database table'}{' '}
           <Cite kind="code" ref="rustler/src/fly.rs:415-419" /> (the temporal filter and the width bound come after it):
         </div>
         <ul className="mt-2 flex flex-wrap gap-2" aria-label="Child rows by table">

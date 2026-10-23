@@ -393,10 +393,19 @@ function NormVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
   // One color scale for x, x / rms(x) and h, so the rescaling shows as a change of color strength.
   const dom = useMemo(() => maxAbsOf(qv.x, scaled, qv.h), [qv.x, scaled, qv.h]);
   const layerName = LAYER_INFO[live.layer].name.toLowerCase();
-  const rows: { label: string; values: Float32Array; note: string; gamma?: boolean }[] = [
+  const rows: { label: string; values: Float32Array; note: ReactNode; gamma?: boolean }[] = [
     { label: 'x', values: qv.x, note: 'the residual stream' },
     { label: 'x / rms(x)', values: scaled, note: `root-mean-square ≈ 1, so ‖v‖ ≈ √${d} = ${Math.sqrt(d).toFixed(Number.isInteger(Math.sqrt(d)) ? 0 : 2)}` },
-    { label: `γ of block ${live.block + 1}’s ${layerName} RMSNorm`, values: qv.gamma, note: `blocks.${live.block}.norms.${live.layer}.weight (the code counts blocks from 0)`, gamma: true },
+    {
+      label: `γ of block ${live.block + 1}’s ${layerName} RMSNorm`,
+      values: qv.gamma,
+      note: (
+        <>
+          <span className="font-mono">{`blocks.${live.block}.norms.${live.layer}.weight`}</span> (the code counts blocks from 0)
+        </>
+      ),
+      gamma: true,
+    },
     { label: 'h = (x / rms(x)) ⊙ γ', values: qv.h, note: 'what the attention reads' },
   ];
   return (
@@ -404,8 +413,8 @@ function NormVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
       {rows.map((r, i) => (
         <div key={r.label}>
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[14.5px]">
-            <span className="font-mono text-ink">{r.label}</span>
-            <span className={cx('text-muted', r.gamma && 'font-mono')}>{r.note}</span>
+            <span className="text-ink">{r.label}</span>
+            <span className="text-muted">{r.note}</span>
           </div>
           {r.gamma ? <SeqStrip values={r.values} label="γ, the RMSNorm gain" /> : <VectorStrip values={r.values} columns={d} cellHeight={i === 3 ? 18 : 14} domain={dom} showNorm />}
         </div>
@@ -448,14 +457,14 @@ function QKVVisual({ live, qv, W, inspected }: { live: AttnLive; qv: QueryView; 
               label={`W_q of this sublayer, ${d} by ${d}; the ${dh} rows that produce head ${head + 1}'s query are outlined.`}
               onHover={(c) => setHover(c ? `W_q[${c.r}, ${c.c}] = ${sgn(c.v, 4)}` : null)}
             />
-            <span className="font-mono text-[14px] text-ink-2">
+            <span className="text-[14px] text-ink-2">
               W<sub>q</sub> ({d}×{d})
             </span>
           </div>
           <span className="text-[20px] text-muted">·</span>
           <div className="flex flex-col items-center gap-1">
             <VStrip values={qv.h} cellW={14} cellH={cell} maxAbs={mh} label="h, the normalized input" onHover={(i) => setHover(i === null ? null : `h[${i}] = ${sgn(qv.h[i], 4)}`)} />
-            <span className="font-mono text-[14px] text-ink-2">h</span>
+            <span className="text-[14px] text-ink-2">h</span>
           </div>
           <span className="text-[20px] text-muted">=</span>
           <div className="flex flex-col items-center gap-1">
@@ -469,7 +478,7 @@ function QKVVisual({ live, qv, W, inspected }: { live: AttnLive; qv: QueryView; 
               label={`q, the query; head ${head + 1} uses dimensions ${head * dh} to ${(head + 1) * dh - 1}`}
               onHover={(i) => setHover(i === null ? null : `q[${i}] = ${sgn(qv.q[i], 4)} · head ${Math.floor(i / dh) + 1}`)}
             />
-            <span className="font-mono text-[14px] text-ink-2">q</span>
+            <span className="text-[14px] text-ink-2">q</span>
           </div>
           <div className="ml-1 hidden flex-col justify-center gap-0 self-stretch text-[13.5px] text-muted sm:flex" style={{ height: d * cell }}>
             {bands.map((b) => (
@@ -692,28 +701,28 @@ function OutVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
       <div className="grid gap-3">
         <div>
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[14.5px]">
-            <span className="font-mono text-ink">[o(1); …; o({H})]</span>
+            <span className="text-ink">[o(1); …; o({H})]</span>
             <span className="text-muted">the {H} head outputs, concatenated (head {head + 1} outlined)</span>
           </div>
           <VectorStrip values={qv.headOut} columns={d} cellHeight={14} ranges={ranges} />
         </div>
         <div>
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[14.5px]">
-            <span className="font-mono text-ink">Δx = W_o · [o(1); …; o({H})]</span>
+            <span className="text-ink">Δx = W_o · [o(1); …; o({H})]</span>
             <span className="text-muted">the update, on the same scale as x</span>
           </div>
           <VectorStrip values={qv.out} columns={d} cellHeight={14} domain={mX} />
         </div>
         <div>
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[14.5px]">
-            <span className="font-mono text-ink">x</span>
+            <span className="text-ink">x</span>
             <span className="text-muted">the residual stream that entered</span>
           </div>
           <VectorStrip values={qv.x} columns={d} cellHeight={14} domain={mX} />
         </div>
         <div>
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[14.5px]">
-            <span className="font-mono text-ink">x′ = x + Δx</span>
+            <span className="text-ink">x′ = x + Δx</span>
             <span className="text-muted">what the next sublayer receives</span>
           </div>
           <VectorStrip values={qv.xOut} columns={d} cellHeight={18} domain={mX} />
@@ -861,7 +870,7 @@ function StageMath({ stage, live, qv, inspected }: { stage: (typeof STAGES)[numb
         <div className="mt-2">
           {layer === 'col' && (
             <>
-              <KV k="query’s column" v={<span className="font-mono text-[14px]">{pdb.text[t.colNameIdx] ?? t.colName}</span>} />
+              <KV k="query’s column" v={<span className="text-[14px]">{pdb.text[t.colNameIdx] ?? t.colName}</span>} />
               <KV k="col / table id" v={`${t.colNameIdx} / ${t.tableNameIdx}`} />
             </>
           )}

@@ -180,7 +180,6 @@ export function BfsGraph({
                   x={0}
                   y={-layout.ring(d) - 3 * t}
                   textAnchor="middle"
-                  className="font-mono"
                   style={{ fill: d === curRing ? 'var(--accent-text)' : 'var(--muted)', fontSize: 13 * t, fontWeight: d === curRing ? 600 : 400, stroke: 'var(--surface)', strokeWidth: 3 * t, paintOrder: 'stroke' }}
                 >
                   d{d}
@@ -262,7 +261,7 @@ export function BfsGraph({
         {current !== null && layout.nodes.get(current) && (() => {
           const ln = layout.nodes.get(current)!;
           const label = rowName(db, pdb, current).short;
-          const wUser = textWidth(label, 14, { mono: true, weight: 600 }) * t;
+          const wUser = textWidth(label, 14, { weight: 600 }) * t;
           const right = ln.x + 12 * t + wUser <= vb.x + vb.w - 2 * t;
           const y = Math.max(vb.y + 16 * t, ln.y - 10 * t);
           return (
@@ -270,7 +269,6 @@ export function BfsGraph({
               x={right ? ln.x + 12 * t : ln.x - 12 * t}
               y={y}
               textAnchor={right ? 'start' : 'end'}
-              className="font-mono"
               style={{
                 fill: 'var(--ink)',
                 fontSize: 14 * t,
@@ -297,7 +295,7 @@ export function BfsGraph({
             top: Math.max(4, toPx(tip.x, tip.y).top - 56),
           }}
         >
-          <div className="font-mono font-semibold text-ink">{tipName.long}</div>
+          <div className="font-semibold text-ink">{tipName.long}</div>
           <div className="mt-0.5 flex items-center gap-1.5 text-ink-2">
             <TableSwatch slot={slots[pdb.nodes[tip.node].tableName] ?? 0} shape label={tipName.key} />
           </div>

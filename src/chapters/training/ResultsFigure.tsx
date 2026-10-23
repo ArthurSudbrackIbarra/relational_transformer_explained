@@ -322,7 +322,7 @@ export function ResultsFigure({ results }: { results: Results | null }) {
             return (
               <div key={t.id} className="min-w-0">
                 <div className="text-[16px] font-semibold text-ink">
-                  <span className="font-mono">{t.short}</span>, {t.metricLabel}{" "}
+                  <span>{t.short}</span>, {t.metricLabel}{" "}
                   (%)
                 </div>
                 <div className="text-[14.5px] text-ink-2">

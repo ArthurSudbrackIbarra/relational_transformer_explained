@@ -91,7 +91,7 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
                 <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                   <span className="inline-flex items-center gap-2 text-[16px] text-ink">
                     <SemBadge sem={s} size="sm" />
-                    <span className="font-mono">m_{SEM_KEYS[s]}</span>
+                    <span>m_{SEM_KEYS[s]}</span>
                     {used && <span className="rounded-full bg-accent px-2 py-px text-[13.5px] font-medium text-accent-ink">live target</span>}
                   </span>
                   <span className="num text-[15px] text-ink-2">
@@ -137,16 +137,16 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
           <div className="rounded-xl border border-border bg-surface-2/60 p-4">
             <div className="mb-1 text-[15px] text-ink-2">The masked target of the live context</div>
             <div className="mb-3 flex flex-wrap items-center gap-2 text-[16.5px]">
-              <span className="font-mono text-ink">{rowRef(tgt)}</span>
+              <span className="text-ink">{rowRef(tgt)}</span>
               <SemBadge sem={tgt.sem} size="sm" showLabel />
-              <span className="target-outline rounded px-1.5 font-mono font-bold text-accent-text">?</span>
+              <span className="target-outline rounded px-1.5 font-bold text-accent-text">?</span>
             </div>
             <ul className="grid gap-2.5">
               <Knows ok>
                 <strong className="font-semibold text-ink">Which column of which table</strong>: its column term embeds “{phraseOf(tgt)}”.
               </Knows>
               <Knows ok>
-                <strong className="font-semibold text-ink">Which type</strong>: the gate picks <span className="font-mono">m_{tKey}</span>, one of
+                <strong className="font-semibold text-ink">Which type</strong>: the gate picks <span>m_{tKey}</span>, one of
                 four different vectors.
               </Knows>
               <Knows ok>
@@ -194,8 +194,8 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
                   <span className="whitespace-nowrap text-[17px]">
                     <TeX tex={String.raw`[t_i{=}\mathrm{${check.key}} \land \lnot\mathrm{mask}_i \land \lnot\mathrm{pad}_i] = 0`} />
                   </span>
-                  , which gives <TeX tex="\vec 0" />, and adds <span className="font-mono">m_{check.key}</span> times its gate 1{' '}
-                  <Cite kind="code" ref="rt/model.py:216-224" />. So x₀ = column term + <span className="font-mono">m_{check.key}</span>, whatever the
+                  , which gives <TeX tex="\vec 0" />, and adds <span>m_{check.key}</span> times its gate 1{' '}
+                  <Cite kind="code" ref="rt/model.py:216-224" />. So x₀ = column term + <span>m_{check.key}</span>, whatever the
                   label.
                 </li>
                 <li>
@@ -225,7 +225,7 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
             <div key={s} className="grid gap-x-4 gap-y-1 py-2 sm:grid-cols-[170px_minmax(0,1fr)]">
               <dt className="inline-flex items-center gap-2 text-ink">
                 <SemBadge sem={s} size="sm" />
-                <span className="font-mono">m_{SEM_KEYS[s]}</span>
+                <span>m_{SEM_KEYS[s]}</span>
               </dt>
               <dd className="m-0 min-w-0 text-ink-2">
                 {s === SemType.Number || s === SemType.Boolean ? (

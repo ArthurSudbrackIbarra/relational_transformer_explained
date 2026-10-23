@@ -179,7 +179,7 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
           label="Boolean column"
           value={c.id}
           onChange={setId}
-          options={cols.map((x) => ({ value: x.id, label: <span className="font-mono">{`${x.file.tableName}.${x.col.name}`}</span> }))}
+          options={cols.map((x) => ({ value: x.id, label: <span>{`${x.file.tableName}.${x.col.name}`}</span> }))}
         />
         {c.file.isTask && <span className="text-[14.5px] text-ink-2">Train split: Val and Test reuse these stats.</span>}
       </div>

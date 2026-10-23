@@ -219,7 +219,7 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
       case 0:
         return (
           <>
-            The column phrase <q className="font-mono">{data.phrase}</q> is looked up in the frozen MiniLM table: <em>c</em> is a{' '}
+            The column phrase <q>{data.phrase}</q> is looked up in the frozen MiniLM table: <em>c</em> is a{' '}
             {data.c.length}-d unit vector (‖c‖ = {fmt(norm(data.c))}). Every cell of this column gets the same <em>c</em>.
           </>
         );
@@ -393,7 +393,7 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
                 gate={<TeX tex={`[\\lnot\\,\\mathrm{pad}] = ${padding ? 0 : 1}`} />}
               >
                 <Stage innerRef={stageRef(0)} n={1} active={step === 0} revealed={revealed(0)} title="Phrase → frozen MiniLM" tex={String.raw`c = E(\text{“}\mathit{col}\text{ of }\mathit{table}\text{”}) \in \mathbb{R}^{384}`}>
-                  <div className="mb-1.5 font-mono text-[15px] text-ink">“{padding ? '—' : data.phrase}”</div>
+                  <div className="mb-1.5 text-[15px] text-ink">“{padding ? '—' : data.phrase}”</div>
                   <VectorStrip values={data.c} columns={64} cellHeight={7} label={`c (${data.c.length}-d, col_name_values)`} hint={false} />
                 </Stage>
                 <Arrow on={revealed(1)} />
@@ -447,7 +447,7 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
                   {masked ? (
                     <div>
                       <div className="mb-1.5 flex flex-wrap items-baseline gap-x-2 text-[15px] text-ink-2">
-                        <span className="num text-ink-2 line-through decoration-[1.5px]">
+                        <span className="font-mono text-ink-2 line-through decoration-[1.5px]">
                           {VALUE_FIELD[tok.sem]} = {fmtSigned(tokenScalar(tok))}
                         </span>
                         <span>
@@ -467,7 +467,7 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
                     </div>
                   ) : data.textInput ? (
                     <>
-                      <div className="mb-1.5 truncate font-mono text-[15px] text-ink">“{data.textString}”</div>
+                      <div className="mb-1.5 truncate text-[15px] text-ink">“{data.textString}”</div>
                       <VectorStrip values={data.textInput} columns={64} cellHeight={7} label="e (384-d, text_values)" hint={false} />
                     </>
                   ) : (
@@ -510,7 +510,7 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
                 >
                   {masked ? (
                     <SkipNote>
-                      <span className="font-mono">m_{data.key}</span> is added to the sum as it is, times its gate, which is 1 here (model.py:221-224).
+                      <span>m_{data.key}</span> is added to the sum as it is, times its gate, which is 1 here (model.py:221-224).
                     </SkipNote>
                   ) : (
                     <VectorStrip
@@ -578,14 +578,14 @@ function TokenHeader({ tok, slot, flash }: { tok: Token; slot: number; flash?: b
       ) : (
         <>
           <TableSwatch slot={slot} label={rowRef(tok)} />
-          <span className="font-mono text-ink">{phraseOf(tok)}</span>
+          <span className="text-ink">{phraseOf(tok)}</span>
           <SemBadge sem={tok.sem} size="sm" showLabel />
           <span className="text-ink-2">
             value{' '}
             {tok.isTarget ? (
-              <span className="target-outline rounded px-1 font-mono font-bold text-accent-text">?</span>
+              <span className="target-outline rounded px-1 font-bold text-accent-text">?</span>
             ) : (
-              <span className="font-mono text-ink">{formatRaw(tok.raw, tok.sem === SemType.DateTime ? 'datetime' : undefined)}</span>
+              <span className="text-ink">{formatRaw(tok.raw, tok.sem === SemType.DateTime ? 'datetime' : undefined)}</span>
             )}
           </span>
           {tok.isTarget && <span className="text-[15px] text-ink-2">masked target (masks = true)</span>}
@@ -628,7 +628,7 @@ function GateSwitch({ tok }: { tok: Token }) {
             )}
           >
             <SemBadge sem={s} size="sm" bare />
-            {on && (tok.mask ? <span className="font-mono">m</span> : <span className="font-mono">enc</span>)}
+            {on && (tok.mask ? <span>m</span> : <span>enc</span>)}
           </span>
         );
       })}
@@ -733,7 +733,7 @@ function SumLabel({ icon, strong, children }: { icon: ReactNode; strong?: boolea
   return (
     <div className={cx('flex items-center gap-1.5 text-[15px] sm:justify-end', strong ? 'font-semibold text-ink' : 'text-ink-2')}>
       {icon && <span className="text-muted">{icon}</span>}
-      <span className="font-mono">{children}</span>
+      <span>{children}</span>
     </div>
   );
 }
@@ -760,9 +760,9 @@ function ScalarInput({ tok }: { tok: Token }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[15px] text-ink-2">{formatRaw(tok.raw, tok.sem === SemType.DateTime ? 'datetime' : undefined)}</span>
+        <span className="text-[15px] text-ink-2">{formatRaw(tok.raw, tok.sem === SemType.DateTime ? 'datetime' : undefined)}</span>
         <ArrowRight size={14} className="text-muted" aria-hidden="true" />
-        <span className="rounded-md border border-border bg-surface-2 px-2 py-1 font-mono text-[17.5px] font-semibold text-ink">{fmtSigned(z, 4)}</span>
+        <span className="rounded-md border border-border bg-surface-2 px-2 py-1 text-[17.5px] font-semibold text-ink">{fmtSigned(z, 4)}</span>
       </div>
       <span className="text-[14.5px] leading-snug text-ink-2">
         {VALUE_FIELD[tok.sem]}: the z-score from preprocessing{tok.sem === SemType.DateTime ? ' (one global datetime z-score per DB)' : ''}

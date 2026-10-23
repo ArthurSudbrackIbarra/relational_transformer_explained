@@ -297,7 +297,7 @@ export default function DatabaseChapter() {
             Running example:{' '}
             <span className="inline-flex items-center gap-1.5 align-middle">
               <TableSwatch slot={slots[example.table] ?? 0} />
-              <span className="font-mono font-semibold text-ink">{rowLabel(example)}</span>
+              <span className="font-semibold text-ink">{rowLabel(example)}</span>
             </span>
             {exampleCaption && <span className="text-ink"> {exampleCaption}</span>}
             {typeof exampleCountry === 'string' && <span> from {exampleCountry}</span>}
@@ -368,7 +368,7 @@ export default function DatabaseChapter() {
           A database’s <em>schema</em> lists its tables with their columns and data types, together with the relational structure{' '}
           <Cite kind="paper" ref="p.3 §2.1" />. In the diagram below each card is a table. A key icon marks the primary key and a link icon a
           foreign key, with an arrow to the table it references. Every other column is a feature column, drawn with its type glyph:{' '}
-          <span className="font-mono">#</span> for numbers, <span className="font-medium">Aa</span> for text, a clock for datetimes and a toggle for
+          <span>#</span> for numbers, <span className="font-medium">Aa</span> for text, a clock for datetimes and a toggle for
           booleans. The time column is one of the feature columns; it also carries a <span className="font-medium">time</span> tag.
         </p>
         <Figure wide title={`${dbShort}: tables, keys and links`} caption="Hover a table to trace its links; click or tap it to open it in the table browser below.">
@@ -416,7 +416,7 @@ export default function DatabaseChapter() {
       {/* ─────────────────────────────── 3 ─────────────────────────────── */}
       <Section id="browse" title="Browse the data">
         <p>
-          Here are the tables as they are stored. Values are raw and <span className="font-mono">∅</span> marks a missing value. Click a row to make
+          Here are the tables as they are stored. Values are raw and <span>∅</span> marks a missing value. Click a row to make
           it the <strong>focus row</strong> of this chapter: the link explorer, the timeline and the graphs below all follow it. This only changes
           this page; the simulation’s seed stays where it is.
         </p>
@@ -556,7 +556,7 @@ export default function DatabaseChapter() {
         </Figure>
         <p>
           Walk around for a moment and an asymmetry shows up. A row has at most one parent per foreign-key column, so no {dbShort} row has more
-          than {degree.maxFk}. Children are another story: <span className="font-mono">{rowLabel(degree.best.ref)}</span> (
+          than {degree.maxFk}. Children are another story: <span>{rowLabel(degree.best.ref)}</span> (
           {rowCaption(db, degree.best.ref)}) is referenced by{' '}
           {bestGroups.map((g, i) => (
             <span key={g.childTable + g.fkCol}>
@@ -750,7 +750,7 @@ export default function DatabaseChapter() {
           available before <em>t</em>, otherwise it risks temporal leakage” <Cite kind="paper" ref="p.3 §2.1" />.{' '}
           {anchor ? (
             <>
-              Below are all time-stamped rows linked to <span className="font-mono">{rowLabel(anchor)}</span> ({rowCaption(db, anchor)}). The accent
+              Below are all time-stamped rows linked to <span>{rowLabel(anchor)}</span> ({rowCaption(db, anchor)}). The accent
               line is the prediction time <em>t</em>
               {seedTime !== null ? <>, set to the simulation seed’s timestamp, {formatDate(seedTime, 'never')}</> : null}. Everything to its right is
               the future.

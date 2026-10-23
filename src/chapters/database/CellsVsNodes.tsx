@@ -24,7 +24,7 @@ const GAP_Y = 46;
 /** Chip text sizes (px): glyph and column name, value. */
 const NAME_PX = 13;
 const VALUE_PX = 14;
-/** Approximate advance of the monospace font, in em. */
+/** Upper bound on the average advance of the text font, in em (truncation stays on the safe side). */
 const MONO_EM = 0.62;
 
 type Sem = 'number' | 'text' | 'datetime' | 'boolean';
@@ -54,7 +54,6 @@ function SvgSemGlyph({ sem, x, y }: { sem: Sem; x: number; y: number }) {
           y={0.5}
           textAnchor="middle"
           dominantBaseline="central"
-          className={sem === 'number' ? 'font-mono' : undefined}
           style={{ fill: 'var(--ink-2)', fontSize: 13, fontWeight: 600, letterSpacing: sem === 'text' ? '-0.04em' : undefined }}
         >
           {sem === 'number' ? '#' : 'Aa'}
@@ -233,7 +232,6 @@ export const CellsVsNodes = memo(function CellsVsNodes({ db, idx, slots, focus }
                         y={labelSide(c) === 'above' ? -21 : labelSide(c) === 'below' ? 25 : 0}
                         textAnchor={labelSide(c) === 'right' ? 'start' : 'middle'}
                         dominantBaseline="central"
-                        className="font-mono"
                         style={{ fill: 'var(--ink)', fontSize: 13, stroke: 'var(--surface)', strokeWidth: 4, paintOrder: 'stroke', strokeLinejoin: 'round' }}
                       >
                         {rowLabel(c.ref)}
@@ -250,7 +248,7 @@ export const CellsVsNodes = memo(function CellsVsNodes({ db, idx, slots, focus }
                         style={{ fill: 'var(--surface)', stroke: isFocus ? 'var(--accent)' : catVar(slot) }}
                         strokeWidth={isFocus ? 2 : 1.5}
                       />
-                      <text x={0} y={HEAD_H / 2 + 0.5} textAnchor="middle" dominantBaseline="central" className="font-mono" style={{ fill: 'var(--ink)', fontSize: 13, fontWeight: 600 }}>
+                      <text x={0} y={HEAD_H / 2 + 0.5} textAnchor="middle" dominantBaseline="central" style={{ fill: 'var(--ink)', fontSize: 13, fontWeight: 600 }}>
                         {rowLabel(c.ref)}
                       </text>
                       {c.cells.map((cell, i) => (
@@ -265,10 +263,10 @@ export const CellsVsNodes = memo(function CellsVsNodes({ db, idx, slots, focus }
                           <rect x={-CW / 2 + 6} y={0} width={CW - 12} height={CHIP_H} rx={4} style={{ fill: 'var(--surface)', stroke: 'var(--border-strong)' }} strokeWidth={1} />
                           <rect x={-CW / 2 + 6} y={0} width={3} height={CHIP_H} rx={1.5} style={{ fill: catVar(slot) }} />
                           <SvgSemGlyph sem={cell.sem} x={-CW / 2 + 13} y={12} />
-                          <text x={-CW / 2 + 37} y={12} dominantBaseline="central" className="font-mono" style={{ fill: 'var(--ink-2)', fontSize: NAME_PX }}>
+                          <text x={-CW / 2 + 37} y={12} dominantBaseline="central" style={{ fill: 'var(--ink-2)', fontSize: NAME_PX }}>
                             {truncate(cell.col, nameChars)}
                           </text>
-                          <text x={-CW / 2 + 14} y={29} dominantBaseline="central" className="font-mono" style={{ fill: 'var(--ink)', fontSize: VALUE_PX }}>
+                          <text x={-CW / 2 + 14} y={29} dominantBaseline="central" style={{ fill: 'var(--ink)', fontSize: VALUE_PX }}>
                             {truncate(cell.text, valueChars)}
                           </text>
                         </motion.g>

@@ -36,7 +36,7 @@ export function SemBadge({ sem, size = 'sm', showLabel = false, bare = false, cl
   const icon = Math.round(px * 0.7);
   const glyph =
     code === SemType.Number ? (
-      <span className="font-mono font-semibold" style={{ fontSize: Math.max(13, Math.round(px * 0.7)) }}>
+      <span className="font-semibold" style={{ fontSize: Math.max(13, Math.round(px * 0.7)) }}>
         #
       </span>
     ) : code === SemType.Text ? (

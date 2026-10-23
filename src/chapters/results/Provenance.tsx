@@ -116,8 +116,15 @@ export function ProvenanceTimeline() {
             </div>
             <div className="min-w-0 pb-5">
               <div className="flex flex-wrap items-baseline gap-x-2">
-                <span className={cx('text-[16.5px] font-semibold', m.kind === 'paper' ? 'text-ink' : 'font-mono text-[15.5px] text-ink')}>
-                  {m.title}
+                <span className={cx('text-[16.5px] font-semibold', m.kind === 'paper' ? 'text-ink' : 'text-[15.5px] text-ink')}>
+                  {m.kind === 'code' ? (
+                    <>
+                      <span className="font-mono">{m.title.split(' · ')[0]}</span>
+                      {m.title.slice(m.title.split(' · ')[0].length)}
+                    </>
+                  ) : (
+                    m.title
+                  )}
                 </span>
                 <span className="text-[14px] text-muted">{m.kind === 'paper' ? 'paper version' : 'code commit'}</span>
               </div>
@@ -225,7 +232,7 @@ export function ProvenanceChecks() {
             <tbody>
               {CLF_ORDER.map((k, i) => (
                 <tr key={k} className="border-b border-grid/70">
-                  <td className="px-2 py-0.5 font-mono text-[14.5px] whitespace-nowrap">{taskLabel(k)}</td>
+                  <td className="px-2 py-0.5 text-[14.5px] whitespace-nowrap">{taskLabel(k)}</td>
                   <td className="num px-2 py-0.5 text-right">{f1(V1_TABLE1_RTNO[i])}</td>
                   <td className="num px-2 py-0.5 text-right">{f1(none[i])}</td>
                   <td className="px-1 py-0.5 text-center">{ok(V1_TABLE1_RTNO[i] === none[i])}</td>

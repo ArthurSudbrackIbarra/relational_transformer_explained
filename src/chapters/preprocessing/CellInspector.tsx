@@ -294,17 +294,17 @@ function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: Table
           />
           {sym && (
             <div className="mt-1 text-[15px]">
-              <span className="font-mono">c</span> = “{phrase}”
+              <span>c</span> = “{phrase}”
               {!tok?.isTarget && (
                 <>
                   ,{' '}
                   {cell.sem === SemType.Text ? (
                     <>
-                      <span className="font-mono">s</span> = “{textVal}”
+                      <span>s</span> = “{textVal}”
                     </>
                   ) : (
                     <>
-                      <span className="font-mono">v</span> = <span className="num">{signed(stored, 3)}</span>
+                      <span>v</span> = <span className="num">{signed(stored, 3)}</span>
                     </>
                   )}
                 </>
@@ -366,7 +366,7 @@ function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: Table
     <div className="min-w-0">
       <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-grid pb-2">
         <span aria-hidden="true" className="inline-block h-2.5 w-2.5 translate-y-[1px] rounded-[3px]" style={{ background: catVar(data.slotOf(file.tableName)) }} />
-        <span className="font-mono text-[16.5px] font-semibold text-ink">
+        <span className="text-[16.5px] font-semibold text-ink">
           {fileLabel(file)}[{row}].{col}
         </span>
         <span className="num text-[15px] text-ink-2">node #{file.offset + row}</span>

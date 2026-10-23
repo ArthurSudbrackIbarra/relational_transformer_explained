@@ -392,8 +392,8 @@ export function DevGallery() {
               const t = TOY_TOKENS[i];
               return (
                 <>
-                  Emit token <span className="num">{i}</span>: <span className="font-mono">{t.colName}</span> of{' '}
-                  <span className="font-mono">{t.tableName}</span>
+                  Emit token <span className="num">{i}</span>: {t.colName} of{' '}
+                  {t.tableName}
                   {t.isTarget ? ' (the masked target)' : ''}.
                 </>
               );

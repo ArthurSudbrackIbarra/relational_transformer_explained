@@ -87,7 +87,7 @@ export function VectorStrip({
 
   return (
     <div className={cx('min-w-0', className)}>
-      {label && <div className="mb-1.5 font-mono text-[15px] text-ink-2">{label}</div>}
+      {label && <div className="mb-1.5 text-[15px] text-ink-2">{label}</div>}
       <div ref={ref} className="w-full">
         <svg
           width="100%"

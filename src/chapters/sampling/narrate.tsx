@@ -268,7 +268,7 @@ export function narrate({ step, iters, ctx, pdb, db, task, before, state }: Narr
         {target ? (
           <>
             {' '}
-            The <span className="font-mono">{target.colName}</span> cell is the single <B>masked target</B> (?).
+            The {target.colName} cell is the single <B>masked target</B> (?).
           </>
         ) : null}
         {ie.drops.length ? (

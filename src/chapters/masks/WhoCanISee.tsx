@@ -156,7 +156,7 @@ export function WhoCanISee({ live }: { live: LiveMasks }) {
     const t = ctx.tokens[pos];
     return (
       <>
-        <div className="font-mono text-ink">
+        <div className="text-ink">
           {rowTag(t, prefixes)}·{t.colName} <span className="text-muted">=</span> <span className="num">{valueText(t)}</span>
         </div>
         <div className="text-[14px] text-muted">
@@ -210,8 +210,8 @@ export function WhoCanISee({ live }: { live: LiveMasks }) {
           <span className="num font-semibold text-ink">#{q}</span>{' '}
           {qTok && !qTok.isPadding && (
             <>
-              <span className="font-mono text-ink">{qTok.colName}</span> <span className="text-muted">of</span>{' '}
-              <span className="font-mono text-ink">{rowName(qTok)}</span> <span className="text-muted">=</span>{' '}
+              <span className="text-ink">{qTok.colName}</span> <span className="text-muted">of</span>{' '}
+              <span className="text-ink">{rowName(qTok)}</span> <span className="text-muted">=</span>{' '}
               <span className={cx('num', qTok.isTarget ? 'font-semibold text-accent-text' : 'text-ink')}>{valueText(qTok)}</span>
             </>
           )}
@@ -433,7 +433,7 @@ function PanelReading({
     case 'col':
       return (
         <>
-          The <span className="font-mono text-ink">{q.colName}</span> cells of {q.tableName}, one per row that has one.
+          The <span className="text-ink">{q.colName}</span> cells of {q.tableName}, one per row that has one.
         </>
       );
     case 'feat': {

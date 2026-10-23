@@ -427,7 +427,7 @@ function NarrowMatrix(p: {
                   {g.label}
                 </span>
                 <span className="num shrink-0 text-muted">{rows.length}</span>
-                {g.hasTarget && <span className="target-outline shrink-0 rounded px-1 font-mono text-[13.5px] font-bold text-accent-text">?</span>}
+                {g.hasTarget && <span className="target-outline shrink-0 rounded px-1 text-[13.5px] font-bold text-accent-text">?</span>}
               </div>
             )}
             <Heatmap

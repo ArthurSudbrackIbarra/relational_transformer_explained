@@ -44,7 +44,7 @@ export function TrainStatsFigure({ data }: { data: ChapterData }) {
         return (
           <div key={task.id} className="min-w-0">
             <div className="mb-2 flex flex-wrap items-baseline gap-x-2 text-[16px]">
-              <span className="inline-flex items-center gap-1.5 font-mono font-semibold text-ink">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
                 <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-[3px]" style={{ background: catVar(data.slotOf(task.name)) }} />
                 {task.name}.{col}
               </span>
@@ -86,7 +86,7 @@ export function TrainStatsFigure({ data }: { data: ChapterData }) {
                   return (
                     <tr key={f.key} className="border-b border-grid/70">
                       <td className="py-1.5 pr-2">
-                        <span className="font-mono text-ink">{f.tableType}</span>
+                        <span className="text-ink">{f.tableType}</span>
                         {f.tableType !== 'Train' && ts !== undefined && <span className="block text-[14px] whitespace-nowrap text-muted sm:ml-1.5 sm:inline">{isoDay(ts)}</span>}
                         <span className="num block text-[14px] whitespace-nowrap text-muted sm:hidden">{nf(f.numNodes)} rows</span>
                       </td>

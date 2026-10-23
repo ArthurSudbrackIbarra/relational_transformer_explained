@@ -192,7 +192,7 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
       <div className="mt-2 min-h-[20px] text-[15px] text-ink-2" aria-live="polite">
         {hovered ? (
           <>
-            <span className="font-mono text-ink">
+            <span className="text-ink">
               {hovered.isPadding ? 'padding' : `${tokenRowRef(hovered)}.${hovered.colName}`}
             </span>{' '}
             · sampler position <span className="num">{hover}</span> · now at position <span className="num">{newPos[hover!]}</span>
@@ -307,7 +307,7 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
         <Cite kind="code" ref="rt/model.py:187" />
         {band ? (
           <>
-            ; the widest here is <span className="font-mono text-ink">{band.label}</span>, whose cells {band.readers} child cells may read
+            ; the widest here is <span className="text-ink">{band.label}</span>, whose cells {band.readers} child cells may read
           </>
         ) : null}
         . After the shuffle the picture looks scattered, yet every entry still says the same thing about the same pair of cells: it is the same

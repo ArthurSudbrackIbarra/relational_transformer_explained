@@ -195,7 +195,6 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
               <text
                 x={M.left + 2}
                 y={M.top + l * LANE_H + 7}
-                className="font-mono"
                 style={{ fill: 'var(--ink-2)', fontSize: SMALL_PX, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 3 }}
               >
                 {g.childTable}
@@ -295,7 +294,7 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
               top: Math.max(0, M.top + hover.lane * LANE_H + LANE_H / 2 + hover.jitter * JITTER + 14),
             }}
           >
-            <div className="font-mono font-semibold text-ink">{rowLabel(hover.ref)}</div>
+            <div className="font-semibold text-ink">{rowLabel(hover.ref)}</div>
             <div className="num text-ink-2">{formatDate(hover.t, 'always')}</div>
             {idx
               .parentsOf(hover.ref)

@@ -98,7 +98,7 @@ export function TokenCaption({ live, pos, prefix = 'Token' }: { live: BlockLive;
       <span className="num text-ink">
         #{pos} {live.labels[pos]}
       </span>{' '}
-      · {t.colName} of <span className="font-mono">{rowName(t)}</span> ·{' '}
+      · {t.colName} of {rowName(t)} ·{' '}
       {pos === live.target ? <strong className="font-semibold text-accent-text">masked target “?”</strong> : <span className="num text-ink">{valueOf(t)}</span>}
     </p>
   );

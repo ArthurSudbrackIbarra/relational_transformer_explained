@@ -138,7 +138,7 @@ function SiteView({ set, dataset, results }: { set: PretrainSet | null; dataset:
                 {d.tasks.map((t) => (
                   <li key={t.id} className="!m-0 flex flex-wrap items-center gap-x-1.5 !pl-0 text-[14.5px]">
                     <SemBadge sem={t.task.targetType === 'binary' ? SemType.Boolean : SemType.Number} size="xs" />
-                    <span className="min-w-0 font-mono break-words text-ink" title={t.id}>
+                    <span className="min-w-0 break-words text-ink" title={t.id}>
                       {t.short}
                     </span>
                     <span className="num ml-auto shrink-0 pl-2 text-ink-2">{int(t.seeds.length)}</span>
@@ -165,7 +165,7 @@ function SiteView({ set, dataset, results }: { set: PretrainSet | null; dataset:
             {shop.tasks.map(({ t, val, test }) => (
               <li key={t.id} className="!m-0 flex flex-wrap items-center gap-x-1.5 !pl-0 text-[14.5px]">
                 <SemBadge sem={t.targetType === 'binary' ? SemType.Boolean : SemType.Number} size="xs" />
-                <span className="min-w-0 font-mono break-words text-ink" title={t.id}>
+                <span className="min-w-0 break-words text-ink" title={t.id}>
                   {t.id.split('/')[1]}
                 </span>
                 <span className="num ml-auto shrink-0 pl-2 text-ink-2">{t.kind === 'forecast' ? `val ${val} · test ${test}` : 'our extension'}</span>
@@ -195,7 +195,7 @@ function PaperView() {
       transition={{ type: 'spring', stiffness: 380, damping: 34 }}
       className={`min-w-0 rounded-lg border px-3 py-2 ${held ? 'border-accent bg-surface' : 'border-border bg-surface'}`}
     >
-      <div className="font-mono text-[15.5px] font-semibold text-ink">{d.name}</div>
+      <div className="text-[15.5px] font-semibold text-ink">{d.name}</div>
       <div className="text-[14.5px] text-ink-2">
         {held ? `${d.forecast} forecast tasks evaluated` : `${d.forecast} forecast + ${d.autocomplete} autocomplete`}
       </div>

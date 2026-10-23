@@ -74,12 +74,12 @@ type RawRow = Readonly<Record<string, RawValue>>;
  * sizes. Long strings still truncate (full value on hover).
  */
 function measureColumn(name: string, dtype: string, isTime: boolean, isKey: boolean, sample: readonly RawRow[]): number {
-  const header = (isKey ? 13 : 18) + 6 + textWidth(name, 14.5, { mono: true, weight: 600 }) + (isTime ? 6 + textWidth('time', 13.5) + 8 : 0) + 18;
+  const header = (isKey ? 13 : 18) + 6 + textWidth(name, 14.5, { weight: 600 }) + (isTime ? 6 + textWidth('time', 13.5) + 8 : 0) + 18;
   let content = 0;
   for (const r of sample) {
     const v = r[name];
     if (v === null || v === undefined) continue;
-    content = Math.max(content, textWidth(formatRaw(v, dtype as DType), 15, { mono: dtype !== 'str' }));
+    content = Math.max(content, textWidth(formatRaw(v, dtype as DType), 15));
   }
   content += 16 + 8 + 4; // cell padding + value pill padding
   const cap = dtype === 'str' ? 280 : 210;
@@ -153,7 +153,7 @@ export function TableView({
   }, [scrollToRow, order]);
 
   const fkCols = schema.fkeys;
-  const idxW = Math.ceil(Math.max(48, textWidth(String(Math.max(0, rows.length - 1)), 14.5, { mono: true }) + 20));
+  const idxW = Math.ceil(Math.max(48, textWidth(String(Math.max(0, rows.length - 1)), 14.5) + 20));
   const widths = useMemo(() => {
     const step = Math.max(1, Math.floor(rows.length / 300));
     const sample: RawRow[] = [];
@@ -190,7 +190,7 @@ export function TableView({
     <div className={cx('card overflow-hidden', className)} style={{ borderLeft: slot ? `3px solid ${catVar(slot)}` : undefined }}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-grid px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate font-mono text-[16px] font-semibold text-ink">{title ?? schema.name}</span>
+          <span className="truncate text-[16px] font-semibold text-ink">{title ?? schema.name}</span>
           <span className="num shrink-0 text-[14.5px] text-muted">{order.length.toLocaleString('en-US')} {order.length === 1 ? 'row' : 'rows'}</span>
         </div>
         {zValue && (
@@ -216,7 +216,7 @@ export function TableView({
       >
         <div style={{ width: totalW, minWidth: '100%' }}>
           <div role="row" className="sticky top-0 z-10 flex border-b border-grid bg-surface-2" style={{ height: ROW_H + 4 }}>
-            <div role="columnheader" className="flex shrink-0 items-center px-2 font-mono text-[14px] text-muted" style={{ width: idxW }} title="row position (= primary-key value, spec §1.2)">
+            <div role="columnheader" className="flex shrink-0 items-center px-2 text-[14px] text-muted" style={{ width: idxW }} title="row position (= primary-key value, spec §1.2)">
               row
             </div>
             {cols.map((c) => {
@@ -243,7 +243,7 @@ export function TableView({
                   ) : (
                     <SemBadge sem={semOfDType(c.dtype)} size="xs" />
                   )}
-                  <span className={cx('truncate font-mono font-semibold', kind === 'feature' ? 'text-ink' : 'text-ink-2')}>{c.name}</span>
+                  <span className={cx('truncate font-semibold', kind === 'feature' ? 'text-ink' : 'text-ink-2')}>{c.name}</span>
                   {isTime && <span className="shrink-0 rounded bg-surface-3 px-1 text-[13.5px] font-medium text-ink-2">time</span>}
                 </div>
               );

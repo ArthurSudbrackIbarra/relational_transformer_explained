@@ -76,7 +76,7 @@ export function SemTypeFigure({ data }: { data: ChapterData }) {
               {(byType.get(r.code) ?? []).map(({ file, col }) => (
                 <span
                   key={`${file.tableName}.${col}`}
-                  className={cx('inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-[14.5px] text-ink')}
+                  className={cx('inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-2 px-1.5 py-0.5 text-[14.5px] text-ink')}
                   title={file.isTask ? `${col} of the task table ${file.tableName} (all splits)` : `${col} of ${file.tableName}`}
                 >
                   <span aria-hidden="true" className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ background: catVar(slotOf(file.tableName)) }} />

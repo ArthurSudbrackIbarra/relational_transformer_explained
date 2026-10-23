@@ -47,7 +47,7 @@ export function DotPlot({ rows, methods, domain, refLine, axisLabel, focus, aria
   const [hover, setHover] = useState<number | null>(null);
   const W = Math.max(300, size.width || 720);
 
-  const labelW = Math.ceil(Math.max(...rows.map((r) => textWidth(r.label, 15, { mono: !r.mean, weight: r.mean ? 600 : 400 })))) + 16;
+  const labelW = Math.ceil(Math.max(...rows.map((r) => textWidth(r.label, 15, { weight: r.mean ? 600 : 400 })))) + 16;
   const valueW = focus ? 64 : 12;
   const stacked = W - labelW - valueW < 300;
   const rowH = stacked ? ROW_H_STACKED : ROW_H;
@@ -122,7 +122,6 @@ export function DotPlot({ rows, methods, domain, refLine, axisLabel, focus, aria
                   fill: 'var(--ink)',
                   fontSize: 15,
                   fontWeight: r.mean ? 600 : 400,
-                  fontFamily: r.mean ? undefined : 'var(--font-mono)',
                   stroke: hover === i ? 'var(--surface-2)' : 'var(--surface)',
                   strokeWidth: 4,
                   paintOrder: 'stroke',
@@ -175,7 +174,7 @@ export function DotPlot({ rows, methods, domain, refLine, axisLabel, focus, aria
                   dy="0.32em"
                   textAnchor="end"
                   className="tabular"
-                  style={{ fill: 'var(--ink)', fontSize: 15, fontWeight: r.mean ? 700 : 500, fontFamily: 'var(--font-mono)' }}
+                  style={{ fill: 'var(--ink)', fontSize: 15, fontWeight: r.mean ? 700 : 500 }}
                 >
                   {fv === undefined ? '' : cellText(fv)}
                 </text>
@@ -186,7 +185,7 @@ export function DotPlot({ rows, methods, domain, refLine, axisLabel, focus, aria
       </svg>
       {hover !== null && rows[hover] && (
         <Tip x={W * 0.55} y={rowY(hover) + rowH + 2} width={W} flip={false}>
-          <div className="mb-1 font-mono text-[14.5px] text-ink">{rows[hover].label}</div>
+          <div className="mb-1 text-[14.5px] text-ink">{rows[hover].label}</div>
           {rows[hover].detail && <div className="mb-1 text-[14px] text-muted">{rows[hover].detail}</div>}
           {[...methods]
             .sort((a, b) => {

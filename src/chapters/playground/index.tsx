@@ -78,7 +78,7 @@ function Body() {
           <span className="text-ink">{who.title}</span>
           {who.sub ? ` · ${who.sub}` : ''}
           {seed && seed.ts !== null && !who.sub.includes(formatDate(seed.ts * 1000)) ? ` · ${formatDate(seed.ts * 1000)}` : ''} · task{' '}
-          <span className="font-mono text-ink">{task.name}</span> · checkpoint <span className="font-mono text-ink">{baseCkpt}</span> · L = {globalL}, w ={' '}
+          <span className="text-ink">{task.name}</span> · checkpoint <span className="font-mono text-ink">{baseCkpt}</span> · L = {globalL}, w ={' '}
           {w}{' '}
           {baseAssets.weightsKind === 'init' && (
             <>

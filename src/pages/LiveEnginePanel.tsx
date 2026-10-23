@@ -97,7 +97,7 @@ export function LiveEnginePanel() {
       <div className="wide grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label="Seed row"
-          value={<span className="font-mono text-[22px]">#{seedNode}</span>}
+          value={<>#{seedNode}</>}
           caption={
             <>
               {seed ? `${seed.tableKey}[${seed.rowPos}]` : '—'}
@@ -170,7 +170,7 @@ export function LiveEnginePanel() {
           <>
             Select or hover a token; the keys it may attend to under the chosen mask are ringed. Default query: the masked target{' '}
             {target ? (
-              <span className="font-mono">
+              <span>
                 {target.tableName}.{target.colName}
               </span>
             ) : null}{' '}

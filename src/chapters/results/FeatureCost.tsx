@@ -128,7 +128,7 @@ export function FullFtCheck() {
           <tbody>
             {rows.map((r) => (
               <tr key={r.task} className="border-b border-grid/70">
-                <td className="px-2 py-1 font-mono text-[14.5px]">{taskLabel(r.task)}</td>
+                <td className="px-2 py-1 text-[14.5px]">{taskLabel(r.task)}</td>
                 <td className="num px-2 py-1 text-right font-semibold">{f1(r.full)}</td>
                 <td className={`num px-2 py-1 text-right ${r.u >= r.p ? 'text-ink' : 'text-muted'}`}>{f1(r.u)}</td>
                 <td className={`num px-2 py-1 text-right ${r.p >= r.u ? 'text-ink' : 'text-muted'}`}>{f1(r.p)}</td>

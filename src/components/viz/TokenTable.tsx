@@ -245,7 +245,7 @@ export function TokenTable({
                     }
                   }}
                   className={cx(
-                    'absolute left-0 flex w-full border-b border-grid/70 font-mono text-[14.5px] tabular-nums',
+                    'absolute left-0 flex w-full border-b border-grid/70 text-[14.5px] tabular-nums',
                     t.isPadding && 'text-muted',
                     isSel ? 'bg-accent-soft' : isHl ? 'bg-surface-2' : 'hover:bg-surface-2',
                     onSelect && 'cursor-pointer',

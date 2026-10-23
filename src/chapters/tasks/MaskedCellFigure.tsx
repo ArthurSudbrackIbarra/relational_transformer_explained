@@ -38,7 +38,7 @@ function HiddenCell({ masked, value, wide }: { masked: boolean; value: string; w
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.6 }}
             transition={{ duration: 0.22 }}
-            className="target-outline inline-flex h-[22px] min-w-[26px] items-center justify-center rounded-[5px] bg-accent-soft px-1.5 font-mono text-[15.5px] font-bold text-accent-text"
+            className="target-outline inline-flex h-[22px] min-w-[26px] items-center justify-center rounded-[5px] bg-accent-soft px-1.5 text-[15.5px] font-bold text-accent-text"
             aria-label="masked cell"
           >
             ?
@@ -103,7 +103,7 @@ function FutureStrip({ t, delta, events, masked, reduced }: { t: number; delta: 
               x={x(t) + bandW / 2}
               y={Y.dot + 5}
               textAnchor="middle"
-              className="fill-[var(--accent-text)] font-mono text-[15px] font-bold"
+              className="fill-[var(--accent-text)] text-[15px] font-bold"
             >
               ?
             </motion.text>
@@ -224,7 +224,7 @@ export function MaskedCellFigure({
                     className={cx('inline-flex min-w-0 items-center gap-1 font-medium', acStacked && c === 'review_text' && 'col-span-2')}
                   >
                     <SemBadge sem={semOfDType(dtypeOf(c))} size="sm" />
-                    <span className="font-mono">{c}</span>
+                    <span>{c}</span>
                   </span>
                 ))}
               </div>
@@ -295,19 +295,19 @@ export function MaskedCellFigure({
             <dd className="num text-ink">reviews[{review}]</dd>
             <dt className="text-ink-2">target cell</dt>
             <dd className="text-ink">
-              <span className="font-mono">{ratingTask.targetCol}</span>, masked
+              <span>{ratingTask.targetCol}</span>, masked
             </dd>
             {leak.length > 0 && (
               <>
                 <dt className="text-ink-2">leakage column</dt>
                 <dd className="text-ink">
-                  <span className="font-mono line-through decoration-[var(--critical)]">{leak.join(', ')}</span>, dropped
+                  <span className="line-through decoration-[var(--critical)]">{leak.join(', ')}</span>, dropped
                 </dd>
               </>
             )}
           </dl>
           <p className="mt-auto border-t border-grid px-4 py-2.5 text-[15.5px] leading-snug text-ink-2">
-            <span className="font-mono text-ink">reviews.rating</span> of row {review}: the answer sits in the database already. The
+            <span className="text-ink">reviews.rating</span> of row {review}: the answer sits in the database already. The
             model sees the rest of the row, minus the leakage column{leak.length === 1 ? '' : 's'} that would give the answer away
             (section 4), and the row’s neighborhood.
           </p>
@@ -322,7 +322,7 @@ export function MaskedCellFigure({
           <div className="px-4 py-3">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px]">
               <span className="inline-block h-2.5 w-2.5 rounded-[3px]" style={{ background: 'var(--cat-1)' }} aria-hidden="true" />
-              <span className="font-mono text-ink-2">customers[{customer}]</span>
+              <span className="text-ink-2">customers[{customer}]</span>
               <span className="text-ink">{entityName(db, churnTask.entityTable!, customer)}</span>
               <span className="num text-muted">
                 {String(cust?.country ?? '∅')} · age {formatRaw(cust?.age ?? null)} · premium {formatRaw(cust?.is_premium ?? null)}
@@ -334,9 +334,9 @@ export function MaskedCellFigure({
                   <table className="w-full border-collapse text-[15px]">
                     <thead>
                       <tr className="bg-surface-2 text-left text-[14px] text-ink-2">
-                        <th className="px-2.5 py-1 font-mono font-medium">timestamp</th>
-                        <th className="px-2.5 py-1 font-mono font-medium">customer_id</th>
-                        <th className="px-2.5 py-1 font-mono font-medium">churn</th>
+                        <th className="px-2.5 py-1 font-medium">timestamp</th>
+                        <th className="px-2.5 py-1 font-medium">customer_id</th>
+                        <th className="px-2.5 py-1 font-medium">churn</th>
                         <th className="px-2.5 py-1 text-right font-medium">split</th>
                       </tr>
                     </thead>
@@ -385,7 +385,7 @@ export function MaskedCellFigure({
           </div>
           <p className="mt-auto border-t border-grid px-4 py-2.5 text-[15.5px] leading-snug text-ink-2">
             No ShopDB table stores “will this customer churn?”. The label is built from future rows and kept in a new{' '}
-            <span className="font-mono text-ink">customer-churn</span> table.
+            <span className="text-ink">customer-churn</span> table.
           </p>
         </div>
       </div>

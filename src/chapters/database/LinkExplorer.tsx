@@ -122,7 +122,7 @@ export const LinkExplorer = memo(function LinkExplorer({
             </Button>
           )}
           {history.length > 0 && (
-            <span className="min-w-0 flex-1 truncate font-mono text-[14px] text-muted" title="The rows you walked through">
+            <span className="min-w-0 flex-1 truncate text-[14px] text-muted" title="The rows you walked through">
               {history
                 .slice(-4)
                 .map((r) => rowLabel(r))
@@ -146,14 +146,14 @@ export const LinkExplorer = memo(function LinkExplorer({
           </div>
           {parents.length === 0 ? (
             <p className="!m-0 text-[15.5px] text-ink-2">
-              <span className="font-mono">{focus.table}</span> has no foreign-key column, so its rows have no parents.
+              <span>{focus.table}</span> has no foreign-key column, so its rows have no parents.
             </p>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
               {parents.map((p) =>
                 p.parentRow === null ? (
                   <div key={p.fkCol} className="rounded-lg bg-surface-2 px-3 py-2 text-[15px] text-ink-2">
-                    <span className="font-mono">{p.fkCol}</span> = ∅: a null foreign key makes no link
+                    <span>{p.fkCol}</span> = ∅: a null foreign key makes no link
                   </div>
                 ) : (
                   <RowButton
@@ -189,7 +189,7 @@ export const LinkExplorer = memo(function LinkExplorer({
             <div aria-hidden="true" className="absolute inset-y-0 left-0 w-[4px]" style={{ background: catVar(slots[focus.table] ?? 0) }} />
             <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pt-3 pb-2">
               <span className="flex items-baseline gap-2">
-                <span className="font-mono text-[17.5px] font-semibold text-ink">{rowLabel(focus)}</span>
+                <span className="text-[17.5px] font-semibold text-ink">{rowLabel(focus)}</span>
                 <span className="text-[15.5px] text-ink-2">{rowCaption(db, focus, 40)}</span>
               </span>
               <span className="flex flex-wrap items-center gap-2">
@@ -208,7 +208,7 @@ export const LinkExplorer = memo(function LinkExplorer({
                 const text = formatRaw(v, c.dtype);
                 return (
                   <Fragment key={c.name}>
-                    <dt className="flex min-w-0 items-center gap-1.5 font-mono text-ink-2">
+                    <dt className="flex min-w-0 items-center gap-1.5 text-ink-2">
                       {k === 'pk' ? (
                         <KeyRound aria-label="primary key" size={15} className="shrink-0" />
                       ) : k === 'fk' ? (
@@ -254,7 +254,7 @@ export const LinkExplorer = memo(function LinkExplorer({
           </div>
           {groups.length === 0 ? (
             <p className="!m-0 text-[15.5px] text-ink-2">
-              No table has a foreign key into <span className="font-mono">{focus.table}</span>, so its rows have no children.
+              No table has a foreign key into <span>{focus.table}</span>, so its rows have no children.
             </p>
           ) : (
             <div className="grid gap-3">
@@ -267,7 +267,7 @@ export const LinkExplorer = memo(function LinkExplorer({
                     <div className="mb-1.5 flex items-center gap-2 text-[15px] text-ink-2">
                       <TableSwatch slot={slots[g.childTable] ?? 0} shape label={g.childTable} />
                       <span>
-                        via <span className="font-mono">{g.fkCol}</span> · <span className="num text-ink">{g.rows.length}</span> rows
+                        via <span>{g.fkCol}</span> · <span className="num text-ink">{g.rows.length}</span> rows
                       </span>
                     </div>
                     {g.rows.length === 0 ? (
@@ -350,7 +350,7 @@ export const LinkExplorer = memo(function LinkExplorer({
           <p className="!mt-1.5 !mb-0 min-h-[1.4em] px-1.5 text-[14.5px] leading-snug text-ink-2" aria-live="polite">
             {hover !== null && !hoverDrawn ? (
               <>
-                <span className="font-mono text-ink">{rowLabel(parseRowKey(hover))}</span> is not drawn here (display limit).
+                <span className="text-ink">{rowLabel(parseRowKey(hover))}</span> is not drawn here (display limit).
               </>
             ) : graph.total > graph.shown ? (
               <>Drawing {graph.shown} of {graph.total} children to keep the picture readable (a display limit, not part of RT).</>
@@ -396,9 +396,9 @@ function RowButton({
     >
       <span aria-hidden="true" className="w-[3px] shrink-0 self-stretch rounded-full" style={{ background: catVar(slot) }} />
       <span className="min-w-0">
-        <span className="block font-mono text-[15.5px] font-semibold break-words text-ink">{rowLabel(r)}</span>
+        <span className="block text-[15.5px] font-semibold break-words text-ink">{rowLabel(r)}</span>
         {rowCaption(db, r) && <span className="block text-[15px] leading-snug break-words text-ink">{rowCaption(db, r, 40)}</span>}
-        <span className="block font-mono text-[14px] leading-snug break-words text-ink-2">via {via}</span>
+        <span className="block text-[14px] leading-snug break-words text-ink-2">via {via}</span>
       </span>
     </button>
   );

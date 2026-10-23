@@ -82,7 +82,7 @@ export function EgoGraph({
         x={kind === 'row' ? x + R + 7 : x}
         y={kind === 'parent' ? y - R - 6 : kind === 'row' ? y + 5 : y + R + LABEL_PX + 1}
         textAnchor={kind === 'row' ? 'start' : 'middle'}
-        style={{ fontSize: LABEL_PX, fontFamily: 'var(--font-mono)', fontWeight: kind === 'row' ? 700 : 500, fill: kind === 'child' ? 'var(--ink-2)' : 'var(--ink)' }}
+        style={{ fontSize: LABEL_PX, fontWeight: kind === 'row' ? 700 : 500, fill: kind === 'child' ? 'var(--ink-2)' : 'var(--ink)' }}
       >
         {n.tag}
       </text>

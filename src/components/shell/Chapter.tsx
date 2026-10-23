@@ -15,10 +15,11 @@
  *     );
  *   }
  */
-import { ArrowLeft, ArrowRight, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Link as LinkIcon } from 'lucide-react';
 import { useEffect, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getChapter, getNeighbors, PARTS, prefetchChapter } from '@/chapters/registry';
+import { useSim } from '@/state/store';
 import { SITE_TITLE } from '../prose/sources';
 import { cx } from '../ui/cx';
 import { ContentColumn } from './Layout';
@@ -184,11 +185,47 @@ export function Figure({ wide, title, caption, controls, bare, children, classNa
 // ChapterNav
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** End-of-chapter toggle: the reader marks the chapter completed by hand (sidebar ticks follow). */
+function CompleteButton({ slug }: { slug: string }) {
+  const meta = getChapter(slug);
+  const done = useSim((s) => !!s.completed[slug]);
+  const toggle = useSim((s) => s.toggleCompleted);
+  if (!meta) return null;
+  return (
+    <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
+      <button
+        type="button"
+        onClick={() => toggle(slug)}
+        aria-pressed={done}
+        className={cx(
+          'inline-flex h-11 items-center gap-2.5 rounded-xl border px-4 text-[16.5px] font-medium transition-colors',
+          done ? 'border-accent bg-accent-soft text-accent-text' : 'border-border-strong bg-surface text-ink hover:border-accent',
+        )}
+      >
+        <span
+          aria-hidden="true"
+          className={cx(
+            'flex h-[20px] w-[20px] items-center justify-center rounded-full border-[1.5px]',
+            done ? 'border-accent bg-accent text-accent-ink' : 'border-axis text-transparent',
+          )}
+        >
+          <Check size={13} strokeWidth={3} />
+        </span>
+        {done ? `Chapter ${meta.number} completed` : `Mark chapter ${meta.number} as completed`}
+      </button>
+      {done && <span className="text-[15px] text-muted">Click again to undo.</span>}
+    </div>
+  );
+}
+
 export function ChapterNav({ slug }: { slug: string }) {
   const { prev, next } = getNeighbors(slug);
   return (
     <nav aria-label="Chapter navigation" className="page-grid mt-20">
-      <div className="grid gap-3 border-t border-grid pt-8 sm:grid-cols-2">
+      <div className="border-t border-grid pt-8">
+        <CompleteButton slug={slug} />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
         {prev ? (
           <Link
             to={`/${prev.slug}`}

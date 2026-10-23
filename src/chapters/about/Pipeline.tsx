@@ -204,11 +204,11 @@ function ShopHash() {
       </div>
       <div className="mt-1 text-[15px] leading-snug text-ink-2">
         SHA-256 of ShopDB regenerated in your browser:{' '}
-        <span className="font-mono text-[14.5px] break-all text-ink">{hash === undefined ? 'computing…' : hash === null ? 'unavailable here' : hash}</span>
+        <span className={cx('text-[14.5px] break-all text-ink', hash && 'font-mono')}>{hash === undefined ? 'computing…' : hash === null ? 'unavailable here' : hash}</span>
       </div>
       <div className="mt-0.5 text-[15px] leading-snug text-ink-2">
         Pinned in <span className="font-mono text-[14.5px]">src/engine/db/db.test.ts</span>:{' '}
-        <span className="font-mono text-[14.5px] break-all text-ink">{pinned === undefined ? 'loading…' : pinned ?? 'not found'}</span>
+        <span className={cx('text-[14.5px] break-all text-ink', pinned && 'font-mono')}>{pinned === undefined ? 'loading…' : pinned ?? 'not found'}</span>
       </div>
       {hash && pinned && (
         <div className="mt-1.5">
@@ -393,7 +393,7 @@ function Detail({ id }: { id: StageId }) {
         <>
           <p>
             The bounded BFS of <span className="font-mono text-[16px]">fly.rs</span> collects the context around the seed row for the task{' '}
-            <span className="font-mono text-[16px]">{task.id}</span>, then the four attention masks are built from the token fields{' '}
+            {task.id}, then the four attention masks are built from the token fields{' '}
             <Cite kind="spec" ref="§4.3" /> <Cite kind="code" ref="rt/model.py:164-191" />.
           </p>
           <KV k="seed node" v={seed} />

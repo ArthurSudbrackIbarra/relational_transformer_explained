@@ -180,7 +180,7 @@ export const AnatomyFigure = memo(function AnatomyFigure({ table, rows, slot, db
           style={{ borderLeft: `3px solid ${catVar(slot)}` }}
         >
           <div className="flex items-center gap-2 border-b border-grid px-3 py-1.5">
-            <span className="font-mono text-[15.5px] font-semibold text-ink">{s.name}</span>
+            <span className="text-[15.5px] font-semibold text-ink">{s.name}</span>
             <span className="num text-[14px] text-muted">
               {rows.length} of {table.rows.length.toLocaleString('en-US')} rows
             </span>
@@ -208,7 +208,7 @@ export const AnatomyFigure = memo(function AnatomyFigure({ table, rows, slot, db
                         data-hl={isHlHeader(c.name) || (part === 'cell' && c.name === exCol.name) ? '1' : undefined}
                         scope="col"
                         className={cx(
-                          'px-2.5 py-1.5 text-left font-mono font-semibold whitespace-nowrap transition-colors duration-300',
+                          'px-2.5 py-1.5 text-left font-semibold whitespace-nowrap transition-colors duration-300',
                           k === 'feature' ? 'text-ink' : 'text-ink-2',
                           isHlHeader(c.name) && 'bg-accent-soft',
                         )}

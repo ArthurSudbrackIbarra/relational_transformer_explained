@@ -247,7 +247,7 @@ export function PaperTableView({
                     <td
                       key={i}
                       className={cx(
-                        'bg-surface px-2 py-1 font-mono text-[14.5px] whitespace-nowrap',
+                        'bg-surface px-2 py-1 text-[14.5px] whitespace-nowrap',
                         i === 0 && 'sticky left-0 z-[1]',
                         !r.mean && 'text-ink',
                       )}

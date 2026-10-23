@@ -108,8 +108,8 @@ export function SoftmaxDemo({ live }: { live: LiveMasks }) {
       }
       caption={
         <>
-          Query: the masked target (token #{q}, {labels[q]}). Both readings use the same raw scores q·k/√<span className="font-mono">d_head</span>{' '}
-          (<span className="font-mono">d_head</span> = {dHead} here, 32 in the paper) <Cite kind="spec" ref="§6.1" />. The block and head
+          Query: the masked target (token #{q}, {labels[q]}). Both readings use the same raw scores q·k/√d_head{' '}
+          (d_head = {dHead} here, 32 in the paper) <Cite kind="spec" ref="§6.1" />. The block and head
           controls change which allowed keys win, never the 100%: the mask is the same in every block and every head{' '}
           <Cite kind="code" ref="rt/model.py:89-101" />. The literal ⊙ M reading is shown only to explain the correction; the code does not
           compute it.
@@ -286,7 +286,7 @@ function KeyStrips({
         {rows.map((r) => (
           <div key={r.id} className="min-w-0">
             <div className="mb-0.5 text-[14px] text-ink-2">
-              <span className="font-mono">{r.title}</span>
+              {r.title}
             </div>
             <div className="flex h-[18px] w-full overflow-hidden rounded-[3px] border border-border bg-surface" role="img" aria-label={`${r.title} for each of the ${S} keys`}>
               {Array.from({ length: S }, (_, k) => {

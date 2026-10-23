@@ -149,11 +149,11 @@ export default function SemanticsChapter() {
       >
         <p className="mt-6 text-[17px] leading-relaxed text-ink-2">
           <span className="eyebrow mr-2">Live context</span>
-          seed <span className="font-mono text-ink">{live.target ? rowRef(live.target) : '–'}</span>
+          seed <span className="text-ink">{live.target ? rowRef(live.target) : '–'}</span>
           {live.entityNode && (
             <>
               {' '}
-              → <span className="font-mono text-ink">{rowRef(live.entityNode)}</span>
+              → <span className="text-ink">{rowRef(live.entityNode)}</span>
               {live.entityName ? ` (${live.entityName})` : ''}
             </>
           )}
@@ -388,7 +388,7 @@ export default function SemanticsChapter() {
           pieces, and every piece after the first is marked “##”
           {splitWords.length > 0 ? (
             <>
-              ; the target phrase becomes {targetPieces.length} wordpieces, <span className="font-mono">{targetPieces.join(' ')}</span>
+              ; the target phrase becomes {targetPieces.length} wordpieces, <span>{targetPieces.join(' ')}</span>
             </>
           ) : null}
           . The encoder still returns one vector for the whole string. Second, the mean runs over every wordpiece, [CLS] and [SEP] included: we
@@ -900,7 +900,7 @@ export default function SemanticsChapter() {
             {
               prompt: (
                 <>
-                  A customer’s country is the string <span className="font-mono">"DE"</span>. Which strings are embedded for this cell’s token?
+                  A customer’s country is the string <span>"DE"</span>. Which strings are embedded for this cell’s token?
                 </>
               ),
               choices: [

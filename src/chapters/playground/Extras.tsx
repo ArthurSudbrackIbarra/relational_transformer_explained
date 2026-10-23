@@ -79,14 +79,14 @@ export function NamesMap() {
           <tbody>
             {rows.map(([from, to]) => (
               <tr key={from} className={from === targetCol ? 'border-b border-grid/60 bg-accent-soft/50' : 'border-b border-grid/60'}>
-                <td className="py-1 pr-3 font-mono text-ink">
+                <td className="py-1 pr-3 text-ink">
                   <span className={from === targetCol ? 'font-semibold' : ''}>{pdb.text[from]}</span>
                   {from === targetCol && <span className="ml-2 font-sans text-[14px] text-muted">masked cell’s column</span>}
                 </td>
                 <td className="py-1 text-muted">
                   <ArrowRight aria-label="receives" size={14} />
                 </td>
-                <td className="py-1 font-mono text-ink-2">{pdb.text[to]}</td>
+                <td className="py-1 text-ink-2">{pdb.text[to]}</td>
               </tr>
             ))}
           </tbody>

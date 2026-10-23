@@ -112,7 +112,7 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
     for (const { i, strong } of ids) {
       if (hiddenDbs.has(points[i].db)) continue;
       const p = px(points[i]);
-      const w = textWidth(points[i].text, LABEL_PX, { mono: true, weight: strong ? 650 : 400 }) + 6;
+      const w = textWidth(points[i].text, LABEL_PX, { weight: strong ? 650 : 400 }) + 6;
       const right = p.x + 10 + w < W - 4;
       let x = right ? p.x + 9 : p.x - 9 - w;
       x = Math.max(2, Math.min(W - w - 2, x));
@@ -356,7 +356,7 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
                 <line x1={l.px} y1={l.py} x2={l.right ? l.x - 2 : l.x + l.w - 4} y2={l.y + 9} style={{ stroke: 'var(--axis)' }} strokeWidth={1} />
               )}
               <rect x={l.x - 3} y={l.y - 1} width={l.w} height={19} rx={4} style={{ fill: 'var(--surface)', opacity: 0.88 }} />
-              <text x={l.x} y={l.y + 13} className="font-mono" style={{ fontSize: LABEL_PX, fill: 'var(--ink)', fontWeight: l.strong ? 650 : 400 }}>
+              <text x={l.x} y={l.y + 13} style={{ fontSize: LABEL_PX, fill: 'var(--ink)', fontWeight: l.strong ? 650 : 400 }}>
                 {points[l.i].text}
               </text>
             </g>

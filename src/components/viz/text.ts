@@ -27,6 +27,7 @@ export const SVG_TYPE = {
 } as const;
 
 const SANS = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+/** `--font-mono`: code only (excerpts, identifiers, paths). Numbers use SANS with tabular figures. */
 const MONO = 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
 
 let ctx: CanvasRenderingContext2D | null | undefined;

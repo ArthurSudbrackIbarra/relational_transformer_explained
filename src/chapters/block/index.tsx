@@ -154,11 +154,11 @@ export default function BlockChapter() {
       >
         <p className="mt-6 text-[17px] leading-relaxed text-ink-2">
           <span className="eyebrow mr-2">Live context</span>
-          seed <span className="font-mono text-ink">{seed ? rowName(seed) : '–'}</span>
+          seed <span className="text-ink">{seed ? rowName(seed) : '–'}</span>
           {entityTok && (
             <>
               {' '}
-              → <span className="font-mono text-ink">{rowName(entityTok)}</span>
+              → <span className="text-ink">{rowName(entityTok)}</span>
               {entityText ? ` (${String(entityText.raw)})` : ''}
             </>
           )}
@@ -180,9 +180,9 @@ export default function BlockChapter() {
             {task.id !== RUNNING_TASK && (
               <Callout variant="note" title="You are viewing another task">
                 <p>
-                  The figures follow your simulation settings: <span className="font-mono">{live.db.name}</span> ·{' '}
-                  <span className="font-mono">{task.id.split('/')[1]}</span> ({task.kind}). The prose is written for the running example, ShopDB’s{' '}
-                  <span className="font-mono">customer-churn</span>, so a few sentences may not apply.
+                  The figures follow your simulation settings: {live.db.name} ·{' '}
+                  {task.id.split('/')[1]} ({task.kind}). The prose is written for the running example, ShopDB’s{' '}
+                  customer-churn, so a few sentences may not apply.
                 </p>
                 <Button size="sm" variant="secondary" onClick={() => live.setTask(RUNNING_TASK)}>
                   Switch the course to the running example
@@ -498,7 +498,7 @@ export default function BlockChapter() {
           <ol>
             <li>
               <LayerLabel layer="col" />: the target reads every visible cell of its column directly: the same column of the other{' '}
-              <span className="font-mono">{seed?.tableName}</span> rows in the context.
+              {seed?.tableName} rows in the context.
             </li>
             <li>
               <LayerLabel layer="feat" />: the target reads the other cells of its own row and the cells of the rows its row points to.

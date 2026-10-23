@@ -242,7 +242,7 @@ function DrawBars({ draws, nodeName }: { draws: Draw[]; nodeName: (n: number) =>
         {hv ? (
           <>
             Draw {hover! + 1}: {hv.size === 1 ? 'only one candidate' : <>one of {hv.size} candidates</>} at depth {hv.depth} →{' '}
-            <span className="font-mono text-[14.5px] text-ink">{nodeName(hv.node)}</span>
+            <span className="text-[14.5px] text-ink">{nodeName(hv.node)}</span>
             {hv.skipped ? ', already visited, so nothing was added.' : '.'}
           </>
         ) : (
@@ -328,7 +328,7 @@ export function RandomnessAudit() {
             {subsShown.map((s, i) => (
               <li key={s.from} className="!m-0 !pl-0">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0 truncate font-mono text-[14.5px] text-ink">{nodeName(s.from)}</span>
+                  <span className="min-w-0 truncate text-[14.5px] text-ink">{nodeName(s.from)}</span>
                   <span className="num shrink-0 text-[14.5px] text-ink-2">
                     kept {s.kept.length} of {s.candidates.length}
                   </span>

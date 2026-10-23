@@ -203,13 +203,13 @@ export function TokenStrip({
               )}
               <span className="flex min-w-0 items-center gap-1">
                 {!t.isPadding && <SemBadge sem={t.sem} size="xs" bare className="text-muted" />}
-                <span className="truncate font-mono text-[13.5px] leading-none text-ink-2">
+                <span className="truncate text-[13.5px] leading-none text-ink-2">
                   {t.isPadding ? `#${t.pos}` : t.colName}
                 </span>
               </span>
               <span
                 className={cx(
-                  'truncate font-mono text-[15.5px] leading-[1.1]',
+                  'truncate text-[15.5px] leading-[1.1]',
                   t.isTarget ? 'font-bold text-accent-text' : t.isPadding ? 'text-muted' : 'text-ink',
                 )}
               >
@@ -222,7 +222,7 @@ export function TokenStrip({
           <span
             role="listitem"
             className={cx(
-              'inline-flex items-center rounded-[7px] border border-dashed border-axis px-2 font-mono text-muted',
+              'inline-flex items-center rounded-[7px] border border-dashed border-axis px-2 text-muted',
               variant === 'cells' ? 'h-[20px] text-[13.5px]' : 'h-[50px] text-[14.5px]',
             )}
           >
@@ -249,8 +249,8 @@ export function TokenStrip({
                   {hovered.isTarget ? '? masked target' : tokenValueText(hovered)}
                 </div>
                 <div className="mt-0.5 text-ink-2">
-                  <span className="font-mono">{hovered.colName}</span> of{' '}
-                  <span className="font-mono">{hovered.tableName}</span>
+                  <span>{hovered.colName}</span> of{' '}
+                  <span>{hovered.tableName}</span>
                   {hovered.tableType && hovered.tableType !== 'Db' ? ` (${hovered.tableType})` : ''} · row {hovered.rowPos}
                 </div>
                 <div className="num mt-1 text-[14.5px] text-muted">
@@ -259,7 +259,7 @@ export function TokenStrip({
                 </div>
                 {showStored && (
                   <div className="num mt-0.5 text-[14.5px] text-muted">
-                    {tokenStoredValue(hovered)}
+                    <span className="font-mono">{tokenStoredValue(hovered)}</span>
                     {hovered.isTarget ? ' (stored, gated out by the mask)' : ''}
                   </div>
                 )}

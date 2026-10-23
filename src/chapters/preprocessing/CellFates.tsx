@@ -88,7 +88,7 @@ export function CellFatesChart({ data }: { data: ChapterData }) {
   const [ref, size] = useElementSize<HTMLDivElement>();
   const W = Math.max(280, size.width || 700);
   const ratioText = (c: FateCounts) => `${nf(c.cell)} / ${nf(c.raw)}`;
-  const labelW = Math.ceil(maxTextWidth(rows.map((r) => r.label), LABEL_PX, { mono: true })) + 26;
+  const labelW = Math.ceil(maxTextWidth(rows.map((r) => r.label), LABEL_PX)) + 26;
   const ratioW = Math.ceil(Math.max(textWidth('cells / raw', LABEL_PX), maxTextWidth(rows.map((r) => ratioText(r.c)), NUM_PX))) + 16;
   const missW = Math.ceil(textWidth('missing', LABEL_PX)) + 12;
   // wide: label | bar | cells/raw | missing. Narrow: label and numbers on one line, the bar under it.
@@ -178,7 +178,7 @@ export function CellFatesChart({ data }: { data: ChapterData }) {
               <g key={r.id} onPointerEnter={() => setHover(i)} onPointerLeave={() => setHover(null)}>
                 <rect x={0} y={top} width={W} height={ROW_H} rx={4} style={{ fill: hover === i ? 'var(--surface-2)' : 'transparent' }} />
                 <rect x={2} y={labelY - 5} width={10} height={10} rx={2.5} style={{ fill: catVar(slotOf(r.tableName)) }} />
-                <text x={18} y={labelY} dy="0.34em" className="font-mono" style={{ fill: 'var(--ink)', fontSize: LABEL_PX }}>
+                <text x={18} y={labelY} dy="0.34em" style={{ fill: 'var(--ink)', fontSize: LABEL_PX }}>
                   {r.label}
                 </text>
                 {segs.map((s, j) => (

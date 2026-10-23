@@ -125,6 +125,8 @@
 
 @theme {
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Monospace is for code only: excerpts, inline code, file paths and file:line references, code
+     identifiers. Numbers, values and UI labels use the text font (.num = tabular figures). */
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --breakpoint-lg: 64rem; /* 1024px: sidebar ↔ drawer */
 }
@@ -312,7 +314,7 @@
 /*
  * ── Reading mode: <html data-reading="on"> (toggle in the top bar, off by default) ──
  * A book page: Libron (OFL, github.com/nicoverbruggen/libron, files in ./fonts/libron)
- * for all text, monospace kept for values and code. Light = warm paper; dark =
+ * for all text; code keeps its monospace. Light = warm paper; dark =
  * a lamplit page (warm charcoal, cream ink) instead of the neutral dark theme.
  * Only the neutrals change: categorical and sequential data colors keep their
  * meaning across modes. These rules come after the dark tokens on purpose:
@@ -585,12 +587,21 @@
   .prose :not(pre) > code,
   .inline-code {
     font-family: var(--font-mono);
-    font-size: max(13.5px, 0.86em);
+    font-size: max(14px, 0.94em);
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 0.06em 0.32em;
     white-space: nowrap;
+  }
+  /* phones: a long identifier may break rather than push the page sideways */
+  @media (max-width: 639px) {
+    .page-grid :not(pre) > code,
+    .prose :not(pre) > code,
+    .inline-code {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
   }
   .page-grid hr,
   .prose hr {
@@ -599,9 +610,8 @@
     margin: 2.4em 0;
   }
 
-  /* Values, ids, code in tables: monospace + tabular numbers */
+  /* Numbers and values: the text font with tabular figures, so columns line up (not monospace) */
   .num {
-    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
   .tabular {
@@ -699,7 +709,7 @@
 /* ── Code blocks (CodeRef) ──────────────────────────────────────────────── */
 .code-block {
   font-family: var(--font-mono);
-  font-size: 14.5px;
+  font-size: 15.5px;
   line-height: 1.6;
   font-variant-ligatures: none;
   tab-size: 4;

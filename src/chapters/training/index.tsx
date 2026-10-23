@@ -80,7 +80,7 @@ export default function TrainingChapter() {
       >
         <p className="mt-6 text-[17px] leading-relaxed text-ink-2">
           <span className="eyebrow mr-2">Live context</span>
-          task <span className="font-mono text-ink">{task.id.split('/')[1]}</span>, seed{' '}
+          task <span className="text-ink">{task.id.split('/')[1]}</span>, seed{' '}
           <span className="text-ink">
             {entity ? `${entity.tableName.replace(/s$/, '')} ${entity.rowPos}` : `node ${seed}`}
             {entityName ? ` (${String(entityName)})` : ''}
@@ -140,7 +140,7 @@ export default function TrainingChapter() {
           ) : null}
           A batch therefore mixes databases, tasks, booleans and numbers, and every optimizer step averages its gradient over all of them. In the
           running example the masked cell is {entity ? `${entity.tableName.replace(/s$/, '')} ${entity.rowPos}’s` : 'the seed’s'} label in{' '}
-          <span className="font-mono">{task.id.split('/')[1]}</span>. ShopDB never appears in pretraining: for it, the same exercise is the test.
+          <span>{task.id.split('/')[1]}</span>. ShopDB never appears in pretraining: for it, the same exercise is the test.
         </p>
         <CodeTabs
           title="The code behind the figure"

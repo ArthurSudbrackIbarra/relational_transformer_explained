@@ -74,8 +74,8 @@ export function TextCells({ live, store }: { live: SemanticsLive; store: Embeddi
                 )}
               >
                 <TableSwatch slot={live.slots[t.tableName] ?? 0} />
-                <span className="font-mono text-ink-2">{t.colName}</span>
-                <span className="min-w-0 truncate font-mono text-ink" title={String(t.raw)}>
+                <span className="text-ink-2">{t.colName}</span>
+                <span className="min-w-0 truncate text-ink" title={String(t.raw)}>
                   {String(t.raw)}
                 </span>
               </button>
@@ -92,7 +92,7 @@ export function TextCells({ live, store }: { live: SemanticsLive; store: Embeddi
             <TableSwatch slot={live.slots[tok.tableName] ?? 0} label={rowRef(tok)} />
             <SemBadge sem={tok.sem} size="xs" showLabel />
             <span className="text-ink-2">
-              cell <span className="font-mono text-ink">{tok.colName}</span> = <Quoted text={value} />
+              cell <span className="text-ink">{tok.colName}</span> = <Quoted text={value} />
             </span>
           </div>
 
@@ -120,7 +120,7 @@ export function TextCells({ live, store }: { live: SemanticsLive; store: Embeddi
           <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="rounded-lg border border-border px-4 py-3">
               <div className="mb-1 text-[15.5px] font-semibold text-ink">Never embedded</div>
-              <p className="!mb-1 font-mono text-[15px] text-ink-2 line-through decoration-[var(--muted)]">
+              <p className="!mb-1 text-[15px] text-ink-2 line-through decoration-[var(--muted)]">
                 {tok.colName} of {tok.tableName}: {value}
               </p>
               <p className="!mb-0 text-[15px] leading-snug text-ink-2">
@@ -136,7 +136,7 @@ export function TextCells({ live, store }: { live: SemanticsLive; store: Embeddi
               <ol className="!m-0 grid !list-none gap-1 !p-0">
                 {neighbors.map((n) => (
                   <li key={n.text} className="!m-0 flex min-w-0 items-baseline justify-between gap-3 !p-0 text-[15px]">
-                    <span className="min-w-0 truncate font-mono text-ink">{n.text}</span>
+                    <span className="min-w-0 truncate text-ink">{n.text}</span>
                     <span className="num shrink-0 text-ink-2">{f3(n.cos)}</span>
                   </li>
                 ))}
@@ -170,12 +170,12 @@ function Lane({
     <div className="min-w-0 rounded-lg border border-border bg-surface px-4 py-3">
       <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3">
         <code className="!text-[14.5px]">{field}</code>
-        <span className="num text-[14px] text-muted">text[{index ?? '?'}]</span>
+        <span className="font-mono text-[14px] text-muted">text[{index ?? '?'}]</span>
       </div>
       <div className="mb-2 text-[16px] leading-snug">
-        <span className="font-mono text-ink-2">E(</span>
+        <span className="text-ink-2">E(</span>
         {what}
-        <span className="font-mono text-ink-2">)</span>
+        <span className="text-ink-2">)</span>
       </div>
       <Wordpieces tokens={tokens} className="mb-3" animateKey={tokens.join('|')} />
       {vec ? <VectorStrip values={vec} columns={48} cellHeight={11} domain={domain} /> : <p className="text-[15px] text-ink-2">no stored vector</p>}
@@ -216,7 +216,7 @@ export function SharedValues({ catalog, store }: { catalog: Catalog; store: Embe
       <div className="mb-1.5 text-[15.5px] font-semibold text-ink">One string, one index, in every column</div>
       <p className="!mb-2 text-[15.5px] leading-snug text-ink-2">
         In {DB_SHORT[first.db]}, <Quoted text={first.value} /> is a value of both <Phrase text={pa} /> and <Phrase text={pb} />. pre.rs interns it
-        once, as <span className="num text-ink">text[{first.idx ?? '?'}]</span>, so both cells carry the very same value vector. Only their
+        once, as <span className="font-mono text-ink">text[{first.idx ?? '?'}]</span>, so both cells carry the very same value vector. Only their
         column vectors differ (cosine <span className="num text-ink">{f3(cosPhr)}</span>).
       </p>
       <p className="!mb-0 text-[14.5px] text-muted">

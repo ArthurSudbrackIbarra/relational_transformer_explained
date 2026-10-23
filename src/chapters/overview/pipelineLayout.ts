@@ -17,7 +17,7 @@ import type { PreprocessedDB, RawDatabase, SampledContext, Split, TaskDef } from
 
 export const T = {
   band: 14.5, // band titles
-  title: 14.5, // table names (mono, semibold)
+  title: 14.5, // table names (semibold)
   count: 13.5,
   sub: 13.5, // split labels
   box: 14.5, // model boxes
@@ -117,7 +117,7 @@ function layoutBlocksFor(specs: BlockSpec[], width: number, pitch: number, R: nu
   const maxCols = Math.max(4, Math.floor(width / pitch));
   const sized = specs.map((b) => {
     const count = b.grids.reduce((s, g) => s + g.nodes.length, 0);
-    const titleW = textWidth(b.title, T.title, { mono: true, weight: 600 }) + 16 + textWidth(count.toLocaleString('en-US'), T.count) + 6;
+    const titleW = textWidth(b.title, T.title, { weight: 600 }) + 16 + textWidth(count.toLocaleString('en-US'), T.count) + 6;
     // grids flow left to right inside the block, wrapping when needed
     const single = b.grids.length === 1;
     const grids = b.grids.map((g) => {

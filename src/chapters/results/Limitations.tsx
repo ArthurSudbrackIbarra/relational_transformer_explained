@@ -115,13 +115,13 @@ export function TwoForeignKeys() {
         <div className="min-w-0">
           <div className="eyebrow mb-1.5">The database row</div>
           <div className="overflow-hidden rounded-lg border border-border">
-            <div className="bg-surface-2 px-3 py-1.5 font-mono text-[15px] font-semibold text-ink">product</div>
+            <div className="bg-surface-2 px-3 py-1.5 text-[15px] font-semibold text-ink">product</div>
             <div className={cell}>
-              <span className="font-mono text-[15px] text-ink-2">product_id (PK)</span>
+              <span className="text-[15px] text-ink-2">product_id (PK)</span>
               <span className="num text-[15px] text-ink">7</span>
             </div>
             <div className={cell}>
-              <span className="font-mono text-[15px] text-ink-2">buyer_id → user</span>
+              <span className="text-[15px] text-ink-2">buyer_id → user</span>
               <motion.span
                 key={`b${buyer}`}
                 initial={reduce ? false : { y: swapped ? 14 : -14, opacity: 0 }}
@@ -133,7 +133,7 @@ export function TwoForeignKeys() {
               </motion.span>
             </div>
             <div className={cell}>
-              <span className="font-mono text-[15px] text-ink-2">seller_id → user</span>
+              <span className="text-[15px] text-ink-2">seller_id → user</span>
               <motion.span
                 key={`s${seller}`}
                 initial={reduce ? false : { y: swapped ? -14 : 14, opacity: 0 }}
@@ -145,7 +145,7 @@ export function TwoForeignKeys() {
               </motion.span>
             </div>
             <div className={cell}>
-              <span className="font-mono text-[15px] text-ink-2">price</span>
+              <span className="text-[15px] text-ink-2">price</span>
               <span className="num text-[15px] text-ink">12.5</span>
             </div>
           </div>

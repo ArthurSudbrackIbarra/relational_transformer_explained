@@ -317,22 +317,22 @@ export function TokenInspector({ live }: { live: TokensLive }) {
               <dl className="mt-3 grid grid-cols-[112px_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[15.5px]">
                 <dt className="text-ink-2">cell</dt>
                 <dd className="min-w-0">
-                  <span className="font-mono text-ink">{t.colName}</span> ={' '}
+                  <span className="text-ink">{t.colName}</span> ={' '}
                   {t.isTarget ? (
-                    <span className="target-outline rounded-[3px] px-1 font-mono font-bold text-accent-text">?</span>
+                    <span className="target-outline rounded-[3px] px-1 font-bold text-accent-text">?</span>
                   ) : (
-                    <span className="font-mono text-ink">{formatRaw(t.raw, t.sem === SemType.DateTime ? 'datetime' : undefined)}</span>
+                    <span className="text-ink">{formatRaw(t.raw, t.sem === SemType.DateTime ? 'datetime' : undefined)}</span>
                   )}
                   {t.isTarget && <span className="ml-1.5 text-[14.5px] text-ink-2">(hidden: {formatRaw(t.raw)})</span>}
                 </dd>
                 <dt className="text-ink-2">phrase</dt>
-                <dd className="font-mono text-ink">“{pdb.text[t.colNameIdx]}”</dd>
+                <dd className="text-ink">“{pdb.text[t.colNameIdx]}”</dd>
                 <dt className="text-ink-2">type</dt>
                 <dd className="flex items-center gap-1.5">
                   <SemBadge sem={t.sem} size="sm" showLabel />
                 </dd>
                 <dt className="text-ink-2">stored as</dt>
-                <dd className="num text-ink">{storedLine(t)}</dd>
+                <dd className="font-mono text-ink">{storedLine(t)}</dd>
                 <dt className="text-ink-2">row’s tokens</dt>
                 <dd className="flex flex-wrap gap-1">
                   {rowPositions.map((p) => (
@@ -377,7 +377,7 @@ export function TokenInspector({ live }: { live: TokensLive }) {
               <ul className="mt-1.5 space-y-0.5 text-[14.5px] leading-snug text-ink-2">
                 <li>
                   <span className="font-medium text-ink">Parents (lit):</span>{' '}
-                  {parentsIn.length ? <span className="font-mono">{parentsIn.map((p) => nodeLabel(pdb, p)).join(', ')}</span> : 'none in the context'}
+                  {parentsIn.length ? <span>{parentsIn.map((p) => nodeLabel(pdb, p)).join(', ')}</span> : 'none in the context'}
                 </li>
                 <li>
                   <span className="font-medium text-ink">Rows that list it as a parent:</span>{' '}

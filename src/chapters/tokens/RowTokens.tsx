@@ -231,9 +231,9 @@ export function RowTokens({ live }: { live: TokensLive }) {
                 ) : (
                   <SemBadge sem={semOfDType(f.col.dtype)} size="sm" bare />
                 )}
-                <span className="truncate font-mono font-semibold">{f.col.name}</span>
+                <span className="truncate font-semibold">{f.col.name}</span>
               </div>
-              <div className={cx('mt-1 font-mono text-[15.5px] leading-snug [overflow-wrap:anywhere]', f.kind === 'null' ? 'text-ink-2' : 'text-ink')}>
+              <div className={cx('mt-1 text-[15.5px] leading-snug [overflow-wrap:anywhere]', f.kind === 'null' ? 'text-ink-2' : 'text-ink')}>
                 {'tok' in f && f.tok?.isTarget ? (
                   <span className="target-outline rounded-[3px] px-1 font-bold text-accent-text">?</span>
                 ) : (
@@ -303,7 +303,7 @@ export function RowTokens({ live }: { live: TokensLive }) {
             'table',
             <span className="text-[15px]">
               <span className="num font-semibold text-ink">{gnode.tableNameIdx}</span>{' '}
-              <span className="font-mono text-ink-2">“{pdb.text[gnode.tableNameIdx]}”</span>
+              <span className="text-ink-2">“{pdb.text[gnode.tableNameIdx]}”</span>
             </span>,
             2,
           )}
@@ -311,7 +311,7 @@ export function RowTokens({ live }: { live: TokensLive }) {
           {label('col_name_idxs', 'per cell')}
           {per('col', (t) => (
             <span className="min-w-0 truncate">
-              <span className="num font-semibold text-ink">{t.colNameIdx}</span> <span className="font-mono text-[14px] text-ink-2">{t.colName}</span>
+              <span className="num font-semibold text-ink">{t.colNameIdx}</span> <span className="text-[14px] text-ink-2">{t.colName}</span>
             </span>
           ))}
 
@@ -336,7 +336,7 @@ export function RowTokens({ live }: { live: TokensLive }) {
                     : undefined
               }
             >
-              <span className="shrink-0 font-mono text-[14px] text-ink-2">{VALUE_FIELD[t.sem]?.replace('_values', '')}</span>
+              <span className="shrink-0 text-[14px] text-ink-2">{VALUE_FIELD[t.sem]?.replace('_values', '')}</span>
               <span className={cx('num truncate', t.isTarget ? 'font-bold text-accent-text' : 'text-ink')}>{valueText(t, pdb.text)}</span>
               {t.isTarget && <Lock aria-label="hidden label, gated out" size={14} className="shrink-0 text-accent-text" />}
             </span>

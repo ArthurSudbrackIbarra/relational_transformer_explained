@@ -438,7 +438,7 @@ export const ValueCurve = memo(function ValueCurve({ live }: { live: EmbeddingSt
               )}
             </div>
             <div className="mt-2 text-[15px] text-ink-2">
-              {int(real.length)} distinct stored {real.length === 1 ? 'value' : 'values'} in <span className="font-mono">{col.table}</span>
+              {int(real.length)} distinct stored {real.length === 1 ? 'value' : 'values'} in <span>{col.table}</span>
               {extension && (extension.min < Z_MIN || extension.max > Z_MAX) ? `, z from ${fmtSigned(extension.min, 2)} to ${fmtSigned(extension.max, 2)} (dashed beyond ±3)` : ''}
             </div>
           </div>

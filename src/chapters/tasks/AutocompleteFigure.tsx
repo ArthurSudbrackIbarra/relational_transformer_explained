@@ -96,7 +96,7 @@ export function AutocompleteFigure({
             label="Autocomplete task"
             value={task.id}
             onChange={onTaskChange}
-            options={tasks.map((t) => ({ value: t.id, label: <span className="font-mono">{`${t.table}.${t.targetCol}`}</span> }))}
+            options={tasks.map((t) => ({ value: t.id, label: <span>{`${t.table}.${t.targetCol}`}</span> }))}
           />
         </div>
         <div className="flex items-end gap-1">
@@ -120,7 +120,7 @@ export function AutocompleteFigure({
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <div className="card min-w-0 overflow-hidden" style={{ borderLeft: '3px solid var(--cat-7)' }}>
           <div className="flex items-baseline justify-between gap-2 border-b border-grid px-3.5 py-2">
-            <span className="font-mono text-[15.5px] font-semibold text-ink">
+            <span className="text-[15.5px] font-semibold text-ink">
               reviews[{review}] <span className="font-normal text-muted">= the seed row</span>
             </span>
           </div>
@@ -142,10 +142,10 @@ export function AutocompleteFigure({
                     <SemBadge sem={semOfDType(col.dtype)} size="sm" />
                   )}
                 </span>
-                <span className={cx('truncate font-mono text-[15px]', fate === 'pk' || fate === 'fk' ? 'text-ink-2' : 'text-ink')}>{col.name}</span>
+                <span className={cx('truncate text-[15px]', fate === 'pk' || fate === 'fk' ? 'text-ink-2' : 'text-ink')}>{col.name}</span>
                 <span className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:col-start-auto">
                   {fate === 'target' ? (
-                    <span className="target-outline inline-flex h-[22px] min-w-[26px] items-center justify-center rounded-[5px] bg-accent-soft px-1.5 font-mono text-[15.5px] font-bold text-accent-text">
+                    <span className="target-outline inline-flex h-[22px] min-w-[26px] items-center justify-center rounded-[5px] bg-accent-soft px-1.5 text-[15.5px] font-bold text-accent-text">
                       ?
                     </span>
                   ) : (
@@ -205,7 +205,7 @@ export function AutocompleteFigure({
                   {sameTsOthers === 0 ? 'none' : `${sameTsOthers} (${dropsOther} cell${dropsOther === 1 ? '' : 's'} dropped here)`}
                 </dd>
                 <dt className="text-ink-2">
-                  Other reviews’ <span className="font-mono">{task.columnsToDrop.join(', ')}</span> tokens kept (other timestamps)
+                  Other reviews’ <span>{task.columnsToDrop.join(', ')}</span> tokens kept (other timestamps)
                 </dt>
                 <dd className="num text-right font-semibold text-ink">{leakKept}</dd>
               </>

@@ -313,7 +313,7 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
                 </span>
               ) : (
                 <>
-                  <span className="num">E(text[{idx}])</span> <span className="font-mono">“{truncate(text[idx] ?? '', 34)}”</span>
+                  <span className="font-mono">E(text[{idx}])</span> <span>“{truncate(text[idx] ?? '', 34)}”</span>
                   {!active && <span className="ml-1.5 text-[14px]">· not a text cell, gated out</span>}
                 </>
               )}
@@ -350,7 +350,7 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
         return (
           <div className="text-[15px]">
             <span className="num font-semibold text-ink">{t.tableNameIdx}</span>
-            <span className="ml-2 font-mono text-ink-2">“{text[t.tableNameIdx]}”</span>
+            <span className="ml-2 text-ink-2">“{text[t.tableNameIdx]}”</span>
             {t.isPadding && <span className="ml-1.5 text-[14px] text-ink-2">(default 0)</span>}
           </div>
         );
@@ -358,7 +358,7 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
         return (
           <div className="text-[15px]">
             <span className="num font-semibold text-ink">{t.colNameIdx}</span>
-            <span className="ml-2 font-mono text-ink-2">“{text[t.colNameIdx]}”</span>
+            <span className="ml-2 text-ink-2">“{text[t.colNameIdx]}”</span>
             {t.isPadding && <span className="ml-1.5 text-[14px] text-ink-2">(default 0)</span>}
           </div>
         );
@@ -375,7 +375,7 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
           <div className="min-w-0">
             <div className="text-[15px] text-ink">
               <span className="num">E(</span>
-              <span className="font-mono">“{phrase}”</span>
+              <span>“{phrase}”</span>
               <span className="num">)</span>
               <span className="ml-1.5 text-[14px] text-ink-2">384 numbers</span>
             </div>
@@ -430,8 +430,8 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
         </ul>
         <div className="mt-1.5">
           <span className="num">E(·)</span> = frozen MiniLM text embedding (<Link to="/semantics">chapter 5</Link>) ·{' '}
-          <span className="num">i32</span> = 32-bit integer · <span className="num">bf16</span> = bfloat16, a 16-bit float ·{' '}
-          <span className="num">[B, S]</span> = sequences × positions
+          <span className="font-mono">i32</span> = 32-bit integer · <span className="font-mono">bf16</span> = bfloat16, a 16-bit float ·{' '}
+          <span className="font-mono">[B, S]</span> = sequences × positions
         </div>
       </div>
       {FIELD_GROUPS.map((g, gi) => (
@@ -445,7 +445,7 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
               >
                 <div className="min-w-0">
                   <code className="!border-0 !bg-transparent !p-0 font-mono text-[15px] font-semibold text-ink">{k}</code>
-                  <div className="num text-[14px] text-ink-2">{f.shape}</div>
+                  <div className="font-mono text-[14px] text-ink-2">{f.shape}</div>
                 </div>
                 <div className="min-w-0">
                   {valueCell(k)}

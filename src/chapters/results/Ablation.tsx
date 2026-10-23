@@ -261,7 +261,7 @@ function Dumbbells({
   const rows: Row[] = [...body, { id: 'mean', label: 'Mean (as printed)', ref: r.mean, v: a.mean, d: a.mean - r.mean, mean: true }];
 
   const W = Math.max(300, size.width || 720);
-  const labelW = Math.ceil(Math.max(...rows.map((x) => textWidth(x.label, 15, { mono: !x.mean, weight: x.mean ? 600 : 400 })))) + 16;
+  const labelW = Math.ceil(Math.max(...rows.map((x) => textWidth(x.label, 15, { weight: x.mean ? 600 : 400 })))) + 16;
   const deltaW = 70;
   const stacked = W - labelW - deltaW < 290;
   const rowH = stacked ? 56 : 34;
@@ -411,7 +411,6 @@ function Dumbbells({
                       fill: 'var(--ink)',
                       fontSize: 15,
                       fontWeight: row.mean ? 600 : 400,
-                      fontFamily: row.mean ? undefined : 'var(--font-mono)',
                       stroke: hover === row.id ? 'var(--surface-2)' : 'var(--surface)',
                       strokeWidth: 4,
                       paintOrder: 'stroke',
@@ -456,7 +455,7 @@ function Dumbbells({
                     dy="0.32em"
                     textAnchor="end"
                     className="tabular"
-                    style={{ fill: 'var(--ink)', fontSize: 15, fontWeight: row.mean ? 700 : 500, fontFamily: 'var(--font-mono)' }}
+                    style={{ fill: 'var(--ink)', fontSize: 15, fontWeight: row.mean ? 700 : 500 }}
                   >
                     {d1(row.d)}
                   </text>
@@ -472,7 +471,7 @@ function Dumbbells({
             if (!row) return null;
             return (
               <Tip x={W * 0.5} y={yOf(i) + rowH + 2} width={W}>
-                <div className="mb-1 font-mono text-[14.5px] text-ink">{row.label}</div>
+                <div className="mb-1 text-[14.5px] text-ink">{row.label}</div>
                 <div className="num text-ink">
                   {ref.short}: {f1(row.ref)}
                 </div>

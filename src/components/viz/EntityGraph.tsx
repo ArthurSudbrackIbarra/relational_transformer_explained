@@ -238,7 +238,7 @@ export function EntityGraph({
       if (q) boxes.push({ x0: q.x - R - 2, y0: q.y - R - 2, x1: q.x + R + 2, y1: q.y + R + 2, owner: n.id });
       const b = badges?.get(n.id);
       if (q && b) {
-        const w = textWidth(b, BADGE_PX, { mono: true });
+        const w = textWidth(b, BADGE_PX);
         const base = q.y - (R + 7);
         boxes.push({ x0: q.x - w / 2 - 1, y0: base - BADGE_PX * 0.8, x1: q.x + w / 2 + 1, y1: base + BADGE_PX * 0.25, owner: null });
       }
@@ -259,7 +259,7 @@ export function EntityGraph({
     for (const { n } of wanted) {
       const q = scr(n.id);
       if (!q) continue;
-      const w = textWidth(n.label, LABEL_PX, { mono: true }) + 2;
+      const w = textWidth(n.label, LABEL_PX) + 2;
       const hasBadge = !!badges?.get(n.id);
       const cands: (LabelPlacement & { box: Box })[] = [
         { dx: LABEL_GAP, dy: 0, anchor: 'start', box: { x0: q.x + LABEL_GAP, y0: q.y - h / 2, x1: q.x + LABEL_GAP + w, y1: q.y + h / 2, owner: n.id } },
@@ -486,7 +486,6 @@ export function EntityGraph({
                     y={placement.dy * k}
                     textAnchor={placement.anchor}
                     dominantBaseline="central"
-                    className="font-mono"
                     style={{
                       fill: 'var(--ink)',
                       fontSize: LABEL_PX * k,
@@ -504,7 +503,6 @@ export function EntityGraph({
                     x={0}
                     y={-(R + 7) * k}
                     textAnchor="middle"
-                    className="font-mono"
                     style={{
                       fill: 'var(--ink-2)',
                       fontSize: BADGE_PX * k,
@@ -534,7 +532,7 @@ export function EntityGraph({
             top: Math.max(4, (hoveredPos.y - (view.y + view.h / 2 - height / scale / 2)) * scale - 40),
           }}
         >
-          <div className="font-mono font-semibold text-ink">{hovered.title ?? hovered.label}</div>
+          <div className="font-semibold text-ink">{hovered.title ?? hovered.label}</div>
           <div className="mt-0.5 flex items-center gap-1.5 text-ink-2">
             <TableSwatch slot={hovered.slot} shape label={hovered.table} />
           </div>

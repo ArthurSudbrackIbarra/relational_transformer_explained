@@ -73,7 +73,7 @@ function HeadName({ binary }: { binary: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <SemBadge sem={binary ? SemType.Boolean : SemType.Number} size="sm" />
-      <span className="font-mono text-ink">{binary ? 'boolean' : 'number'}</span>
+      <span className="text-ink">{binary ? 'boolean' : 'number'}</span>
     </span>
   );
 }
@@ -162,7 +162,7 @@ export function SharedHeadsFigure() {
                     {r.role === 'target' && <div className="text-[14px] text-accent-text">held out</div>}
                   </td>
                   <td className="py-2 pr-3">
-                    <span className="font-mono text-ink">{taskLabel(r.task)}</span>
+                    <span className="text-ink">{taskLabel(r.task)}</span>
                     <div className="text-[14px] text-ink-2">
                       {r.task.kind}, {r.task.kind === 'forecast' ? 'Train stats' : 'all rows'}
                     </div>
@@ -183,7 +183,7 @@ export function SharedHeadsFigure() {
             {rows.map((r) => (
               <li key={r.task.id} className="!m-0 rounded-lg border border-border bg-surface px-3 py-2.5 text-[15px]">
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                  <span className="font-mono text-ink">{taskLabel(r.task)}</span>
+                  <span className="text-ink">{taskLabel(r.task)}</span>
                   <HeadName binary={r.task.targetType === 'binary'} />
                 </div>
                 <div className="text-[14px] text-ink-2">
@@ -243,15 +243,15 @@ export function DecoderSizes() {
                 <td className="py-2 pr-3">
                   <span className="inline-flex items-center gap-1.5">
                     <SemBadge sem={keys.indexOf(k) as SemType} size="sm" />
-                    <span className="font-mono text-ink">{k}</span>
+                    <span className="text-ink">{k}</span>
                   </span>
                 </td>
                 <td className="py-2 pr-3">
-                  <div className="font-mono text-[14px] text-ink-2">{shape(PAPER_CONFIG, k)}</div>
+                  <div className="text-[14px] text-ink-2">{shape(PAPER_CONFIG, k)}</div>
                   <div className="num text-ink">{int(paper[k])} params</div>
                 </td>
                 <td className="py-2">
-                  <div className="font-mono text-[14px] text-ink-2">{shape(MINI_CONFIG, k)}</div>
+                  <div className="text-[14px] text-ink-2">{shape(MINI_CONFIG, k)}</div>
                   <div className="num text-ink">{int(mini[k])} params</div>
                 </td>
               </tr>

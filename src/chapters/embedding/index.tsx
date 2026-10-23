@@ -92,7 +92,7 @@ export default function EmbeddingChapter() {
           <span className="eyebrow mr-2">Live context</span>
           {tgt ? (
             <>
-              target <span className="font-mono text-ink">{rowRef(tgt)}</span> “{phraseOf(tgt)}” ·{' '}
+              target <span className="text-ink">{rowRef(tgt)}</span> “{phraseOf(tgt)}” ·{' '}
             </>
           ) : null}
           {int(ctx.numReal)} cell tokens{ctx.tokens.length > ctx.numReal ? ` + ${int(ctx.tokens.length - ctx.numReal)} padding` : ''} · d = {d}{' '}

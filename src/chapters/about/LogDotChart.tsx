@@ -9,12 +9,15 @@
 import { useMemo, useState } from 'react';
 import { TooltipBox } from '@/components/viz/chartParts';
 import { useElementSize } from '@/components/viz/useSize';
-import { maxTextWidth, SVG_TYPE } from '@/components';
+import { cx, maxTextWidth, SVG_TYPE } from '@/components';
 import { sci } from './data';
 
 export interface LogDotRow {
   id: string;
+  /** Row label: a code name (stage key, checkpoint file), drawn in monospace unless `plain`. */
   label: string;
+  /** The label is plain words, not a code name: draw it in the text font. */
+  plain?: boolean;
   value: number;
   /** Optional per-row reference (gray tick). */
   ref?: number;
@@ -61,7 +64,14 @@ export function LogDotChart({ rows, thresholds = [], valueName, refName, rowHeig
   const narrow = width > 0 && width < NARROW;
   const hasZero = rows.some((r) => r.value === 0);
   const rowH = narrow ? Math.max(rowHeight, 42) : rowHeight;
-  const labelW = narrow ? 0 : Math.ceil(maxTextWidth(rows.map((r) => r.label), LABEL_PX, { mono: true })) + 14;
+  const labelW = narrow
+    ? 0
+    : Math.ceil(
+        Math.max(
+          maxTextWidth(rows.filter((r) => !r.plain).map((r) => r.label), LABEL_PX, { mono: true }),
+          maxTextWidth(rows.filter((r) => r.plain).map((r) => r.label), LABEL_PX),
+        ),
+      ) + 14;
   const zeroW = hasZero ? 30 : 0;
   const thrBand = thresholds.length ? 22 : 0;
   const top = 30 + thrBand;
@@ -137,7 +147,7 @@ export function LogDotChart({ rows, thresholds = [], valueName, refName, rowHeig
                   textAnchor={narrow ? 'start' : 'end'}
                   fontSize={LABEL_PX}
                   fill={active ? 'var(--ink)' : 'var(--ink-2)'}
-                  fontFamily="var(--font-mono)"
+                  fontFamily={r.plain ? undefined : 'var(--font-mono)'}
                 >
                   {r.label}
                 </text>
@@ -162,7 +172,7 @@ export function LogDotChart({ rows, thresholds = [], valueName, refName, rowHeig
             top: top + hover * rowH + rowH + 4,
           }}
         >
-          <div className="font-mono text-[15px] font-semibold text-ink">{hv.label}</div>
+          <div className={cx('text-[15px] font-semibold text-ink', !hv.plain && 'font-mono')}>{hv.label}</div>
           <div className="mt-1 flex justify-between gap-4 text-ink-2">
             <span>{valueName}</span>
             <span className="num text-ink">{sci(hv.value, 2)}</span>

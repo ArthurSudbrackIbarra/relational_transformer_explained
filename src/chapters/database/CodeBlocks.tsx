@@ -127,10 +127,10 @@ export const TimestampCode = memo(function TimestampCode({ coverage, slots, time
                 <td className="py-1.5 pr-3">
                   <TableSwatch slot={slots[c.table] ?? 0} label={c.table} />
                   <div className="text-[14px] whitespace-nowrap text-ink-2 sm:hidden">
-                    {c.timeCol ? <span className="font-mono">{c.timeCol}</span> : 'no time column'}
+                    {c.timeCol ? <span>{c.timeCol}</span> : 'no time column'}
                   </div>
                 </td>
-                <td className="hidden py-1.5 pr-3 font-mono text-[15px] text-ink-2 sm:table-cell">{c.timeCol ?? '—'}</td>
+                <td className="hidden py-1.5 pr-3 text-[15px] text-ink-2 sm:table-cell">{c.timeCol ?? '—'}</td>
                 <td className="num py-1.5 pr-3 text-right text-ink">{c.nFk}</td>
                 <td className="num py-1.5 text-right whitespace-nowrap text-ink">
                   {c.withTs.toLocaleString('en-US')} / {c.rows.toLocaleString('en-US')}

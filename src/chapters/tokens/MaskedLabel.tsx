@@ -67,11 +67,11 @@ export function OneMask({ live }: { live: TokensLive }) {
         ) : (
           <>
             <TableSwatch slot={slots[t.tableName] ?? 0} label={tokenRowRef(t)} />
-            <span className="font-mono">.{t.colName}</span>
+            <span>.{t.colName}</span>
             {t.isTarget ? (
-              <span className="target-outline rounded-[3px] px-1 font-mono font-bold text-accent-text">?</span>
+              <span className="target-outline rounded-[3px] px-1 font-bold text-accent-text">?</span>
             ) : (
-              <span className="font-mono text-ink">= {formatRaw(t.raw, t.sem === SemType.DateTime ? 'datetime' : undefined)}</span>
+              <span className="text-ink">= {formatRaw(t.raw, t.sem === SemType.DateTime ? 'datetime' : undefined)}</span>
             )}
           </>
         )}
@@ -125,7 +125,7 @@ export function TargetVsLabel({ live }: { live: TokensLive }) {
   const ls = valueSlot(lab);
   const sameParents = target.f2pNbrIdxs.join() === lab.f2pNbrIdxs.join();
   const sameValue = ts.v === ls.v;
-  const rows: { name: string; a: ReactNode; b: ReactNode; same: boolean; note?: ReactNode; accent?: boolean }[] = [
+  const rows: { name: string; a: ReactNode; b: ReactNode; same: boolean; note?: ReactNode; accent?: boolean; plain?: boolean }[] = [
     {
       name: 'node_idxs',
       a: target.nodeIdx,
@@ -173,6 +173,7 @@ export function TargetVsLabel({ live }: { live: TokensLive }) {
     { name: 'is_targets', a: 'true', b: 'false', same: false, note: 'differs too, but only evaluation reads it' },
     {
       name: 'value term of x₀',
+      plain: true,
       a: <span className="font-sans">mask vector m (learned)</span>,
       b: <span className="font-sans">RMSNorm(W·v + b)</span>,
       same: false,
@@ -192,7 +193,7 @@ export function TargetVsLabel({ live }: { live: TokensLive }) {
     );
   const targetHead = (
     <button type="button" className="inline-flex items-center gap-1.5 text-left hover:text-accent-text" onClick={() => inspectAndGo(target.pos, 'Back to Step 3')} title="Inspect in Step 1">
-      <span className="target-outline rounded-[3px] px-1 font-mono font-bold text-accent-text">?</span> target · pos {target.pos}
+      <span className="target-outline rounded-[3px] px-1 font-bold text-accent-text">?</span> target · pos {target.pos}
     </button>
   );
   const labelHead = (
@@ -224,7 +225,7 @@ export function TargetVsLabel({ live }: { live: TokensLive }) {
           {rows.map((r) => (
             <li key={r.name} className={cx('rounded-lg border border-border px-3 py-2', !r.same && 'bg-accent-soft/40')}>
               <div className="flex items-center gap-2">
-                <span className="min-w-0 font-mono text-[15px] font-semibold text-ink [overflow-wrap:anywhere]">{r.name}</span>
+                <span className={cx('min-w-0 text-[15px] font-semibold text-ink [overflow-wrap:anywhere]', !r.plain && 'font-mono')}>{r.name}</span>
                 <span className="ml-auto">{sameIcon(r.same)}</span>
               </div>
               <div className="mt-1 grid grid-cols-2 gap-3 text-[15px]">
@@ -260,7 +261,7 @@ export function TargetVsLabel({ live }: { live: TokensLive }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.name} className={cx('border-b border-grid/60 last:border-0', !r.same && 'bg-accent-soft/40')}>
-                <th scope="row" className="py-2 pr-3 text-left font-mono text-[15px] font-semibold whitespace-nowrap text-ink">
+                <th scope="row" className={cx('py-2 pr-3 text-left text-[15px] font-semibold whitespace-nowrap text-ink', !r.plain && 'font-mono')}>
                   {r.name}
                 </th>
                 <td className={cx('num py-2 pr-3 whitespace-nowrap', r.accent ? 'font-semibold text-accent-text' : 'text-ink')}>{r.a}</td>
@@ -576,7 +577,7 @@ export function HiddenLabelDemo({ live }: { live: TokensLive }) {
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-border bg-surface-2/50 px-4 py-3">
           <div className="text-[15px] font-medium text-ink-2">In the token arrays</div>
-          <div className="num mt-1.5 text-[15.5px] text-ink-2">
+          <div className="font-mono mt-1.5 text-[15.5px] text-ink-2">
             {field}[{target.pos}] =
           </div>
           <div className="relative mt-0.5 h-[34px] overflow-hidden">

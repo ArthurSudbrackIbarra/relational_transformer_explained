@@ -234,7 +234,7 @@ export function LabelTimeline({ view }: { view?: LabelView }) {
   for (const g of groups) {
     if (g.items[0].kind !== 'in') continue;
     const txt = textOf(g);
-    const wTxt = textWidth(txt, VALUE_FS, { mono: true });
+    const wTxt = textWidth(txt, VALUE_FS);
     const cx0 = x(g.ts);
     const left = cx0 - wTxt / 2;
     if (left >= (lastRight.get(g.lane) ?? -Infinity) + 4) {
@@ -280,7 +280,7 @@ export function LabelTimeline({ view }: { view?: LabelView }) {
         <ShapeG slot={slot} r={r} filled={first.kind === 'in'} dashed={first.kind === 'missing'} />
         {on && <circle r={r + 5.5} fill="none" style={{ stroke: 'var(--ink)' }} strokeWidth={1.2} />}
         {first.kind === 'in' && placed.has(`${g.lane}|${g.ts}`) && (
-          <text y={-r - (n > 1 ? 9 : 6)} textAnchor="middle" className="font-mono" style={{ fill: n > 1 ? 'var(--ink)' : 'var(--ink-2)', fontSize: VALUE_FS, fontWeight: n > 1 ? 600 : 400 }}>
+          <text y={-r - (n > 1 ? 9 : 6)} textAnchor="middle" style={{ fill: n > 1 ? 'var(--ink)' : 'var(--ink-2)', fontSize: VALUE_FS, fontWeight: n > 1 ? 600 : 400 }}>
             {textOf(g)}
           </text>
         )}
@@ -318,7 +318,7 @@ export function LabelTimeline({ view }: { view?: LabelView }) {
           return (
             <g key={l.key}>
               <line x1={x0 - 4} x2={x1} y1={y} y2={y} style={{ stroke: 'var(--grid)' }} />
-              <text x={labelW} y={y - 5} textAnchor="end" className="font-mono" style={{ fill: 'var(--ink)', fontSize: 13.5 }}>
+              <text x={labelW} y={y - 5} textAnchor="end" style={{ fill: 'var(--ink)', fontSize: 13.5 }}>
                 {l.title.length > 18 ? l.title.slice(0, 17) + '…' : l.title}
               </text>
               <text x={labelW} y={y + 11} textAnchor="end" style={{ fill: 'var(--muted)', fontSize: 13 }}>
@@ -345,9 +345,9 @@ export function LabelTimeline({ view }: { view?: LabelView }) {
         )}
         {fitTicks(
           ticks.map((t) => ({ x: x(t), text: tsDate(Math.round(t)) })),
-          (txt) => textWidth(txt, 13, { mono: true }),
+          (txt) => textWidth(txt, 13),
         ).map((t, i) => (
-          <text key={i} x={t.x} y={H - 6} textAnchor={t.anchor} className="font-mono" style={{ fill: 'var(--muted)', fontSize: 13 }}>
+          <text key={i} x={t.x} y={H - 6} textAnchor={t.anchor} style={{ fill: 'var(--muted)', fontSize: 13 }}>
             {t.text}
           </text>
         ))}
@@ -381,7 +381,7 @@ export function LabelTimeline({ view }: { view?: LabelView }) {
         {skipped && <span className="text-muted">Values are printed where they fit; hover a mark for its value.</span>}
       </div>
       <p className="mt-1.5 text-[14.5px] leading-snug text-ink-2">
-        <span className="font-mono text-ink">{task.targetCol}</span>: {task.description}
+        <span className="text-ink">{task.targetCol}</span>: {task.description}
         {task.targetType === 'binary' ? ' Printed as 1 = true, 0 = false.' : ' Printed as the raw value.'}
       </p>
     </div>
@@ -580,7 +580,7 @@ export function SplitVisibility() {
               </th>
               {cols.map((c, i) => (
                 <th key={i} scope="col" className="px-0 text-center align-bottom font-normal text-muted" title={`${c.s} rows at ${when(c)}`}>
-                  <span className={cx('inline-block min-w-[18px] font-mono text-[13px] leading-tight', c.s !== 'Train' && 'font-semibold text-ink')}>
+                  <span className={cx('inline-block min-w-[18px] text-[13px] leading-tight', c.s !== 'Train' && 'font-semibold text-ink')}>
                     {abbr(c.s)}
                     {c.n > 1 && <span className="block text-[13px] font-normal text-muted">×{c.n}</span>}
                   </span>
@@ -595,7 +595,7 @@ export function SplitVisibility() {
                   {narrow ? (
                     <>
                       {r.s} seed{r.s === split ? ' (yours)' : ''}
-                      <span className="block font-mono text-[13px] text-muted">{tsDate(r.t)}</span>
+                      <span className="block text-[13px] text-muted tabular-nums">{tsDate(r.t)}</span>
                     </>
                   ) : (
                     <>
@@ -707,8 +707,8 @@ export function Table12() {
               </tr>
               {g.rows.map((r) => (
                 <tr key={r[0] + r[1]} className={cx('border-b border-grid/60', r[2] === '0 ± 0' && 'text-ink-2')}>
-                  <td className="hidden py-1 pr-3 font-mono text-[14.5px] sm:table-cell">{r[0]}</td>
-                  <td className="py-1 pr-3 font-mono text-[14.5px]">
+                  <td className="hidden py-1 pr-3 text-[14.5px] sm:table-cell">{r[0]}</td>
+                  <td className="py-1 pr-3 text-[14.5px]">
                     <span className="block text-[14px] text-muted sm:hidden">{r[0]}</span>
                     {r[1]}
                   </td>

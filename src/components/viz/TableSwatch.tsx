@@ -17,11 +17,11 @@ export interface TableSwatchProps {
   /** Draw the slot's shape instead of a rounded square (matches EntityGraph). */
   shape?: boolean;
   className?: string;
-  /** Monospace label (table names are identifiers). Default true. */
+  /** Monospace label. Default false: table names are data and use the text font. */
   mono?: boolean;
 }
 
-export function TableSwatch({ slot, label, size = 10, shape = false, className, mono = true }: TableSwatchProps) {
+export function TableSwatch({ slot, label, size = 10, shape = false, className, mono = false }: TableSwatchProps) {
   return (
     <span className={cx('inline-flex min-w-0 items-center gap-1.5 align-middle', className)}>
       {shape ? (

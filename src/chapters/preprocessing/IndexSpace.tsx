@@ -147,7 +147,7 @@ export function IndexSpaceFigure({ data }: { data: ChapterData }) {
             const isRead = i <= read;
             const slot = slotOf(f.tableName);
             const label = fileLabel(f);
-            const mono = { mono: true, weight: 600 };
+            const mono = { weight: 600 };
             const fits = w > textWidth(label, 13.5, mono) + 12;
             const twoLine = !fits && f.tableType !== 'Db' && w > Math.max(textWidth(f.tableName, 13, mono), textWidth(f.tableType, 13, mono)) + 10;
             const shortFits = !fits && !twoLine && f.tableType !== 'Db' && w > textWidth(f.tableType, 13.5, mono) + 10;
@@ -186,17 +186,17 @@ export function IndexSpaceFigure({ data }: { data: ChapterData }) {
                 )}
                 {i === read && <rect x={x0 - 1.5} y={BAR_Y - 1.5} width={w + 3} height={BAR_H + 3} rx={4} fill="none" style={{ stroke: 'var(--ink)' }} strokeWidth={1.5} />}
                 {isRead && initFits && (
-                  <text x={x0 + w / 2} y={BAR_Y + BAR_H / 2} dy="0.34em" textAnchor="middle" style={{ fill: ink, fontSize: 13, fontWeight: 600, pointerEvents: 'none' }} className="font-mono">
+                  <text x={x0 + w / 2} y={BAR_Y + BAR_H / 2} dy="0.34em" textAnchor="middle" style={{ fill: ink, fontSize: 13, fontWeight: 600, pointerEvents: 'none' }}>
                     {initials}
                   </text>
                 )}
                 {isRead && (fits || shortFits) && (
-                  <text x={x0 + w / 2} y={BAR_Y + BAR_H / 2} dy="0.34em" textAnchor="middle" style={{ fill: ink, fontSize: 13.5, fontWeight: 600, pointerEvents: 'none' }} className="font-mono">
+                  <text x={x0 + w / 2} y={BAR_Y + BAR_H / 2} dy="0.34em" textAnchor="middle" style={{ fill: ink, fontSize: 13.5, fontWeight: 600, pointerEvents: 'none' }}>
                     {fits ? label : f.tableType}
                   </text>
                 )}
                 {isRead && twoLine && (
-                  <text x={x0 + w / 2} y={BAR_Y + BAR_H / 2} textAnchor="middle" style={{ fill: ink, fontSize: 13, fontWeight: 600, pointerEvents: 'none' }} className="font-mono">
+                  <text x={x0 + w / 2} y={BAR_Y + BAR_H / 2} textAnchor="middle" style={{ fill: ink, fontSize: 13, fontWeight: 600, pointerEvents: 'none' }}>
                     <tspan x={x0 + w / 2} dy="-0.2em">
                       {f.tableName}
                     </tspan>
@@ -380,8 +380,8 @@ export function IndexSpaceFigure({ data }: { data: ChapterData }) {
         </div>
         <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[17px]">
           <span className="num text-ink">
-            node_idx = <span className="text-ink-2">offset(</span>
-            {probeFile.key}
+            <span className="font-mono">node_idx</span> = <span className="text-ink-2">offset(</span>
+            <span className="font-mono">{probeFile.key}</span>
             <span className="text-ink-2">)</span> + row = {nf(probeFile.offset)} + {nf(row)} = <strong className="text-accent-text">{nf(probeNode)}</strong>
           </span>
           <span className="text-[15.5px] text-ink-2">{rowGist(probeFile, row)}</span>

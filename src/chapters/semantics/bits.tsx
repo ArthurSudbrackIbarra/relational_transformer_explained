@@ -8,21 +8,21 @@ import type { DbName } from '@/engine/db';
 import { catVar } from '@/styles/palette';
 import { DB_SHORT, DB_SLOT, type PhraseInfo, type PhraseRole } from './data';
 
-/** "<col> of <table>" in mono: the column in ink, the connective and table in secondary ink. */
+/** "<col> of <table>": the column in ink, the connective and table in secondary ink. */
 export function Phrase({ text, className, strong = false, plain = false }: { text: string; className?: string; strong?: boolean; plain?: boolean }) {
   const i = plain ? -1 : text.indexOf(' of ');
-  if (i < 0) return <span className={cx('font-mono break-words text-ink', className)}>{text}</span>;
+  if (i < 0) return <span className={cx('break-words text-ink', className)}>{text}</span>;
   return (
-    <span className={cx('font-mono break-words', className)}>
+    <span className={cx('break-words', className)}>
       <span className={cx('text-ink', strong && 'font-semibold')}>{text.slice(0, i)}</span>
       <span className="text-ink-2"> of {text.slice(i + 4)}</span>
     </span>
   );
 }
 
-/** A quoted string value, as embedded (mono). */
+/** A quoted string value, as embedded. */
 export function Quoted({ text, className }: { text: string; className?: string }) {
-  return <span className={cx('font-mono text-ink', className)}>“{text}”</span>;
+  return <span className={cx('text-ink', className)}>“{text}”</span>;
 }
 
 /** Key icon / link icon / sem-type glyph of a column. */
@@ -145,7 +145,7 @@ export function Wordpieces({ tokens, className, animateKey }: { tokens: string[]
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.22, delay: reduce ? 0 : Math.min(i, 24) * 0.04 }}
             className={cx(
-              'inline-flex h-7 items-center rounded-md border px-2 font-mono text-[14.5px]',
+              'inline-flex h-7 items-center rounded-md border px-2 text-[14.5px]',
               special ? 'border-dashed border-border-strong bg-transparent text-ink-2' : 'border-border bg-surface-2 text-ink',
             )}
           >

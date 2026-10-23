@@ -55,7 +55,7 @@ export function MiniZeroShot() {
             ];
             return (
               <div key={t.id} className="rounded-xl border border-border bg-surface px-4 py-3.5">
-                <div className="font-mono text-[15.5px] text-ink">{t.id}</div>
+                <div className="text-[15.5px] text-ink">{t.id}</div>
                 <div className="text-[15px] text-ink-2">
                   test {t.metric} (%){n ? `, ${n} seeds` : ''}
                 </div>

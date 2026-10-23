@@ -64,11 +64,7 @@ function PageLoading() {
 
 function ChapterRoute() {
   const { slug = '' } = useParams();
-  const markVisited = useSim((s) => s.markVisited);
   const Chapter = getChapterComponent(slug);
-  useEffect(() => {
-    if (Chapter) markVisited(slug);
-  }, [slug, Chapter, markVisited]);
   if (!Chapter) return <NotFound />;
   return (
     <ErrorBoundary resetKey={slug}>

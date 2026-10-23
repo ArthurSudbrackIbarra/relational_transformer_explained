@@ -74,7 +74,7 @@ export const RowTokens = memo(function RowTokens({ db, idx, slots, focus }: RowT
         {!split ? (
           <div className="rounded-xl border border-border" style={{ borderLeft: `3px solid ${catVar(slot)}` }}>
             <div className="flex items-baseline gap-2 border-b border-grid px-3 py-1.5">
-              <span className="font-mono text-[15.5px] font-semibold text-ink">{rowLabel(at)}</span>
+              <span className="text-[15.5px] font-semibold text-ink">{rowLabel(at)}</span>
               <span className="text-[14.5px] text-ink-2">as stored: {table.schema.columns.length} columns</span>
             </div>
             <div className="flex flex-wrap gap-2 p-3">{table.schema.columns.map((c) => cell(c.name))}</div>
@@ -101,7 +101,7 @@ export const RowTokens = memo(function RowTokens({ db, idx, slots, focus }: RowT
       <p className="!mt-3 !mb-0 text-[15.5px] leading-snug text-ink-2" aria-live="polite">
         {split ? (
           <>
-            <span className="font-mono text-ink">{rowLabel(at)}</span> has {table.schema.columns.length} columns. RT turns it into{' '}
+            <span className="text-ink">{rowLabel(at)}</span> has {table.schema.columns.length} columns. RT turns it into{' '}
             <strong className="text-ink">{cls.tokens.length} tokens</strong> and {cls.links.length} link{cls.links.length === 1 ? '' : 's'}
             {cls.missing.length > 0 && (
               <>
@@ -170,7 +170,7 @@ function CellChip({
       )}
       style={split && kind === 'feature' && !miss ? { borderLeft: `3px solid ${catVar(slot)}` } : undefined}
     >
-      <div className="flex items-center gap-1.5 font-mono text-[13.5px] text-ink-2">
+      <div className="flex items-center gap-1.5 text-[13.5px] text-ink-2">
         {kind === 'pk' ? (
           <KeyRound aria-label="primary key" size={14} />
         ) : kind === 'fk' ? (

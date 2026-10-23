@@ -116,14 +116,14 @@ const BrowserBody = memo(function BrowserBody({ db, idx, slots, tab, onTab, focu
             onChange={setLinkedOnly}
             label={
               <>
-                Only rows linked to <span className="font-mono">{rowLabel(focus)}</span>
+                Only rows linked to <span>{rowLabel(focus)}</span>
               </>
             }
           />
         ) : (
           <p className="!m-0 flex flex-wrap items-center gap-x-1.5 gap-y-1 self-center text-[15px] leading-snug text-ink-2">
             <span>
-              No {name} row is linked to <span className="font-mono text-ink">{rowLabel(focus)}</span>
+              No {name} row is linked to <span className="text-ink">{rowLabel(focus)}</span>
               {linkedTables.length > 0 ? '; its links are in' : '.'}
             </span>
             {linkedTables.map((t) => (
@@ -159,7 +159,7 @@ const BrowserBody = memo(function BrowserBody({ db, idx, slots, tab, onTab, focu
         ) : linked.size > 0 ? (
           <>
             <span className="font-semibold text-ink">{linked.size}</span> {name} row{linked.size === 1 ? '' : 's'} linked to{' '}
-            <span className="font-mono text-ink">{rowLabel(focus)}</span> are highlighted. Hover a row to see its links; click it to follow it below.
+            <span className="text-ink">{rowLabel(focus)}</span> are highlighted. Hover a row to see its links; click it to follow it below.
           </>
         ) : (
           <>
@@ -183,7 +183,7 @@ export function LinkSummary({ db, idx, at }: { db: RawDatabase; idx: LinkIndex; 
   const cap = rowCaption(db, at);
   return (
     <span>
-      <span className="font-mono font-semibold text-ink">{rowLabel(at)}</span>
+      <span className="font-semibold text-ink">{rowLabel(at)}</span>
       {cap && <span className="text-ink-2"> ({cap})</span>}
       {parents.length > 0 && (
         <>
@@ -195,7 +195,7 @@ export function LinkSummary({ db, idx, at }: { db: RawDatabase; idx: LinkIndex; 
               {p.parentRow === null ? (
                 <span className="text-muted">no {p.parentTable} row ({p.fkCol} = {formatRaw(null)})</span>
               ) : (
-                <span className="font-mono text-ink">{rowLabel({ table: p.parentTable, row: p.parentRow })}</span>
+                <span className="text-ink">{rowLabel({ table: p.parentTable, row: p.parentRow })}</span>
               )}
             </span>
           ))}

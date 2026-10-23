@@ -231,7 +231,7 @@ export function NumberNormFigure({ data, cols, defaultId, defaultProbe }: { data
           label="Number column"
           value={c.id}
           onChange={setId}
-          options={cols.map((x) => ({ value: x.id, label: <span className="font-mono">{colLabel(x)}</span> }))}
+          options={cols.map((x) => ({ value: x.id, label: <span>{colLabel(x)}</span> }))}
         />
       </div>
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">

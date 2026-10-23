@@ -23,7 +23,7 @@ export function DatetimeNormFigure({ data }: { data: ChapterData }) {
   const W = Math.max(280, size.width || 760);
   const LABEL_PX = 13;
   const labels = useMemo(() => cols.map((c) => `${fileLabel(c.file)}.${c.col.name}`), [cols]);
-  const labelW = useMemo(() => Math.ceil(maxTextWidth(labels, LABEL_PX, { mono: true })) + 24, [labels]);
+  const labelW = useMemo(() => Math.ceil(maxTextWidth(labels, LABEL_PX)) + 24, [labels]);
   // labels sit left of the bars when they fit in ~36% of the width; otherwise each row puts its label on its own line above its bars
   const above = labelW > W * 0.36;
   const LABEL_W = above ? 22 : labelW;
@@ -148,7 +148,7 @@ export function DatetimeNormFigure({ data }: { data: ChapterData }) {
                 <g key={c.id} onPointerEnter={() => setHoverRow(ri)} onPointerLeave={() => setHoverRow(null)}>
                   <rect x={0} y={rowY} width={W} height={ROW_H} style={{ fill: hoverRow === ri ? 'var(--surface-2)' : 'transparent' }} />
                   <rect x={2} y={labelY - 4.5} width={9} height={9} rx={2} style={{ fill: catVar(slot) }} />
-                  <text x={16} y={labelY} dy="0.34em" className="font-mono" style={{ fill: 'var(--ink)', fontSize: LABEL_PX }}>
+                  <text x={16} y={labelY} dy="0.34em" style={{ fill: 'var(--ink)', fontSize: LABEL_PX }}>
                     {labels[ri]}
                   </text>
                   <g transform={`translate(${LABEL_W},${rowY})`}>

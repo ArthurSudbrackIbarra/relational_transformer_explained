@@ -446,7 +446,7 @@ function HeaderLine({ lane }: { lane: Lane }) {
   return (
     <p className="mt-6 text-[17px] leading-relaxed text-ink-2">
       <span className="eyebrow mr-2">Live context</span>
-      task <span className="font-mono text-ink">{taskLabel(lane.task)}</span>, seed <span className="text-ink">{ent.label}</span>
+      task <span className="text-ink">{taskLabel(lane.task)}</span>, seed <span className="text-ink">{ent.label}</span>
       {ent.name ? ` (${ent.name})` : ''}
       {pred && (
         <>

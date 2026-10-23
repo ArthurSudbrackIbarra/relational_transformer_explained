@@ -238,11 +238,11 @@ export function SchemaDiagram({
                   <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px]" style={{ background: catVar(t.slot) }} />
                   <div ref={register(`${name}.__header`)} className="flex items-baseline justify-between gap-2 px-3 pt-3 pb-2">
                     {onTableClick ? (
-                      <button type="button" className="truncate text-left font-mono text-[16.5px] font-semibold text-ink" onClick={() => onTableClick(name)}>
+                      <button type="button" className="truncate text-left text-[16.5px] font-semibold text-ink" onClick={() => onTableClick(name)}>
                         {name}
                       </button>
                     ) : (
-                      <span className="truncate font-mono text-[16.5px] font-semibold text-ink">{name}</span>
+                      <span className="truncate text-[16.5px] font-semibold text-ink">{name}</span>
                     )}
                     <span className="num shrink-0 text-[14.5px] text-muted">
                       {t.kind === 'task' ? 'task table' : t.rowCount !== undefined ? `${t.rowCount.toLocaleString('en-US')} rows` : ''}
@@ -291,8 +291,8 @@ export function SchemaDiagram({
                                 <SemBadge sem={semOfDType(c.dtype)} size="xs" />
                               )}
                             </span>
-                            <span className={cx('min-w-0 flex-1 truncate font-mono', isPk || fk ? 'text-ink-2' : 'text-ink')}>{c.name}</span>
-                            {fk && <span className="max-w-[48%] shrink-0 truncate font-mono text-[14px] text-muted">→ {fk}</span>}
+                            <span className={cx('min-w-0 flex-1 truncate', isPk || fk ? 'text-ink-2' : 'text-ink')}>{c.name}</span>
+                            {fk && <span className="max-w-[48%] shrink-0 truncate text-[14px] text-muted">→ {fk}</span>}
                             {isTime && (
                               <span className="inline-flex shrink-0 items-center gap-1 rounded bg-surface-3 px-1.5 text-[13.5px] font-medium text-ink-2">
                                 <Clock aria-hidden="true" size={12} /> time

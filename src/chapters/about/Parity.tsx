@@ -4,7 +4,7 @@
  */
 import { ArrowDown, Cpu, FileCode2, Globe } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { ChartFrame, StatusBadge } from '@/components';
+import { ChartFrame, StatusBadge, cx } from '@/components';
 import { bytes, int, maxCheckpointDiff, sci, useResults, useVerification, type VerificationJson } from './data';
 import { LogDotChart } from './LogDotChart';
 
@@ -35,7 +35,7 @@ function ImplCard({ icon, name, file, lines, tone }: { icon: ReactNode; name: st
 
 function DeltaPill({ value, loading }: { value: number | null; loading: boolean }) {
   return (
-    <span className="relative inline-flex rounded-full border border-accent bg-surface px-3 py-0.5 font-mono text-[15px] font-semibold whitespace-nowrap text-ink tabular">
+    <span className="relative inline-flex rounded-full border border-accent bg-surface px-3 py-0.5 text-[15px] font-semibold whitespace-nowrap text-ink tabular">
       {loading ? '…' : value === null ? '–' : `|Δ| ≤ ${sci(value, 1)}`}
     </span>
   );
@@ -171,7 +171,7 @@ export function CheckpointParity() {
         { k: 'files (.bin + .json)', v: bytes(c.bytes) },
       ],
     })),
-    { id: 'random', label: 'random weights', value: v.details.officialVsPort.randomWeights, extra: [], sepBefore: true },
+    { id: 'random', label: 'random weights', plain: true, value: v.details.officialVsPort.randomWeights, extra: [], sepBefore: true },
   ].filter((r) => Number.isFinite(r.value));
   return (
     <ChartFrame
@@ -242,7 +242,7 @@ export function TsFixtureTable() {
               <td className="py-1.5 pr-3 font-mono whitespace-nowrap text-ink">{name}</td>
               <td className="num py-1.5 pr-4 text-right whitespace-nowrap text-ink">{sci(r.maxAbsDiff, 1)}</td>
               <td className="py-1.5 pr-3 font-mono text-ink-2">{r.worstStage ?? '–'}</td>
-              <td className="py-1.5 pr-3 font-mono whitespace-nowrap text-ink-2">{r.checkpoint ?? 'random'}</td>
+              <td className={cx('py-1.5 pr-3 whitespace-nowrap text-ink-2', r.checkpoint && 'font-mono')}>{r.checkpoint ?? 'random'}</td>
               <td className="num py-1.5 text-right">{r.contexts}</td>
             </tr>
           ))}

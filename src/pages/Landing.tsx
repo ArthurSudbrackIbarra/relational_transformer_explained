@@ -21,7 +21,7 @@ const IDEAS = [
     body: (
       <>
         Every non-missing feature cell becomes one token: its value plus the text of its column and table, embedded as
-        “<span className="font-mono text-[0.92em]">age of customers</span>”. No per-schema feature engineering.
+        “age of customers”. No per-schema feature engineering.
         <Cite kind="paper" ref="p.4 §3.1" />
       </>
     ),
@@ -51,9 +51,9 @@ const IDEAS = [
 ];
 
 export function Landing() {
-  const visited = useSim((s) => s.visited);
-  const started = Object.keys(visited).length > 0;
-  const nextUnvisited = CHAPTERS.find((c) => !visited[c.slug]) ?? CHAPTERS[0];
+  const completed = useSim((s) => s.completed);
+  const started = Object.keys(completed).length > 0;
+  const nextOpen = CHAPTERS.find((c) => !completed[c.slug]) ?? CHAPTERS[0];
 
   useEffect(() => {
     document.title = SITE_TITLE;
@@ -76,12 +76,12 @@ export function Landing() {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
-                to={started ? `/${nextUnvisited.slug}` : '/overview'}
+                to={started ? `/${nextOpen.slug}` : '/overview'}
                 data-plain
                 onPointerEnter={() => prefetchChapter('overview')}
                 className="inline-flex h-11 items-center gap-2 rounded-xl bg-accent px-5 text-[18px] font-semibold text-accent-ink transition hover:brightness-110"
               >
-                {started ? `Continue: ${nextUnvisited.number}. ${nextUnvisited.short}` : 'Start with the big picture'}
+                {started ? `Continue: ${nextOpen.number}. ${nextOpen.short}` : 'Start with the big picture'}
                 <ArrowRight aria-hidden="true" size={17} />
               </Link>
               <a
@@ -149,7 +149,7 @@ export function Landing() {
               Only the sizes, the data and the floating-point precision change; wherever numbers appear, a note says so.
             </p>
             <p className="mt-3 text-[19px] leading-[1.65] text-ink-2">
-              The running example is ShopDB and the task <span className="font-mono text-[0.92em]">customer-churn</span>: will a
+              The running example is ShopDB and the task customer-churn: will a
               customer place no order in the next 30 days?
             </p>
           </div>
@@ -214,7 +214,7 @@ export function Landing() {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-2">
                             <span className="text-[18px] font-semibold text-ink">{c.title}</span>
-                            {visited[c.slug] && <Check aria-label="visited" size={14} strokeWidth={2.4} className="shrink-0 text-muted" />}
+                            {completed[c.slug] && <Check aria-label="completed" size={14} strokeWidth={2.4} className="shrink-0 text-muted" />}
                           </span>
                           <span className="mt-1 block text-[16px] leading-snug text-ink-2">{c.summary}</span>
                         </span>
@@ -227,25 +227,6 @@ export function Landing() {
           </div>
         </div>
 
-        {/* ── Footer ─────────────────────────────────────────────────────── */}
-        <footer className="mt-24 border-t border-grid pt-8 text-[15.5px] leading-relaxed text-muted">
-          <p>
-            An independent educational simulation, not affiliated with the authors. Paper:{' '}
-            <a href={PAPER.url} target="_blank" rel="noreferrer noopener" className="text-ink-2 underline underline-offset-2 hover:text-ink">
-              arXiv {PAPER.arxiv}
-            </a>
-            . Code:{' '}
-            <a
-              href={`${CODE.url}/tree/${CODE.commitFull}`}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-ink-2 underline underline-offset-2 hover:text-ink"
-            >
-              {CODE.repo} @{CODE.commit}
-            </a>
-            .
-          </p>
-        </footer>
       </ContentColumn>
     </div>
   );

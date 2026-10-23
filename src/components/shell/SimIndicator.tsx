@@ -156,9 +156,9 @@ export function SimIndicator({ className }: { className?: string }) {
           <SlidersHorizontal aria-hidden="true" size={15} className="shrink-0 text-ink-2" />
           <span className="sr-only">Simulation: </span>
           <span className="hidden min-w-0 items-center gap-1.5 truncate lg:inline-flex">
-            <span className="font-mono text-ink">{p.dbName}</span>
+            <span className="text-ink">{p.dbName}</span>
             <span className="text-muted">·</span>
-            <span className="truncate font-mono text-ink">{task}</span>
+            <span className="truncate text-ink">{task}</span>
             <span className="text-muted">·</span>
             <span className="num text-ink-2">
               seed{' '}

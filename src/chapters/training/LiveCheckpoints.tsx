@@ -111,7 +111,7 @@ export function LiveCheckpoints({ results }: { results: Results | null }) {
                 ? "The live context of the running example"
                 : "The default context of this task"}
               :{" "}
-              <span className="font-mono text-ink">
+              <span className="text-ink">
                 {task.id.split("/")[1]}
               </span>{" "}
               for {entity}, {isGlobal ? split.toLowerCase() : "val"} row,{" "}

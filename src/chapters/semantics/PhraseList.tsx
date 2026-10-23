@@ -104,7 +104,7 @@ export function PhraseList({ live, catalog, view, setView, showKeys, setShowKeys
                           <span className={cx('min-w-0 flex-1 text-[15px] leading-snug', !p.onToken && 'line-through decoration-axis')}>
                             <Phrase text={p.text} />
                             {isTarget && (
-                              <span className="target-outline ml-1.5 inline-flex h-5 items-center rounded px-1 align-[1px] font-mono text-[13px] text-accent-text">
+                              <span className="target-outline ml-1.5 inline-flex h-5 items-center rounded px-1 align-[1px] text-[13px] text-accent-text">
                                 ? target
                               </span>
                             )}
@@ -215,8 +215,8 @@ export function StringTable({ catalog, view }: { catalog: Catalog | null; view: 
           const k = info.kindOf(s);
           return (
             <li key={i} className="!m-0 flex w-[168px] shrink-0 flex-col gap-1 rounded-lg border border-border bg-surface px-2.5 py-2">
-              <span className="num text-[13.5px] text-muted">text[{i}]</span>
-              <span className={cx('text-[14.5px] leading-snug break-words text-ink', k !== 'value' && 'font-mono')}>{s}</span>
+              <span className="font-mono text-[13.5px] text-muted">text[{i}]</span>
+              <span className="text-[14.5px] leading-snug break-words text-ink">{s}</span>
               <span
                 className={cx(
                   'mt-auto inline-flex w-fit items-center rounded px-1.5 text-[13px]',

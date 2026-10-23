@@ -115,7 +115,7 @@ function Outcome({ c }: { c: CellCard }) {
   return (
     <span className="flex min-w-0 items-start gap-1.5">
       <SemBadge sem={c.sem ?? 0} size="xs" />
-      <span className="min-w-0 font-mono text-[14px] break-words text-ink">“{c.phrase}”</span>
+      <span className="min-w-0 text-[14px] break-words text-ink">“{c.phrase}”</span>
     </span>
   );
 }
@@ -180,7 +180,7 @@ export function CellCards({ live }: { live: OverviewLive }) {
                   )}
                 >
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className={cx('min-w-0 font-mono text-[14px] break-all', token ? 'text-ink-2' : 'text-muted')}>{c.col.name}</span>
+                    <span className={cx('min-w-0 text-[14px] break-all', token ? 'text-ink-2' : 'text-muted')}>{c.col.name}</span>
                     {token && (
                       <span className={cx('shrink-0 text-[13.5px] font-medium', c.kind === 'target' ? 'text-accent-text' : 'text-ink-2')}>
                         {c.kind === 'target' ? 'masked token' : 'token'}
@@ -189,7 +189,7 @@ export function CellCards({ live }: { live: OverviewLive }) {
                   </span>
                   <span
                     className={cx(
-                      'font-mono text-[17px] leading-tight break-words',
+                      'text-[17px] leading-tight break-words',
                       c.kind === 'target' ? 'font-bold text-accent-text' : token ? 'text-ink' : 'text-muted',
                     )}
                   >
@@ -523,7 +523,7 @@ export function MaskRows({ live }: { live: OverviewLive }) {
               top: hover.y + 30,
             }}
           >
-            <span className="font-mono text-ink">
+            <span className="text-ink">
               {ctx.tokens[hover.pos].tableName}.{ctx.tokens[hover.pos].colName}
             </span>
             <span className="text-ink-2"> · position {hover.pos}</span>

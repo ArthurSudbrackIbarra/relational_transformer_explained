@@ -360,7 +360,7 @@ export default function OverviewChapter() {
           RT “represents each database cell as a token, with embeddings constructed from its value, column name and table name”{' '}
           <Cite kind="paper" ref="p.2 §1" />. A <Term id="cell-token">cell token</Term> is a triple (v, c, t): value, column, table{' '}
           <Cite kind="paper" ref="p.4 §3.1" />. The value goes through a small encoder for its type: number, text, datetime or boolean. The column and
-          table enter together as the text embedding of the phrase “<span className="font-mono">&lt;column&gt; of &lt;table&gt;</span>”, made by a
+          table enter together as the text embedding of the phrase “<span>&lt;column&gt; of &lt;table&gt;</span>”, made by a
           frozen sentence encoder <Cite kind="paper" ref="p.5 §3.1" />
           . Key columns produce no tokens, only links, and missing values produce nothing <Cite kind="spec" ref="§1.2" />
           <Cite kind="spec" ref="§3.5" />.

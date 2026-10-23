@@ -261,7 +261,7 @@ export function QueryCaption({ live }: { live: AttnLive }) {
       <span className="num text-ink">
         #{query} {labels[query]}
       </span>{' '}
-      · {t.colName} of <span className="font-mono">{rowName(t)}</span> ·{' '}
+      · {t.colName} of <span>{rowName(t)}</span> ·{' '}
       {query === target ? <strong className="font-semibold text-accent-text">masked target “?”</strong> : <span className="num text-ink">{valueOf(t)}</span>}{' '}
       · node {int(t.nodeIdx)}
     </p>

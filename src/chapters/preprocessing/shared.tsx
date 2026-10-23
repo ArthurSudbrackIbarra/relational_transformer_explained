@@ -69,7 +69,7 @@ export function useMedia(query: string): boolean {
 /** Phone widths (below Tailwind's sm breakpoint): long formulas break into lines there. */
 export const usePhone = () => useMedia('(max-width: 639px)');
 
-/** Table identity: color swatch (+ shape) and the file label in mono ink. */
+/** Table identity: color swatch (+ shape) and the file label. */
 export function FileTag({ file, slot, className, showType = true }: { file: TableFile; slot: number; className?: string; showType?: boolean }) {
   return (
     <TableSwatch

@@ -109,9 +109,16 @@ function QACard({ entry: e }: { entry: QAEntry }) {
       <p className="mt-2 !mb-0 text-[17px] leading-[1.6] text-ink-2">{e.short}</p>
       <div className="relative z-[1] mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
         <ChapterChips slugs={e.chapters} />
-        <span className="ml-auto inline-flex items-center gap-1 text-[15px] font-medium text-accent-text">
+        {/* the title link covers the card; this one sits above the overlay, so it needs its own target (hidden from AT: same link) */}
+        <Link
+          to={`/qa/${e.id}`}
+          data-plain
+          tabIndex={-1}
+          aria-hidden="true"
+          className="ml-auto inline-flex items-center gap-1 rounded-md text-[15px] font-medium text-accent-text hover:underline"
+        >
           Read the answer <ArrowRight aria-hidden="true" size={15} />
-        </span>
+        </Link>
       </div>
     </article>
   );

@@ -63,7 +63,7 @@ function InspectChip({ pos, label }: { pos: number; label: string }) {
       role="status"
     >
       <span className="min-w-0">
-        Step 2 now follows <span className="num">pos {pos}</span> · <span className="font-mono break-all">{label}</span>
+        Step 2 now follows <span className="num">pos {pos}</span> · <span className="break-all">{label}</span>
       </span>
       <button
         type="button"

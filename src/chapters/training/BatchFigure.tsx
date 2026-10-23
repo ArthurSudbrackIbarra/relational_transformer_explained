@@ -293,7 +293,7 @@ function TaskTable({ set }: { set: PretrainSet }) {
                 </span>
               </td>
               <td className="py-1 pr-3">
-                <span className="inline-flex items-center gap-1.5 font-mono text-[14.5px] break-words text-ink">
+                <span className="inline-flex items-center gap-1.5 text-[14.5px] break-words text-ink">
                   <span className="sm:hidden">
                     <ShapeGlyph shape={shapeOfSlot(t.slot)} size={13} fill={catVar(t.slot)} />
                   </span>
@@ -467,7 +467,7 @@ function BatchSummary({
                 title={active && slots.length > 1 ? 'Click again for the next item of this task' : undefined}
               >
                 <ShapeGlyph shape={shapeOfSlot(t.slot)} size={13} fill={catVar(t.slot)} />
-                <span className="font-mono text-[14.5px]">{t.short}</span>
+                <span className="text-[14.5px]">{t.short}</span>
                 <SemBadge sem={t.task.targetType === 'binary' ? SemType.Boolean : SemType.Number} size="xs" />
                 <span className="num text-ink-2">×{slots.length}</span>
               </button>
@@ -513,12 +513,12 @@ function ItemContext({
             {DB_LABEL[task.dbName]}
           </span>
           {' · '}
-          <span className="font-mono text-[14.5px] text-ink">{info.what}</span>
+          <span className="text-[14.5px] text-ink">{info.what}</span>
           {info.when ? ` at ${info.when}` : ''}
         </div>
         <div>
-          Masked cell: <span className="font-mono text-[14.5px] text-ink">{info.target} = ?</span> · hidden label{' '}
-          <span className="font-mono text-[14.5px] text-ink">{info.label}</span> · loss{' '}
+          Masked cell: <span className="text-[14.5px] text-ink">{info.target} = ?</span> · hidden label{' '}
+          <span className="text-[14.5px] text-ink">{info.label}</span> · loss{' '}
           <strong className="font-semibold text-ink">{isBool ? 'BCE with logits' : 'Huber (δ = 1)'}</strong>
         </div>
       </div>

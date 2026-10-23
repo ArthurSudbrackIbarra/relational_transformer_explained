@@ -53,9 +53,9 @@ function RunningExampleNote({ live }: { live: TokensLive }) {
   return (
     <Callout variant="note" title="You are viewing another task">
       <p>
-        The figures follow your simulation settings: <span className="font-mono">{live.db.name}</span> ·{' '}
-        <span className="font-mono">{taskShort(live.task)}</span>. The prose is written for the running example, ShopDB’s{' '}
-        <span className="font-mono">customer-churn</span>, so a few sentences may not match what you see.
+        The figures follow your simulation settings: <span>{live.db.name}</span> ·{' '}
+        <span>{taskShort(live.task)}</span>. The prose is written for the running example, ShopDB’s{' '}
+        <span>customer-churn</span>, so a few sentences may not match what you see.
       </p>
       <Button size="sm" variant="secondary" onClick={() => setTask('shop/customer-churn')}>
         Switch the course to the running example
@@ -109,11 +109,11 @@ export default function TokensChapter() {
         <div className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-2 text-[17px] leading-relaxed text-ink-2">
           <span className="eyebrow mr-1">Live context</span>
           <span>
-            seed <span className="font-mono text-ink">{seed ? nodeRef(seed) : '–'}</span>
+            seed <span className="text-ink">{seed ? nodeRef(seed) : '–'}</span>
             {entityNode !== null && (
               <>
                 {' '}
-                → <span className="font-mono text-ink">{nodeLabel(pdb, entityNode)}</span>
+                → <span className="text-ink">{nodeLabel(pdb, entityNode)}</span>
               </>
             )}
             {seed?.ts != null && <> · {tsDate(seed.ts)}</>}
@@ -228,7 +228,7 @@ export default function TokensChapter() {
           {exampleRow ? (
             <>
               {' '}
-              In the live context, <span className="font-mono">{nodeRef(exampleRow)}</span> becomes {plural(tokensByNode.get(exampleRow.nodeIdx)?.length ?? 0, 'token')}.
+              In the live context, <span>{nodeRef(exampleRow)}</span> becomes {plural(tokensByNode.get(exampleRow.nodeIdx)?.length ?? 0, 'token')}.
             </>
           ) : null}
         </p>
@@ -322,11 +322,11 @@ export default function TokensChapter() {
           {target ? (
             <>
               {' '}
-              ({target.colName} = <span className="font-mono">{String(target.raw)}</span>)
+              ({target.colName} = <span>{String(target.raw)}</span>)
             </>
           ) : null}{' '}
           therefore sits in the target token’s <code>{valueField}</code> slot, in plain sight. It cannot leak. The input embedding still computes
-          this value’s term, then multiplies it by the gate <span className="font-mono text-[0.92em] text-ink">[sem = t ∧ ¬mask ∧ ¬pad]</span>,
+          this value’s term, then multiplies it by the gate <span className="text-[0.92em] text-ink">[sem = t ∧ ¬mask ∧ ¬pad]</span>,
           which is 0 for the target <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:218-219" />.</span> The square brackets are a 0/1 switch: 1 if the condition inside
           holds, 0 otherwise. The label has an effect in only two places: the loss uses it as its target{' '}
           <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:240" />,</span> and the evaluation uses it as the label for the metrics{' '}
@@ -448,7 +448,7 @@ export default function TokensChapter() {
           <p>
             {cut ? (
               <>
-                It happens in the live context: the last row, <span className="font-mono">{nodeRef(pdb.nodes[cut.node])}</span>, kept {cut.emitted} of
+                It happens in the live context: the last row, <span>{nodeRef(pdb.nodes[cut.node])}</span>, kept {cut.emitted} of
                 its {cut.total} cells.
               </>
             ) : ctx.numReal < S ? (

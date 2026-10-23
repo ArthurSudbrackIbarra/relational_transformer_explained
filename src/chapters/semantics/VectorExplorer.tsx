@@ -76,7 +76,7 @@ export function VectorExplorer({ store, catalog, value, onChange, compare, onCom
             )}
           >
             <span className="text-muted">{p.label}</span>
-            <span className="font-mono text-ink">{p.text.length > 30 ? `${p.text.slice(0, 29)}…` : p.text}</span>
+            <span className="text-ink">{p.text.length > 30 ? `${p.text.slice(0, 29)}…` : p.text}</span>
           </button>
         ))}
       </div>
@@ -88,9 +88,9 @@ export function VectorExplorer({ store, catalog, value, onChange, compare, onCom
           <>
             <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <div className="text-[16px] font-semibold text-ink">
-                Stored vector <span className="font-mono font-normal">E(</span>
+                Stored vector <span className="font-normal">E(</span>
                 <Phrase text={value} plain={!isPhrase(value)} className="font-normal" />
-                <span className="font-mono font-normal">)</span>
+                <span className="font-normal">)</span>
               </div>
               <span className="text-[14.5px] text-ink-2">384 numbers, 48 per row · blue &lt; 0 &lt; red</span>
             </div>
@@ -120,9 +120,9 @@ export function VectorExplorer({ store, catalog, value, onChange, compare, onCom
       {e1 && e2 && prod && (
         <div className="mt-7 border-t border-grid pt-5">
           <div className="mb-1.5 text-[16px] font-semibold text-ink">
-            Compared with <span className="font-mono font-normal">E(</span>
+            Compared with <span className="font-normal">E(</span>
             <Phrase text={compare} plain={!isPhrase(compare)} className="font-normal" />
-            <span className="font-mono font-normal">)</span>
+            <span className="font-normal">)</span>
           </div>
           <VectorStrip values={e2} columns={48} cellHeight={16} domain={domain} highlightIndex={hoverDim} onHover={(i) => setHoverDim(i)} />
           <div className="mt-4 mb-1.5 flex flex-wrap items-baseline justify-between gap-x-4">

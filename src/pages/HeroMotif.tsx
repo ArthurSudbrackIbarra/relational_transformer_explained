@@ -96,13 +96,13 @@ interface CellGeom {
 /** Lay the toy out for a container `W` px wide. */
 function layoutFor(W: number) {
   const allValues = TABLES.flatMap((t) => t.rows.flat());
-  const valueW = Math.max(...allValues.map((v) => textWidth(v, VALUE_PX, { mono: true })));
+  const valueW = Math.max(...allValues.map((v) => textWidth(v, VALUE_PX)));
   const cellW = Math.ceil(valueW + 16);
   const chipW = Math.ceil(valueW + 20);
 
   // table cards, flowed into centered rows
   const sizes = TABLES.map((t) => ({
-    w: Math.ceil(Math.max(t.cols.length * cellW + (t.cols.length - 1) * GAP + 2 * PAD, textWidth(t.name, HEAD_PX, { mono: true, weight: 600 }) + 2 * PAD)),
+    w: Math.ceil(Math.max(t.cols.length * cellW + (t.cols.length - 1) * GAP + 2 * PAD, textWidth(t.name, HEAD_PX, { weight: 600 }) + 2 * PAD)),
     h: HEAD_H + t.rows.length * CELL_H + (t.rows.length - 1) * GAP + PAD,
   }));
   const rows: number[][] = [[]];
@@ -273,7 +273,7 @@ export function HeroMotif() {
             <motion.g key={TABLES[i].name} initial={false} animate={{ opacity: asTokens ? 0.42 : 1 }} transition={{ duration: 0.6 }}>
               <rect x={c.x} y={c.y} width={c.w} height={c.h} rx={9} style={{ fill: 'var(--surface)', stroke: 'var(--border-strong)' }} strokeWidth={1} />
               <rect x={c.x} y={c.y} width={c.w} height={3} rx={1.5} style={{ fill: catVar(TABLES[i].slot) }} />
-              <text x={c.x + PAD} y={c.y + 18} className="font-mono" style={{ fill: 'var(--ink)', fontSize: HEAD_PX, fontWeight: 600 }}>
+              <text x={c.x + PAD} y={c.y + 18} style={{ fill: 'var(--ink)', fontSize: HEAD_PX, fontWeight: 600 }}>
                 {TABLES[i].name}
               </text>
             </motion.g>
@@ -308,7 +308,6 @@ export function HeroMotif() {
                 y={c.ty + CELL_H / 2}
                 textAnchor="middle"
                 dominantBaseline="central"
-                className="font-mono"
                 style={{ fill: 'var(--muted)', fontSize: VALUE_PX, opacity: 0.85 }}
               >
                 {c.text}
@@ -399,7 +398,6 @@ export function HeroMotif() {
                   transition={{ duration: reduced ? 0 : 0.75, delay, ease: EASE }}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  className="font-mono"
                   style={{
                     fill: c.isTarget ? 'var(--accent-text)' : 'var(--ink)',
                     fontSize: c.isTarget ? 16 : VALUE_PX,

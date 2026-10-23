@@ -164,7 +164,7 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
               The live context has no padding: all {L} positions hold cells
               {cut ? (
                 <>
-                  , and the last row, <span className="font-mono text-ink">{nodeRef(pdb.nodes[cut.node])}</span>, was cut after {cut.emitted} of its{' '}
+                  , and the last row, <span className="text-ink">{nodeRef(pdb.nodes[cut.node])}</span>, was cut after {cut.emitted} of its{' '}
                   {cut.total} cells
                 </>
               ) : null}
@@ -173,11 +173,11 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
                 <>
                   So here is the {taskShort(task)} seed whose context is smallest at the same L = {L}, w = {w}, found by running the sampler on all{' '}
                   {scan.total.toLocaleString('en-US')} seeds of the task:{' '}
-                  <span className="font-mono text-ink">{nodeRef(seedNode)}</span>
+                  <span className="text-ink">{nodeRef(seedNode)}</span>
                   {entity !== null ? (
                     <>
                       {' '}
-                      → <span className="font-mono text-ink">{nodeLabel(pdb, entity)}</span>
+                      → <span className="text-ink">{nodeLabel(pdb, entity)}</span>
                     </>
                   ) : null}
                   {seedNode.ts !== null ? <>, at {tsDate(seedNode.ts)}</> : null}. Its BFS found only {plural(demoCtx!.visited.length, 'row')} and{' '}
@@ -290,7 +290,7 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
                             </tr>
                             <tr>
                               <td className="py-1 pr-2 text-ink">the four mask vectors</td>
-                              <td className="num py-1 pr-2 text-ink-2">masks = false</td>
+                              <td className="font-mono py-1 pr-2 text-ink-2">masks = false</td>
                               <td className="num py-1 whitespace-nowrap text-ink">
                                 × 0 = <ZeroVec />
                               </td>
@@ -409,7 +409,7 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
               <div className="mt-5 flex items-start gap-2 rounded-lg bg-surface-2 px-3 py-2 text-[15px] leading-snug text-ink-2">
                 <TableSwatch slot={slots[seedNode.tableName] ?? 0} className="mt-[5px] shrink-0" />
                 <span>
-                  <span className="font-mono text-ink">{nodeRef(seedNode)}</span> is{' '}
+                  <span className="text-ink">{nodeRef(seedNode)}</span> is{' '}
                   {seedNode.tableType && seedNode.tableType !== 'Db'
                     ? `a ${seedNode.tableType} row of ${taskShort(task)}`
                     : `a ${seedNode.tableName} row, one of the seeds of ${taskShort(task)}`}

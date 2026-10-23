@@ -117,11 +117,11 @@ export default function MasksChapter() {
       >
         <p className="mt-6 text-[17px] leading-relaxed text-ink-2">
           <span className="eyebrow mr-2">Live context</span>
-          seed <span className="font-mono text-ink">{seed ? rowName(seed) : '–'}</span>
+          seed <span className="text-ink">{seed ? rowName(seed) : '–'}</span>
           {entityTok && (
             <>
               {' '}
-              → <span className="font-mono text-ink">{rowName(entityTok)}</span>
+              → <span className="text-ink">{rowName(entityTok)}</span>
               {entityText ? ` (${String(entityText.raw)})` : ''}
             </>
           )}
@@ -178,8 +178,8 @@ export default function MasksChapter() {
           which Step 2 defines; for now, watch only what happens to the blocked keys. Tokens are labeled row·column
           {seed && entityTok ? (
             <>
-              : <span className="font-mono">{rowTag(seed, prefixes)}</span> is the seed row {rowName(seed)} and{' '}
-              <span className="font-mono">{rowTag(entityTok, prefixes)}</span> is {rowName(entityTok)}
+              : {rowTag(seed, prefixes)} is the seed row {rowName(seed)} and{' '}
+              {rowTag(entityTok, prefixes)} is {rowName(entityTok)}
             </>
           ) : null}
           .

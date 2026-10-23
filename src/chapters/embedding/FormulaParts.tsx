@@ -209,7 +209,7 @@ export const GateGrid = memo(function GateGrid({ live }: { live: EmbeddingStable
         title={label}
       >
         <span className={cx('num text-[19px] leading-tight font-semibold', n === 0 ? 'text-muted' : 'text-ink')}>{int(n)}</span>
-        <span className="font-mono text-[14px] leading-snug text-ink-2">{sub}</span>
+        <span className={cx(k !== 'padding' && 'font-mono', 'text-[14px] leading-snug text-ink-2')}>{sub}</span>
       </button>
     );
   };
@@ -231,11 +231,11 @@ export const GateGrid = memo(function GateGrid({ live }: { live: EmbeddingStable
     if (kind === 'mask')
       return n === 0 ? (
         <>
-          No token of type {SEM_LABEL[sem]} is masked in this context, so <span className="font-mono">m_{key}</span> is not used here.
+          No token of type {SEM_LABEL[sem]} is masked in this context, so <span>m_{key}</span> is not used here.
         </>
       ) : (
         <>
-          {n === 1 ? `One token (${tgt ? rowRef(tgt) : 'masked'}) takes` : `${n} tokens take`} the mask vector <span className="font-mono">m_{key}</span> instead of a value
+          {n === 1 ? `One token (${tgt ? rowRef(tgt) : 'masked'}) takes` : `${n} tokens take`} the mask vector <span>m_{key}</span> instead of a value
           term. Only the seed row’s target cell is ever masked <Cite kind="spec" ref="§4.10" />.
         </>
       );

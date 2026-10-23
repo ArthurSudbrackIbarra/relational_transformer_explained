@@ -125,7 +125,7 @@ export function ContextTables({
       const gridW = stacks * stackW + (stacks - 1) * STACK_GAP;
       const gridH = perStack * step - GAP;
       // measured, never truncated: the block is as wide as its title when the title is wider
-      const titleW = SWATCH + 6 + textWidth(tbl.name, TITLE_PX, { mono: true }) + 2;
+      const titleW = SWATCH + 6 + textWidth(tbl.name, TITLE_PX) + 2;
       const w = Math.max(gridW, titleW);
       const h = TITLE_H + gridH;
       if (x > 0 && x + w > width) {
@@ -265,7 +265,6 @@ export function ContextTables({
               x={b.x + SWATCH + 6}
               y={b.y + 3 + SWATCH / 2}
               dominantBaseline="central"
-              className="font-mono"
               style={{
                 fill: 'var(--ink)',
                 fontSize: TITLE_PX,

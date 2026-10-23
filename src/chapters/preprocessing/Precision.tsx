@@ -60,7 +60,7 @@ export function PrecisionTable({ data }: { data: ChapterData }) {
                 <td className="py-1.5 pr-2">
                   <div className="flex items-center gap-1.5">
                     <span aria-hidden="true" className="inline-block h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: catVar(data.slotOf(t.tableName)) }} />
-                    <span className="font-mono text-[14.5px] text-ink-2">
+                    <span className="text-[14.5px] text-ink-2">
                       {f?.isTask ? (
                         <>
                           {t.tableName}:<wbr />
@@ -78,7 +78,7 @@ export function PrecisionTable({ data }: { data: ChapterData }) {
                   </div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                     <SemBadge sem={t.sem} size="sm" />
-                    <span className="font-mono whitespace-nowrap text-ink">{t.colName}</span>
+                    <span className="whitespace-nowrap text-ink">{t.colName}</span>
                     {t.isTarget && <span className="rounded bg-accent-soft px-1.5 text-[14px] font-medium text-accent-text">masked target</span>}
                   </div>
                 </td>

@@ -217,7 +217,7 @@ export function AttentionKernels() {
             <ChevronRight size={16} />
           </IconButton>
         </span>
-        <span className="font-mono text-[15px] break-all text-ink">
+        <span className="text-[15px] break-all text-ink">
           #{q} {tokenLabel(ctx.tokens[q], pdb)}
         </span>
       </div>
@@ -238,7 +238,7 @@ export function AttentionKernels() {
         ))}
         {hk !== null && (
           <TooltipBox style={{ right: 0, top: -8, transform: 'translateY(-100%)' }}>
-            <div className="font-mono text-[15px] font-semibold text-ink">
+            <div className="text-[15px] font-semibold text-ink">
               key #{hk} {tokenLabel(ctx.tokens[hk], pdb)}
             </div>
             <div className="mt-1 flex justify-between gap-4 text-ink-2">

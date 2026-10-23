@@ -83,11 +83,11 @@ export default function AttentionChapter() {
       >
         <p className="mt-6 text-[17px] leading-relaxed text-ink-2">
           <span className="eyebrow mr-2">Live context</span>
-          seed <span className="font-mono text-ink">{seed ? rowName(seed) : '–'}</span>
+          seed <span className="text-ink">{seed ? rowName(seed) : '–'}</span>
           {entityTok && (
             <>
               {' '}
-              → <span className="font-mono text-ink">{rowName(entityTok)}</span>
+              → <span className="text-ink">{rowName(entityTok)}</span>
               {entityName ? ` (${String(entityName.raw)})` : ''}
             </>
           )}
@@ -398,9 +398,9 @@ function RunningExampleNote({ live }: { live: AttnLive }) {
     <div className="page-grid">
       <Callout variant="note" title="You are viewing another task">
         <p>
-          The figures follow your simulation settings: <span className="font-mono">{db.name}</span> ·{' '}
-          <span className="font-mono">{task.id.split('/')[1]}</span> ({task.kind}). The prose is written for the running example, ShopDB’s{' '}
-          <span className="font-mono">customer-churn</span>, so a few sentences may not apply.
+          The figures follow your simulation settings: <span>{db.name}</span> ·{' '}
+          <span>{task.id.split('/')[1]}</span> ({task.kind}). The prose is written for the running example, ShopDB’s{' '}
+          <span>customer-churn</span>, so a few sentences may not apply.
         </p>
         <Button size="sm" variant="secondary" onClick={() => setTask('shop/customer-churn')}>
           Switch the course to the running example

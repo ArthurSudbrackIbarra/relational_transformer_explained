@@ -68,8 +68,8 @@ export function FitMask({
 
   // label bands sized to the longest label actually shown
   const shownLabels = matrix.labels?.slice(0, N) ?? [];
-  const labelW = shownLabels.length ? Math.min(230, Math.max(60, Math.ceil(maxTextWidth(shownLabels, LABEL_PX, { mono: true }) + 14))) : G.labelW;
-  const labelH = shownLabels.length ? Math.min(190, Math.max(40, Math.ceil(maxTextWidth(shownLabels, LABEL_PX, { mono: true }) + 10))) : G.labelH;
+  const labelW = shownLabels.length ? Math.min(230, Math.max(60, Math.ceil(maxTextWidth(shownLabels, LABEL_PX) + 14))) : G.labelW;
+  const labelH = shownLabels.length ? Math.min(190, Math.max(40, Math.ceil(maxTextWidth(shownLabels, LABEL_PX) + 10))) : G.labelH;
 
   let withLabels = false;
   let cell = 1;

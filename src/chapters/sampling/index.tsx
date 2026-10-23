@@ -81,8 +81,8 @@ function RunningExampleNote() {
   return (
     <Callout variant="note" title="You are viewing another task">
       <p>
-        The figures follow your simulation settings: <span className="font-mono">{db.name}</span> · <span className="font-mono">{task.id.split('/')[1]}</span> (
-        {task.kind}). The prose is written for the running example, ShopDB’s <span className="font-mono">customer-churn</span>, so a few sentences may not apply.
+        The figures follow your simulation settings: {db.name} · {task.id.split('/')[1]} (
+        {task.kind}). The prose is written for the running example, ShopDB’s customer-churn, so a few sentences may not apply.
       </p>
       <Button size="sm" variant="secondary" onClick={() => setTask('shop/customer-churn')}>
         Switch the course to the running example
@@ -255,8 +255,8 @@ function LabelsSection() {
         </>
       ) : (
         <p>
-          This is an autocomplete task: the seed is a row of <span className="font-mono">{task.table}</span>, so no task row enters the context{' '}
-          <Cite kind="code" ref="rustler/src/fly.rs:417" />. Its in-context labels are the visible <span className="font-mono">{task.targetCol}</span> cells of other
+          This is an autocomplete task: the seed is a row of {task.table}, so no task row enters the context{' '}
+          <Cite kind="code" ref="rustler/src/fly.rs:417" />. Its in-context labels are the visible {task.targetCol} cells of other
           rows of the same table that the search reached <Cite kind="spec" ref="§2.4" />. This context holds {plural(f.other, 'such cell')}.
         </p>
       )}
@@ -283,7 +283,7 @@ function LabelsSection() {
         </p>
       ) : (
         <p>
-          Here the other rows of <span className="font-mono">{task.table}</span> arrive through shared parents: the seed’s parents are visited first through the
+          Here the other rows of {task.table} arrive through shared parents: the seed’s parents are visited first through the
           stack, and their children, which include other {task.table} rows, go to the next bucket <Cite kind="spec" ref="§4.4" />
           <Cite kind="code" ref="rustler/src/fly.rs:406-452" />.
         </p>

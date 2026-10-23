@@ -23,7 +23,7 @@ function RawRow({ db, node, masked }: { db: RawDatabase; node: GraphNode; masked
   if (!rec || !schema) return null;
   return (
     <div ref={ref} className="card min-w-0 overflow-hidden" style={{ borderLeft: '3px solid var(--cat-5)' }}>
-      <div className="border-b border-grid px-3 py-1.5 font-mono text-[14.5px] break-words text-ink-2">
+      <div className="border-b border-grid px-3 py-1.5 text-[14.5px] break-words text-ink-2">
         {node.tableName}:{node.tableType}[{node.rowPos}] · node {node.nodeIdx}
       </div>
       <div className={stacked ? 'flex flex-col divide-y divide-[var(--grid)]' : 'grid grid-cols-3'}>
@@ -41,7 +41,7 @@ function RawRow({ db, node, masked }: { db: RawDatabase; node: GraphNode; masked
             >
               <div className="flex min-w-0 items-center gap-1 text-[14px] text-ink-2">
                 {isFk ? <Link2 size={13} aria-label="foreign key" className="shrink-0" /> : <SemBadge sem={semOfDType(c.dtype)} size="xs" bare />}
-                <span className="font-mono break-words">{c.name}</span>
+                <span className="break-words">{c.name}</span>
               </div>
               <div className={stacked ? 'num shrink-0 text-[15.5px] text-ink' : 'num mt-1 text-[15.5px] text-ink'}>
                 {isTarget && masked ? (
@@ -128,7 +128,7 @@ export function TaskRowTokens({
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <Link2 size={14} aria-hidden="true" className="shrink-0" />
                   <span>The FK makes no token, only a link:</span>
-                  <span className="num text-ink">f2p_nbr_idxs = [{nbrs.join(', ')}]</span>
+                  <span className="font-mono text-ink">f2p_nbr_idxs = [{nbrs.join(', ')}]</span>
                 </div>
                 <p className="mt-1.5">
                   {parent && fkValue !== null && (

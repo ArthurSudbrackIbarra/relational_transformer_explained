@@ -101,7 +101,7 @@ function ResultChip({ f, data }: { f: Fate; data: ChapterData }) {
       <>
         <div className="flex min-w-0 items-center gap-1.5">
           <SemBadge sem={f.cell.sem} size="sm" />
-          <span className="truncate font-mono text-[14.5px] font-semibold text-ink">{f.col.name}</span>
+          <span className="truncate text-[14.5px] font-semibold text-ink">{f.col.name}</span>
         </div>
         <div className="num mt-0.5 truncate text-[14.5px] text-ink-2">{storedText(f)}</div>
       </>
@@ -113,7 +113,7 @@ function ResultChip({ f, data }: { f: Fate; data: ChapterData }) {
       <>
         <div className="flex min-w-0 items-center gap-1.5">
           <Link2 aria-hidden="true" size={13} className="shrink-0 text-ink-2" />
-          <span className="truncate font-mono text-[14.5px] font-semibold text-ink">{f.col.name}</span>
+          <span className="truncate text-[14.5px] font-semibold text-ink">{f.col.name}</span>
         </div>
         <div className="num mt-0.5 flex items-center gap-1 truncate text-[14.5px] text-ink-2">
           → #{f.parentNode}
@@ -136,7 +136,7 @@ function ResultChip({ f, data }: { f: Fate; data: ChapterData }) {
         ) : (
           <CircleSlash aria-hidden="true" size={13} className="shrink-0 text-muted" />
         )}
-        <span className="truncate font-mono text-[14.5px] font-semibold text-ink-2 line-through decoration-[var(--axis)]">{f.col.name}</span>
+        <span className="truncate text-[14.5px] font-semibold text-ink-2 line-through decoration-[var(--axis)]">{f.col.name}</span>
       </div>
       <div className="mt-0.5 truncate text-[14.5px] text-muted">{why}</div>
     </>
@@ -216,7 +216,7 @@ function RowFlow({ data, file, row }: { data: ChapterData; file: TableFile; row:
       {/* the source row */}
       <div className="mt-4 rounded-xl border border-border bg-surface px-3 py-3" style={{ borderLeft: `3px solid ${catVar(data.slotOf(file.tableName))}` }}>
         <div className="mb-2 flex flex-wrap items-baseline gap-x-2 text-[15px]">
-          <span className="font-mono font-semibold text-ink">
+          <span className="font-semibold text-ink">
             {fileLabel(file)}[{row}]
           </span>
           <span className="text-ink-2">raw row · node #{file.offset + row}</span>
@@ -230,7 +230,7 @@ function RowFlow({ data, file, row }: { data: ChapterData; file: TableFile; row:
               <>
                 <div className="flex min-w-0 items-center gap-1.5 text-[14px] text-ink-2">
                   <ColGlyph file={file} col={f.col.name} size="sm" />
-                  <span className="truncate font-mono">{f.col.name}</span>
+                  <span className="truncate">{f.col.name}</span>
                   {processed && <Check aria-label="processed" size={14} strokeWidth={2.5} className={cx('ml-auto hidden shrink-0 sm:block', justDone ? 'text-accent-text' : 'text-muted')} />}
                   {i === done && <span className="ml-auto shrink-0 text-[13px] font-medium text-muted">next</span>}
                 </div>

@@ -91,14 +91,14 @@ export function SimilarityMatrix({ store, catalog, home, focus, onFocus }: Simil
     () =>
       Math.ceil(
         Math.max(
-          ...rowPhrases.map((p) => textWidth(p.col, ROW_PX, { mono: true })),
+          ...rowPhrases.map((p) => textWidth(p.col, ROW_PX)),
           ...rowPhrases.map((p) => textWidth(p.table, TABLE_PX) + 16),
           60,
         ),
       ) + 18,
     [rowPhrases],
   );
-  const colLabelH = useMemo(() => Math.ceil(Math.max(...colPhrases.map((p) => textWidth(p.col, COL_PX, { mono: true })), 40)) + 12, [colPhrases]);
+  const colLabelH = useMemo(() => Math.ceil(Math.max(...colPhrases.map((p) => textWidth(p.col, COL_PX)), 40)) + 12, [colPhrases]);
   const dbHeaderH = 30;
   const stripH = 6;
 
@@ -276,7 +276,6 @@ export function SimilarityMatrix({ store, catalog, home, focus, onFocus }: Simil
                     x={17}
                     y={y + (cell - 1) / 2}
                     dominantBaseline="central"
-                    className="font-mono"
                     style={{ fontSize: ROW_PX, fill: active || isFocus ? 'var(--ink)' : 'var(--ink-2)', fontWeight: isFocus ? 650 : 400, ...keyStyle(p) }}
                   >
                     {p.col}
@@ -339,7 +338,6 @@ export function SimilarityMatrix({ store, catalog, home, focus, onFocus }: Simil
                   <text
                     key={p.text}
                     transform={`translate(${x + 4.5},${dbHeaderH + tableBandH + colLabelH - 4}) rotate(-90)`}
-                    className="font-mono"
                     style={{ fontSize: COL_PX, fill: active ? 'var(--ink)' : 'var(--ink-2)', fontWeight: active ? 650 : 400, ...keyStyle(p) }}
                   >
                     {p.col}
@@ -437,7 +435,7 @@ export function SimilarityMatrix({ store, catalog, home, focus, onFocus }: Simil
           </span>
           {keys && (
             <span className="inline-flex items-center gap-1.5">
-              <span className="font-mono text-muted italic line-through">customer_id</span> key column: never on a token
+              <span className="text-muted italic line-through">customer_id</span> key column: never on a token
             </span>
           )}
         </div>

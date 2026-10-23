@@ -90,29 +90,31 @@ export function ChartFrame({
 /** Plain data table used as the accessible twin of a chart. */
 export function DataTable({ columns, rows, caption }: { columns: string[]; rows: (string | number)[][]; caption?: string }) {
   return (
-    <table className="w-full border-collapse text-[15px]">
-      {caption && <caption className="sr-only">{caption}</caption>}
-      <thead>
-        <tr className="border-b border-grid text-left text-ink-2">
-          {columns.map((c, i) => (
-            <th key={i} scope="col" className={cx('px-2 py-1.5 font-semibold', i > 0 && 'text-right')}>
-              {c}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r, i) => (
-          <tr key={i} className="border-b border-grid/70">
-            {r.map((v, j) => (
-              <td key={j} className={cx('px-2 py-1', j > 0 ? 'num text-right' : 'text-ink')}>
-                {v}
-              </td>
+    <div className="scroll-quiet overflow-x-auto">
+      <table className="w-full border-collapse text-[15px]">
+        {caption && <caption className="sr-only">{caption}</caption>}
+        <thead>
+          <tr className="border-b border-grid text-left text-ink-2">
+            {columns.map((c, i) => (
+              <th key={i} scope="col" className={cx('px-2 py-1.5 font-semibold', i > 0 && 'text-right')}>
+                {c}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} className="border-b border-grid/70">
+              {r.map((v, j) => (
+                <td key={j} className={cx('px-2 py-1', j > 0 ? 'num text-right' : 'text-ink')}>
+                  {v}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

@@ -123,7 +123,7 @@ function FeaturesView({ ex }: { ex: ShopExample }) {
                 <td className="num px-3 py-1.5 text-right">{r.o90}</td>
                 <td className="num px-3 py-1.5 text-right">{r.since ?? '—'}</td>
                 <td className="num px-3 py-1.5 text-right">{r.rating === null ? '∅' : formatNumber(r.rating, 1)}</td>
-                <td className="num px-3 py-1.5 text-right font-mono">{String(r.label)}</td>
+                <td className="num px-3 py-1.5 text-right">{String(r.label)}</td>
               </tr>
             ))}
           </tbody>
@@ -188,7 +188,7 @@ function JoinView({ ex }: { ex: ShopExample }) {
                 <th key={h} className="px-3 py-2 font-medium">
                   <span className="inline-flex items-center gap-1.5">
                     <TableSwatch slot={ex.slots[i < 2 ? 'customers' : i < 4 ? 'orders' : 'products'] ?? 0} />
-                    <span className="font-mono">{h}</span>
+                    <span>{h}</span>
                   </span>
                 </th>
               ))}

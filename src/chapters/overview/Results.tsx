@@ -220,7 +220,7 @@ export function MiniResults() {
               const n = getSeeds(pdb, task, 'Test').length;
               return (
                 <tr key={id} className="border-b border-grid/70 last:border-0">
-                  <td className="px-3 py-2 font-mono text-ink sm:px-4">
+                  <td className="px-3 py-2 text-ink sm:px-4">
                     {task.name}
                     <span className="block font-sans text-[14px] text-ink-2 sm:hidden">
                       {z.metric === 'auroc' ? 'AUROC' : 'R²'} · {int(n)} test rows

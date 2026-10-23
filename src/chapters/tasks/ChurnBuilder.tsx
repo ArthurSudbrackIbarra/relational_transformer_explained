@@ -537,12 +537,12 @@ export function ChurnBuilder({
               <div className="eyebrow mb-2">The label rule</div>
               {twoLineRule ? (
                 <div className="flex flex-col gap-1 pb-1 text-[16.5px]">
-                  <InlineMath tex={String.raw`\texttt{churn}(c, t) = \big[\, n = 0 \,\big]`} />
+                  <InlineMath tex={String.raw`\text{churn}(c, t) = \big[\, n = 0 \,\big]`} />
                   <InlineMath tex={String.raw`n = \#\{\text{orders of } c \text{ in } (t,\ t+${days}\,\text{d}]\}`} />
                 </div>
               ) : (
                 <div className="pb-1 text-[17.5px] whitespace-nowrap">
-                  <InlineMath tex={String.raw`\texttt{churn}(c, t) = \big[\,\#\{\text{orders of } c \text{ in } (t,\ t+${days}\,\text{d}]\} = 0\,\big]`} />
+                  <InlineMath tex={String.raw`\text{churn}(c, t) = \big[\,\#\{\text{orders of } c \text{ in } (t,\ t+${days}\,\text{d}]\} = 0\,\big]`} />
                 </div>
               )}
               <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[16px]">
@@ -595,7 +595,7 @@ export function ChurnBuilder({
         {/* the growing task table */}
         <div className="card min-w-0 overflow-hidden" style={{ borderLeft: '3px solid var(--cat-5)' }}>
           <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-grid px-3 py-2">
-            <span className="font-mono text-[15.5px] font-semibold text-ink">customer-churn</span>
+            <span className="text-[15.5px] font-semibold text-ink">customer-churn</span>
             <span className="num text-[14.5px] text-muted">
               {isAll
                 ? `${allRows.length.toLocaleString('en-US')} rows, all customers`
@@ -609,13 +609,13 @@ export function ChurnBuilder({
                   <th scope="col" className="px-3 py-1.5 font-semibold">
                     <span className="inline-flex items-center gap-1 whitespace-nowrap">
                       {!narrow && <SemBadge sem={SemType.DateTime} size="xs" />}
-                      <span className="font-mono">timestamp</span>
+                      <span>timestamp</span>
                     </span>
                   </th>
                   <th scope="col" className="px-2 py-1.5 font-semibold" title="Foreign key → customers: a link, no token">
                     <span className={cx('inline-flex items-center gap-1', !narrow && 'whitespace-nowrap')}>
                       {!narrow && <Link2 aria-label="foreign key" size={13} className="shrink-0" />}
-                      <span className="font-mono">
+                      <span>
                         customer_
                         <wbr />
                         id
@@ -625,7 +625,7 @@ export function ChurnBuilder({
                   <th scope="col" className="px-2 py-1.5 font-semibold">
                     <span className="inline-flex items-center gap-1 whitespace-nowrap">
                       {!narrow && <SemBadge sem={SemType.Boolean} size="xs" />}
-                      <span className="font-mono">churn</span>
+                      <span>churn</span>
                     </span>
                   </th>
                   <th scope="col" className="px-3 py-1.5 text-right font-semibold">

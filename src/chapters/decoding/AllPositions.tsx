@@ -109,7 +109,7 @@ export function AllPositions({ lane, pos, setPos }: { lane: Lane; pos: number; s
                 {rows.map((r) => (
                   <div key={r.key} className="flex items-center gap-1.5 text-[15px] text-ink-2" style={{ height: ROW_H }}>
                     {!tight && <SemBadge sem={r.sem} size="sm" />}
-                    <span className="font-mono text-ink">{r.key}</span>
+                    <span className="text-ink">{r.key}</span>
                     {mode === 'loss' && <span className="num text-[14px] text-muted">({counts[r.sem]})</span>}
                   </div>
                 ))}
@@ -238,7 +238,7 @@ export function AllPositions({ lane, pos, setPos }: { lane: Lane; pos: number; s
                     <>padding: x̂ = 0, so each head outputs exactly its bias</>
                   ) : (
                     <>
-                      <span className="font-mono text-ink">
+                      <span className="text-ink">
                         {rowName(st)}.{st.colName}
                       </span>{' '}
                       ({['number', 'text', 'datetime', 'boolean'][st.sem]}){st.mask ? ', the masked target' : ''}

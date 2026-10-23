@@ -48,8 +48,8 @@ export function RowCard({ db, pdb, node, task, seed, slots, compact = false }: {
   return (
     <div className="min-w-0 rounded-lg border border-border bg-surface px-2.5 py-2" style={{ borderLeft: `3px solid ${catVar(slot)}` }}>
       <div className="mb-1.5 flex items-center gap-2 text-[14.5px]">
-        <span className="font-mono font-semibold text-ink">{rowName(db, pdb, node).long}</span>
-        <span className="font-mono text-[13.5px] text-muted">
+        <span className="font-semibold text-ink">{rowName(db, pdb, node).long}</span>
+        <span className="text-[13.5px] text-muted">
           {g.tableKey}[{g.rowPos}] · node {node}
         </span>
       </div>
@@ -72,8 +72,8 @@ export function RowCard({ db, pdb, node, task, seed, slots, compact = false }: {
               )}
             >
               {isPk ? <KeyRound aria-hidden="true" size={11} /> : fkTo ? <Link2 aria-hidden="true" size={11} /> : <SemBadge sem={semOfDType(c.dtype)} size="sm" bare className="-my-1 text-muted" />}
-              <span className="font-mono text-ink-2">{c.name}</span>
-              <span className={cx('truncate font-mono', isTarget && 'font-bold text-accent-text')}>
+              <span className="text-ink-2">{c.name}</span>
+              <span className={cx('truncate', isTarget && 'font-bold text-accent-text')}>
                 {isTarget ? '?' : fkTo && !isNull ? `→ ${singular(fkTo)} ${v}` : formatRaw(v, c.dtype)}
               </span>
             </span>
@@ -127,7 +127,7 @@ function TimeFilter({ items, seedTs, db, pdb, slots, hover, onHover }: {
     return [...m.values()];
   }, [items, pdb, slots]);
   // label column: measured at the drawn size, at least 120px, long names truncated (full name in a tooltip)
-  const labelW = Math.round(Math.min(W * 0.42, Math.max(120, maxTextWidth(lanes.map((l) => l.label), FS, { mono: true }) + 10)));
+  const labelW = Math.round(Math.min(W * 0.42, Math.max(120, maxTextWidth(lanes.map((l) => l.label), FS) + 10)));
   const hasNull = items.some((i) => pdb.nodes[i.node].ts === null);
   const noTsW = hasNull ? 48 : 0;
   const tss = items.map((i) => pdb.nodes[i.node].ts).filter((t): t is number => t !== null);
@@ -176,7 +176,7 @@ function TimeFilter({ items, seedTs, db, pdb, slots, hover, onHover }: {
           const yTop = top + li * laneH;
           const y = yTop + laneH / 2;
           const dense = lane.items.length > DENSE_LANE;
-          const shown = fitText(lane.label, labelW - 6, FS, { mono: true });
+          const shown = fitText(lane.label, labelW - 6, FS);
           let body: React.ReactNode;
           if (dense) {
             // one stacked bar per time bin: passes (filled), later (hollow), other task table (gray)
@@ -256,7 +256,7 @@ function TimeFilter({ items, seedTs, db, pdb, slots, hover, onHover }: {
           return (
             <g key={lane.key}>
               <line x1={x0} x2={x1} y1={dense ? yTop + laneH - 3 : y} y2={dense ? yTop + laneH - 3 : y} style={{ stroke: 'var(--grid)' }} strokeWidth={1} />
-              <text x={labelW} y={y} textAnchor="end" dominantBaseline="central" className="font-mono" style={{ fill: 'var(--ink-2)', fontSize: FS }}>
+              <text x={labelW} y={y} textAnchor="end" dominantBaseline="central" style={{ fill: 'var(--ink-2)', fontSize: FS }}>
                 {shown !== lane.label && <title>{lane.label}</title>}
                 {shown}
               </text>
@@ -266,9 +266,9 @@ function TimeFilter({ items, seedTs, db, pdb, slots, hover, onHover }: {
         })}
         {fitTicks(
           ticks.map((t) => ({ x: x(t), text: tsDate(Math.round(t)) })),
-          (txt) => textWidth(txt, FS, { mono: true }),
+          (txt) => textWidth(txt, FS),
         ).map((t, i) => (
-          <text key={i} x={t.x} y={H - 6} textAnchor={t.anchor} className="font-mono" style={{ fill: 'var(--muted)', fontSize: FS }}>
+          <text key={i} x={t.x} y={H - 6} textAnchor={t.anchor} style={{ fill: 'var(--muted)', fontSize: FS }}>
             {t.text}
           </text>
         ))}
@@ -284,7 +284,7 @@ function TimeFilter({ items, seedTs, db, pdb, slots, hover, onHover }: {
           return (
             <li key={lane.key} className="flex min-w-0 flex-wrap items-center gap-x-2">
               <ShapeGlyph shape={shapeOfSlot(lane.slot)} size={10} fill={catVar(lane.slot)} />
-              <span className="font-mono text-ink">{lane.label}</span>
+              <span className="text-ink">{lane.label}</span>
               <span className="num">
                 {[c.pass ? `${c.pass} pass` : '', c.future ? `${c.future} later than the seed` : '', c.other ? `${c.other} in another task table` : ''].filter(Boolean).join(' · ')}
               </span>
@@ -311,7 +311,7 @@ export function DecisionPanel({ step, iters, ctx, db, pdb, task, slots, before, 
         <Heading aside="F→P stack = [(depth 0, seed)]">Start · fly.rs:366</Heading>
         <RowCard db={db} pdb={pdb} node={seed} task={task} seed={seed} slots={slots} />
         <p className="mt-2 text-[15px] leading-snug text-ink-2">
-          The masked cell is the seed’s <span className="font-mono">{task.targetCol}</span>. Key columns (dashed) never become tokens; foreign keys only create links to parents.
+          The masked cell is the seed’s {task.targetCol}. Key columns (dashed) never become tokens; foreign keys only create links to parents.
         </p>
       </div>
     );
@@ -374,7 +374,7 @@ export function DecisionPanel({ step, iters, ctx, db, pdb, task, slots, before, 
               </div>
               <div className="mt-1.5 flex items-center gap-1.5 text-[14.5px] text-ink-2">
                 <Dice5 aria-hidden="true" size={14} className="text-accent-text" />
-                <span className="num">
+                <span className="font-mono">
                   rng.random_range(0..{ie.pop.bucketSize}) = {ie.pop.draw}
                 </span>
                 <span className="text-muted">· each entry has probability 1/{ie.pop.bucketSize}</span>
@@ -384,7 +384,7 @@ export function DecisionPanel({ step, iters, ctx, db, pdb, task, slots, before, 
           {it.skipped ? (
             <p className="rounded-lg border border-dashed border-border-strong px-2.5 py-2 text-[15px] leading-snug text-ink-2">
               <X aria-hidden="true" size={14} className="mr-1 inline -translate-y-px" />
-              <span className="font-mono text-ink">{rowName(db, pdb, it.node).short}</span> was already visited (visit #{state.visitedOrder.indexOf(it.node) + 1}),
+              <span className="text-ink">{rowName(db, pdb, it.node).short}</span> was already visited (visit #{state.visitedOrder.indexOf(it.node) + 1}),
               so the loop hits <span className="font-mono">continue</span> (fly.rs:399-401): no cells, no expansion.
             </p>
           ) : kind === 'select' ? (
@@ -414,7 +414,7 @@ export function DecisionPanel({ step, iters, ctx, db, pdb, task, slots, before, 
                       className={cx('inline-flex items-center gap-1 rounded-md border border-border bg-surface px-1.5 py-[2px]', dup && 'opacity-60')}
                     >
                       <ShapeGlyph shape={shapeOfSlot(slot)} size={10} fill={catVar(slot)} />
-                      <span className={cx('font-mono text-ink', dup && 'line-through')}>{rowName(db, pdb, p.node).short}</span>
+                      <span className={cx('text-ink', dup && 'line-through')}>{rowName(db, pdb, p.node).short}</span>
                       <span className="num text-muted">d{p.depth}</span>
                     </span>
                   );
@@ -536,12 +536,12 @@ function EmitView({ ie, ctx, db, pdb, slots, hover, onHover }: {
           <TokenStrip tokens={toks} tableSlots={slots} variant="chips" highlight={hover === node.nodeIdx ? toks.map((t) => t.pos) : []} onHover={(p) => onHover(p === null ? null : node.nodeIdx)} label="Tokens emitted in this step" />
         )}
         {ie.drops.map((d, i) => (
-          <span key={`d${i}`} className="inline-flex h-[42px] items-center gap-1 rounded-[7px] border border-dashed border-border-strong px-2 font-mono text-[14px] text-muted line-through" title="leakage column: dropped (fly.rs:457-461)">
+          <span key={`d${i}`} className="inline-flex h-[42px] items-center gap-1 rounded-[7px] border border-dashed border-border-strong px-2 text-[14px] text-muted line-through" title="leakage column: dropped (fly.rs:457-461)">
             {d.colName}
           </span>
         ))}
         {cut.map((c) => (
-          <span key={`c${c.colName}`} className="inline-flex h-[42px] items-center gap-1 rounded-[7px] border border-dashed border-axis px-2 font-mono text-[14px] text-muted" title="not emitted: the context reached L">
+          <span key={`c${c.colName}`} className="inline-flex h-[42px] items-center gap-1 rounded-[7px] border border-dashed border-axis px-2 text-[14px] text-muted" title="not emitted: the context reached L">
             <Scissors aria-hidden="true" size={12} /> {c.colName}
           </span>
         ))}

@@ -225,7 +225,7 @@ export function AskTheModel({ live }: { live: OverviewLive }) {
                 <div className="absolute -top-1 -bottom-1 left-1/2 w-px bg-ink-2" />
               </div>
               <div className="mt-2.5 text-[15.5px] text-ink-2">
-                logit {formatNumber(pred.output, 3)} · true label <span className="font-mono text-ink">{String(pred.label.raw)}</span>
+                logit {formatNumber(pred.output, 3)} · true label <span className="text-ink">{String(pred.label.raw)}</span>
               </div>
             </>
           ) : (
@@ -235,7 +235,7 @@ export function AskTheModel({ live }: { live: OverviewLive }) {
                 <span className="text-[15.5px] text-ink-2">predicted {task.targetCol}</span>
               </div>
               <div className="mt-2.5 text-[15.5px] text-ink-2">
-                z {formatNumber(pred.output, 3)} · true value <span className="font-mono text-ink">{formatNumber(Number(pred.label.raw), 2)}</span>
+                z {formatNumber(pred.output, 3)} · true value <span className="text-ink">{formatNumber(Number(pred.label.raw), 2)}</span>
               </div>
             </>
           )}

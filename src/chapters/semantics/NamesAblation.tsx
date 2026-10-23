@@ -137,7 +137,7 @@ export function AblationDumbbells() {
   const means = TABLE11_MEANS[metric][setting];
 
   const W = Math.max(320, size.width || 760);
-  const labelW = Math.ceil(Math.max(...rows.map((r) => textWidth(`${r.db.replace('rel-', '')} · ${r.task}`, 15, { mono: true })))) + 12;
+  const labelW = Math.ceil(Math.max(...rows.map((r) => textWidth(`${r.db.replace('rel-', '')} · ${r.task}`, 15)))) + 12;
   // narrow screens: the task name sits above its dumbbell instead of left of it
   const stacked = W - labelW - 64 < 300;
   const deltaW = 64;
@@ -224,7 +224,6 @@ export function AblationDumbbells() {
                   x={0}
                   y={stacked ? y - 11 : y}
                   dominantBaseline="central"
-                  className="font-mono"
                   style={{ fontSize: 15, fill: 'var(--ink)', fontWeight: isMean ? 650 : 400 }}
                 >
                   {isMean ? 'mean' : r.name.replace('rel-', '')}
@@ -292,7 +291,7 @@ function OverlapGrid({ labels, value, title, note }: { labels: string[]; value: 
             <tr>
               <th />
               {labels.map((l) => (
-                <th key={l} scope="col" title={l} className="px-0 pb-1 text-center font-mono font-normal text-ink-2 sm:px-1">
+                <th key={l} scope="col" title={l} className="px-0 pb-1 text-center font-normal text-ink-2 sm:px-1">
                   <span className="inline-block align-bottom max-sm:rotate-180 max-sm:[writing-mode:vertical-rl]">{l}</span>
                 </th>
               ))}
@@ -301,7 +300,7 @@ function OverlapGrid({ labels, value, title, note }: { labels: string[]; value: 
           <tbody>
             {labels.map((r, i) => (
               <tr key={r}>
-                <th scope="row" className="pr-2 text-right font-mono font-normal whitespace-nowrap text-ink-2">
+                <th scope="row" className="pr-2 text-right font-normal whitespace-nowrap text-ink-2">
                   {r}
                 </th>
                 {labels.map((c, j) => {
@@ -366,7 +365,7 @@ export function OverlapTables({ catalog }: { catalog: Catalog }) {
     </div>
     <p className="mt-3 !mb-0 text-[15px] leading-snug text-ink-2">
       Largest overlap here: {DB_SHORT[DB_NAMES[best.i]]} vs {DB_SHORT[DB_NAMES[best.j]]}, {best.j_.toFixed(3)} ({ours[best.i][best.j].shared.length} shared of{' '}
-      {ours[best.i][best.j].union} distinct names: <span className="font-mono text-ink">{ours[best.i][best.j].shared.join(', ') || 'none'}</span>),{' '}
+      {ours[best.i][best.j].union} distinct names: <span className="text-ink">{ours[best.i][best.j].shared.join(', ') || 'none'}</span>),{' '}
       {best.j_ > paperMax ? 'higher than' : best.j_ < paperMax ? 'lower than' : 'equal to'} RelBench’s largest, {paperMax.toFixed(3)}.
     </p>
     </div>

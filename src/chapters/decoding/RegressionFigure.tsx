@@ -324,7 +324,7 @@ export function RegressionFigure({ lane }: { lane: Lane }) {
               <Readout
                 label={
                   <>
-                    {task.kind === 'forecast' ? 'Train stats' : 'Stats'} of <span className="font-mono">{task.targetCol}</span>
+                    {task.kind === 'forecast' ? 'Train stats' : 'Stats'} of {task.targetCol}
                   </>
                 }
                 value={`μ = ${fmt(mu, 3)}, σ = ${fmt(sd, 3)}`}

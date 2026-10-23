@@ -102,8 +102,8 @@ export interface UiState {
   reading: boolean;
   /** Desktop sidebar folded into a narrow rail of chapter numbers. */
   sidebarCollapsed: boolean;
-  /** Chapter slugs the reader has opened (sidebar ticks). */
-  visited: Record<string, true>;
+  /** Chapter slugs the reader marked as completed (sidebar ticks). Set by hand, never by opening a chapter. */
+  completed: Record<string, true>;
 }
 
 export interface SimActions {
@@ -126,9 +126,10 @@ export interface SimActions {
   setTheme: (theme: ThemeChoice) => void;
   setReading: (reading: boolean) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
-  markVisited: (slug: string) => void;
-  clearVisited: () => void;
-  /** Restore every simulation knob to SIM_DEFAULTS (keeps theme, reading mode, sidebar and visited). */
+  /** Mark a chapter completed, or not completed again. */
+  toggleCompleted: (slug: string) => void;
+  clearCompleted: () => void;
+  /** Restore every simulation knob to SIM_DEFAULTS (keeps theme, reading mode, sidebar and completed chapters). */
   resetSimulation: () => void;
 }
 
@@ -190,7 +191,7 @@ export const useSim = create<SimState>()(
       theme: null,
       reading: false,
       sidebarCollapsed: false,
-      visited: {},
+      completed: {},
 
       // Changing anything that alters the context invalidates the selected token.
       setDb: (dbName, taskId) => set({ dbName, taskId, seedNode: null, ...INSPECT_RESET }),
@@ -219,9 +220,14 @@ export const useSim = create<SimState>()(
       setTheme: (theme) => set({ theme }),
       setReading: (reading) => set({ reading }),
       setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
-      markVisited: (slug) =>
-        set((s) => (s.visited[slug] ? s : { visited: { ...s.visited, [slug]: true as const } })),
-      clearVisited: () => set({ visited: {} }),
+      toggleCompleted: (slug) =>
+        set((s) => {
+          const completed = { ...s.completed };
+          if (completed[slug]) delete completed[slug];
+          else completed[slug] = true;
+          return { completed };
+        }),
+      clearCompleted: () => set({ completed: {} }),
       resetSimulation: () =>
         set({ ...SIM_DEFAULTS, selectedPos: null, block: 0, layer: 'col', head: 0, disabledLayers: [] }),
     }),
@@ -246,7 +252,7 @@ export const useSim = create<SimState>()(
         theme: s.theme,
         reading: s.reading,
         sidebarCollapsed: s.sidebarCollapsed,
-        visited: s.visited,
+        completed: s.completed,
       }),
       // Defensive merge: ignore malformed persisted values.
       merge: (persisted, current) => {
@@ -268,7 +274,8 @@ export const useSim = create<SimState>()(
         if (p.theme === 'light' || p.theme === 'dark' || p.theme === null) out.theme = p.theme;
         if (typeof p.reading === 'boolean') out.reading = p.reading;
         if (typeof p.sidebarCollapsed === 'boolean') out.sidebarCollapsed = p.sidebarCollapsed;
-        if (p.visited && typeof p.visited === 'object') out.visited = { ...(p.visited as Record<string, true>) };
+        // `visited` (auto-ticked on opening a chapter) was replaced by `completed`; old values are dropped
+        if (p.completed && typeof p.completed === 'object') out.completed = { ...(p.completed as Record<string, true>) };
         // keep db consistent with the task id
         const taskDb = out.taskId.split('/')[0] as DbName;
         if (DB_NAMES.includes(taskDb)) out.dbName = taskDb;

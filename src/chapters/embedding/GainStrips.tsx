@@ -110,9 +110,9 @@ export function GainStrips({ weights, kind }: { weights: RTWeights | null; kind:
       </div>
       <div className="num mt-1 min-h-[1.4em] text-[15px] text-ink-2" aria-live="polite">
         {hv ? (
-          <>
+          <span className="font-mono">
             norm_dict["{hv.row.key}"].weight[{hover!.j}] = <strong className="text-ink">{fmt(hv.v, 3)}</strong>
-          </>
+          </span>
         ) : data ? (
           <>
             Range over all five: {fmt(Math.min(...data.map((r) => r.mn)), 2)} to {fmt(Math.max(...data.map((r) => r.mx)), 2)}. Hover a dot for its value.

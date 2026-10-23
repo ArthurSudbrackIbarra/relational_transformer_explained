@@ -140,7 +140,7 @@ export function ExperimentStats() {
                 className="inline-block h-3 w-3 shrink-0 rounded-[3px]"
                 style={{ background: segmentFill(c.slot, c.tableType), boxShadow: c.seed ? 'inset 0 0 0 1.5px var(--accent)' : undefined }}
               />
-              <span className="font-mono text-[14px] text-ink">{c.label}</span>
+              <span className="text-[14px] text-ink">{c.label}</span>
               <span className="num text-muted">
                 {c.rows}r · {c.tokens}t
               </span>

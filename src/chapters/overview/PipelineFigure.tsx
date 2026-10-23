@@ -222,7 +222,7 @@ export function PipelineFigure({ live }: { live: OverviewLive }) {
           node: t.nodeIdx,
           body: (
             <>
-              <div className="font-mono font-semibold text-ink">
+              <div className="font-semibold text-ink">
                 {t.tableName}.{t.colName}
               </div>
               <div className="text-ink-2">
@@ -407,7 +407,6 @@ export function PipelineFigure({ live }: { live: OverviewLive }) {
                 <text
                   x={b.x + 16}
                   y={b.y + 14}
-                  className="font-mono"
                   style={{
                     fill: 'var(--ink)',
                     fontSize: T.title,
@@ -1114,7 +1113,7 @@ export function PipelineFigure({ live }: { live: OverviewLive }) {
                     />
                     <text x={m.out.x + 14} y={m.out.y + 66} style={{ fill: 'var(--ink-2)', fontSize: T.boxSmall }}>
                       hidden true label:
-                      <tspan dx={5} className="font-mono" style={{ fill: 'var(--ink)', fontWeight: 600 }}>
+                      <tspan dx={5} style={{ fill: 'var(--ink)', fontWeight: 600 }}>
                         {predicting ? String(pred.label.raw) : '•••'}
                       </tspan>
                     </text>
@@ -1137,7 +1136,7 @@ export function PipelineFigure({ live }: { live: OverviewLive }) {
                     </text>
                     <text x={m.out.x + 14} y={m.out.y + 66} style={{ fill: 'var(--ink-2)', fontSize: T.boxSmall }}>
                       hidden true value:
-                      <tspan dx={5} className="font-mono" style={{ fill: 'var(--ink)', fontWeight: 600 }}>
+                      <tspan dx={5} style={{ fill: 'var(--ink)', fontWeight: 600 }}>
                         {predicting ? formatNumber(Number(pred.label.raw), 2) : '•••'}
                       </tspan>
                     </text>

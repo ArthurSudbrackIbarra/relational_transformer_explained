@@ -256,7 +256,7 @@ export function StepText(p: StepTextProps): ReactNode {
                       <>
                         {' '}
                         Strongest key:{' '}
-                        <span className="font-mono text-ink">
+                        <span className="text-ink">
                           {topTok.tableName}.{topTok.colName}
                         </span>{' '}
                         ({formatPct(top.w, 1)}).

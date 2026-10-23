@@ -43,7 +43,7 @@ export function StackPanel({ db, pdb, slots, state, before, step, ctx, hover, on
       <div className="flex min-h-[88px] flex-col gap-1 rounded-lg border border-border bg-surface-2/60 p-1.5" role="list" aria-label="F→P stack, top first">
         {popped && (
           <div className="flex items-center gap-1.5 rounded-md border border-dashed border-accent px-2 py-1 text-[14px] text-accent-text" role="listitem">
-            <ArrowUp aria-hidden="true" size={12} /> popped: <span className="font-mono">{rowName(db, pdb, popped.node).short}</span>
+            <ArrowUp aria-hidden="true" size={12} /> popped: {rowName(db, pdb, popped.node).short}
           </div>
         )}
         {items.length === 0 && !popped && <div className="px-2 py-1 text-[14.5px] text-muted">empty: the buckets are used</div>}
@@ -65,7 +65,7 @@ export function StackPanel({ db, pdb, slots, state, before, step, ctx, hover, on
               )}
             >
               <ShapeGlyph shape={shapeOfSlot(slot)} size={11} fill={catVar(slot)} />
-              <span className={cx('truncate font-mono text-ink', dup && 'line-through decoration-[var(--muted)]')}>{rowName(db, pdb, e.node).short}</span>
+              <span className={cx('truncate text-ink', dup && 'line-through decoration-[var(--muted)]')}>{rowName(db, pdb, e.node).short}</span>
               <span className="num ml-auto shrink-0 text-[13.5px] text-muted">
                 d{e.depth}
                 {i === 0 ? ' · top' : ''}

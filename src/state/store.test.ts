@@ -5,7 +5,7 @@ import { isNonDefault, safeStorage, selectSimParams, SIM_DEFAULTS, useSim } from
 describe('useSim store', () => {
   beforeEach(() => {
     useSim.getState().resetSimulation();
-    useSim.getState().clearVisited();
+    useSim.getState().clearCompleted();
   });
 
   it('starts at the mini defaults (L = 128, w = 16, eval rngSeed = 0, shop/customer-churn, Val)', () => {
@@ -51,10 +51,12 @@ describe('useSim store', () => {
     expect(persisted.state.L).toBe(128);
   });
 
-  it('records visited chapters', () => {
-    useSim.getState().markVisited('sampling');
-    useSim.getState().markVisited('sampling');
-    expect(useSim.getState().visited).toEqual({ sampling: true });
+  it('toggles completed chapters by hand', () => {
+    useSim.getState().toggleCompleted('sampling');
+    useSim.getState().toggleCompleted('masks');
+    expect(useSim.getState().completed).toEqual({ sampling: true, masks: true });
+    useSim.getState().toggleCompleted('sampling');
+    expect(useSim.getState().completed).toEqual({ masks: true });
   });
 
   it('safeStorage never throws without window.localStorage (Node)', () => {
