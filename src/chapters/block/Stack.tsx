@@ -66,23 +66,23 @@ export function ParamTable({ weights }: { weights: RTWeights | null }) {
   return (
     <div className="wide my-7">
       <div className="card scroll-quiet overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-[15px]">
+        <table className="w-full border-collapse text-[15px] sm:min-w-[640px]">
           <caption className="sr-only">Parameter count by component, paper model vs this site’s model</caption>
           <thead>
             <tr className="border-b border-grid bg-surface-2 text-left text-ink-2">
-              <th scope="col" className="px-3 py-2 font-semibold">
+              <th scope="col" className="px-2 sm:px-3 py-2 font-semibold">
                 Component
               </th>
-              <th scope="col" className="px-3 py-2 font-semibold">
+              <th scope="col" className="hidden px-2 sm:px-3 py-2 font-semibold sm:table-cell">
                 Shape (paper)
               </th>
-              <th scope="col" className="px-3 py-2 text-right font-semibold">
+              <th scope="col" className="px-2 sm:px-3 py-2 text-right font-semibold">
                 Paper
               </th>
-              <th scope="col" className="px-3 py-2 text-right font-semibold">
+              <th scope="col" className="px-2 sm:px-3 py-2 text-right font-semibold">
                 This site
               </th>
-              <th scope="col" className="w-[150px] px-3 py-2 font-semibold">
+              <th scope="col" className="hidden w-[150px] px-2 sm:px-3 py-2 font-semibold sm:table-cell">
                 Share here
               </th>
             </tr>
@@ -90,39 +90,50 @@ export function ParamTable({ weights }: { weights: RTWeights | null }) {
           <tbody>
             {GROUPS.map((g, i) => (
               <tr key={g.id} className={cx('border-b border-grid/70', i === 3 && 'border-t-2 border-t-grid')}>
-                <th scope="row" className="px-3 py-1.5 text-left font-normal text-ink">
+                <th scope="row" className="px-2 sm:px-3 py-1.5 text-left font-normal text-ink">
                   {g.name}
                   <span className="ml-1.5 text-[14px] text-muted">{g.where}</span>
+                  <span className="num block text-[14px] text-ink-2 sm:hidden">{g.formula(PAPER_CONFIG)}</span>
                 </th>
-                <td className="num px-3 py-1.5 text-[14.5px] whitespace-nowrap text-ink-2">{g.formula(PAPER_CONFIG)}</td>
-                <td className="num px-3 py-1.5 text-right text-ink">{int(paper[g.id])}</td>
-                <td className="num px-3 py-1.5 text-right text-ink">{int(ours[g.id])}</td>
-                <td className="px-3 py-1.5">
+                <td className="num hidden px-2 sm:px-3 py-1.5 text-[14.5px] whitespace-nowrap text-ink-2 sm:table-cell">{g.formula(PAPER_CONFIG)}</td>
+                <td className="num px-2 sm:px-3 py-1.5 text-right text-ink">{int(paper[g.id])}</td>
+                <td className="num px-2 sm:px-3 py-1.5 text-right text-ink">
+                  {int(ours[g.id])}
+                  <span className="mt-1 flex justify-end sm:hidden">
+                    <ShareBar v={ours[g.id] / tOurs} />
+                  </span>
+                </td>
+                <td className="hidden px-2 sm:px-3 py-1.5 sm:table-cell">
                   <ShareBar v={ours[g.id] / tOurs} />
                 </td>
               </tr>
             ))}
             <tr className="border-b border-grid/70 bg-surface-2/60">
-              <th scope="row" className="px-3 py-1.5 text-left font-medium text-ink">
+              <th scope="row" className="px-2 sm:px-3 py-1.5 text-left font-medium text-ink">
                 all blocks
               </th>
-              <td className="num px-3 py-1.5 text-[14.5px] text-ink-2">
+              <td className="num hidden px-2 sm:px-3 py-1.5 text-[14.5px] text-ink-2 sm:table-cell">
                 {PAPER_CONFIG.nBlocks} × {int(blocksPaper / PAPER_CONFIG.nBlocks)}
               </td>
-              <td className="num px-3 py-1.5 text-right text-ink">{int(blocksPaper)}</td>
-              <td className="num px-3 py-1.5 text-right text-ink">{int(blocksOurs)}</td>
-              <td className="px-3 py-1.5">
+              <td className="num px-2 sm:px-3 py-1.5 text-right text-ink">{int(blocksPaper)}</td>
+              <td className="num px-2 sm:px-3 py-1.5 text-right text-ink">
+                {int(blocksOurs)}
+                <span className="mt-1 flex justify-end sm:hidden">
+                  <ShareBar v={blocksOurs / tOurs} />
+                </span>
+              </td>
+              <td className="hidden px-2 sm:px-3 py-1.5 sm:table-cell">
                 <ShareBar v={blocksOurs / tOurs} />
               </td>
             </tr>
             <tr className="bg-surface-2">
-              <th scope="row" className="px-3 py-2 text-left font-semibold text-ink">
+              <th scope="row" className="px-2 sm:px-3 py-2 text-left font-semibold text-ink">
                 Total
               </th>
-              <td className="px-3 py-2" />
-              <td className="num px-3 py-2 text-right font-semibold text-ink">{int(tPaper)}</td>
-              <td className="num px-3 py-2 text-right font-semibold text-ink">{int(tOurs)}</td>
-              <td className="px-3 py-2" />
+              <td className="hidden px-2 sm:px-3 py-2 sm:table-cell" />
+              <td className="num px-2 sm:px-3 py-2 text-right font-semibold text-ink">{int(tPaper)}</td>
+              <td className="num px-2 sm:px-3 py-2 text-right font-semibold text-ink">{int(tOurs)}</td>
+              <td className="hidden px-2 sm:px-3 py-2 sm:table-cell" />
             </tr>
           </tbody>
         </table>
@@ -145,7 +156,7 @@ export function ParamTable({ weights }: { weights: RTWeights | null }) {
 
 function ShareBar({ v }: { v: number }) {
   return (
-    <span className="flex items-center gap-2">
+    <span className="flex flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-2">
       <span className="block h-2 w-[80px] shrink-0 overflow-hidden rounded-full bg-surface-3">
         <span className="block h-full rounded-full" style={{ width: `${Math.max(v > 0 ? 1.5 : 0, v * 100)}%`, background: 'var(--seq-500)' }} />
       </span>

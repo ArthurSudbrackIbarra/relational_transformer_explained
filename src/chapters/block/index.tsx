@@ -48,6 +48,14 @@ x &\leftarrow x + \mathrm{MHA}_{\text{nbr}}\big(\mathrm{RMSNorm}_{\text{nbr}}(x)
 x &\leftarrow x + \mathrm{MHA}_{\text{full}}\big(\mathrm{RMSNorm}_{\text{full}}(x);\ \mathbf{M}^{\text{full}}\big)\\
 x &\leftarrow x + \mathrm{SwiGLU}\big(\mathrm{RMSNorm}_{\text{ffn}}(x)\big)
 \end{aligned}`;
+const CODE_TEX_NARROW = String.raw`\begin{aligned}\textbf{code:}\quad x &\leftarrow x\,+\\ &\quad \mathrm{MHA}_\ell\big(\mathrm{RMSNorm}_\ell(x);\,\mathbf{M}_\ell\big)\end{aligned}`;
+const BLOCK_TEX_NARROW = String.raw`\begin{aligned}
+x &\leftarrow x + \mathrm{MHA}_{\text{col}}\big(\mathrm{RMSNorm}_{\text{col}}(x);\\ &\qquad \mathbf{M}^{\text{column}}\big)\\[4pt]
+x &\leftarrow x + \mathrm{MHA}_{\text{feat}}\big(\mathrm{RMSNorm}_{\text{feat}}(x);\\ &\qquad \mathbf{M}^{\text{feature}}\big)\\[4pt]
+x &\leftarrow x + \mathrm{MHA}_{\text{nbr}}\big(\mathrm{RMSNorm}_{\text{nbr}}(x);\\ &\qquad \mathbf{M}^{\text{neighbor}}\big)\\[4pt]
+x &\leftarrow x + \mathrm{MHA}_{\text{full}}\big(\mathrm{RMSNorm}_{\text{full}}(x);\\ &\qquad \mathbf{M}^{\text{full}}\big)\\[4pt]
+x &\leftarrow x + \mathrm{SwiGLU}\big(\mathrm{RMSNorm}_{\text{ffn}}(x)\big)
+\end{aligned}`;
 const RUNNING_TASK = 'shop/customer-churn';
 const SWIGLU_TEX = String.raw`\begin{gathered}\mathrm{FFN}(h) \;=\; W_2\Big(\mathrm{SiLU}(W_1 h)\;\odot\;W_3 h\Big)\\[6pt] \mathrm{SiLU}(z) = z\,\sigma(z) = \frac{z}{1+e^{-z}}\end{gathered}`;
 
@@ -210,7 +218,12 @@ export default function BlockChapter() {
           <Term id="rmsnorm">RMSNorm</Term> and its own weights: a block holds five RMSNorms, four separate attention modules and one feed-forward
           module <Cite kind="code" ref="rt/model.py:71-80" />.
         </p>
-        <MathBlock tex={BLOCK_TEX} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:82-86" />} caption="One RT block, as the code runs it. Each line reads the x left by the line above." />
+        <div className="sm:hidden">
+          <MathBlock tex={BLOCK_TEX_NARROW} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:82-86" />} caption="One RT block, as the code runs it. Each line reads the x left by the line above." />
+        </div>
+        <div className="hidden sm:block">
+          <MathBlock tex={BLOCK_TEX} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:82-86" />} caption="One RT block, as the code runs it. Each line reads the x left by the line above." />
+        </div>
         <p>
           Walk through a block below. The pulse travels with the followed token, the masked target by default; each box shows the length of the
           update it adds, ‖Δ‖, from the live forward pass. Click a box to inspect that sublayer.
@@ -280,7 +293,12 @@ export default function BlockChapter() {
           <Cite kind="code" ref="rt/model.py:84-85" />. This placement is called <Term id="pre-norm">pre-norm</Term>.
         </p>
         <MathBlock tex={ALG2_TEX} className="text-[18px]" label={<Cite kind="paper" ref="p.26 Alg. 2" />} />
-        <MathBlock tex={CODE_TEX} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:84" />} />
+        <div className="sm:hidden">
+          <MathBlock tex={CODE_TEX_NARROW} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:84" />} />
+        </div>
+        <div className="hidden sm:block">
+          <MathBlock tex={CODE_TEX} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:84" />} />
+        </div>
         <WiringCompare />
         <Callout
           variant="paper-vs-code"

@@ -33,7 +33,7 @@ export function Term({ id, children, className }: TermProps) {
           role="button"
           tabIndex={0}
           className={cx(
-            'cursor-help underline decoration-[var(--axis)] decoration-dotted decoration-[1.5px] underline-offset-[3px] transition-colors hover:decoration-[var(--accent)]',
+            'tap-pad cursor-help underline decoration-[var(--axis)] decoration-dotted decoration-[1.5px] underline-offset-[3px] transition-colors hover:decoration-[var(--accent)]',
             p['aria-expanded'] && 'decoration-[var(--accent)]',
             className,
           )}

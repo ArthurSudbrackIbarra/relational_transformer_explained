@@ -103,6 +103,7 @@ export function StreamNormChart({ fr, pos, tokenName }: { fr: ForwardResult; pos
   const [ref, size] = useElementSize<HTMLDivElement>();
   const W = Math.max(300, size.width || 700);
   const narrow = W < 560;
+  const shortTicks = W < 820;
   const M = { top: 18, right: narrow ? 14 : 150, bottom: 58, left: 48 };
   const H = 300;
   const iw = W - M.left - M.right;
@@ -161,7 +162,7 @@ export function StreamNormChart({ fr, pos, tokenName }: { fr: ForwardResult; pos
                 <g key={b}>
                   {b % 2 === 0 && <rect x={x0} y={0} width={x1 - x0} height={ih} style={{ fill: 'var(--surface-2)' }} />}
                   <text x={(x0 + x1) / 2} y={ih + 22} textAnchor="middle" fontSize={T.tick} style={{ fill: 'var(--ink-2)' }}>
-                    {narrow ? `B${b + 1}` : `Block ${b + 1}`}
+                    {shortTicks ? `B${b + 1}` : `Block ${b + 1}`}
                   </text>
                 </g>
               );
@@ -170,7 +171,7 @@ export function StreamNormChart({ fr, pos, tokenName }: { fr: ForwardResult; pos
               x⁽⁰⁾
             </text>
             <text x={x(nStage - 1)} y={ih + 22} textAnchor="end" fontSize={T.tick} style={{ fill: 'var(--ink-2)' }}>
-              {narrow ? 'out' : 'norm_out'}
+              {shortTicks ? 'out' : 'norm_out'}
             </text>
             <text x={iw / 2} y={ih + 46} textAnchor="middle" fontSize={T.axis} style={{ fill: 'var(--muted)' }}>
               {narrow ? 'stage (5 sublayers per block)' : 'stage of the forward pass (5 sublayers per block)'}

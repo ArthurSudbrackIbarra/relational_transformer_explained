@@ -46,6 +46,7 @@ import {
 const SIGMOID_TEX = String.raw`p \;=\; \sigma(\hat z) \;=\; \frac{1}{1 + e^{-\hat z}}`;
 const DENORM_TEX = String.raw`\hat y \;=\; \hat z \cdot \sigma_{\text{train}} \;+\; \mu_{\text{train}}`;
 const BCE_TEX = String.raw`\begin{gathered}\ell_{\text{BCE}}(\hat z, y) \;=\; \max(\hat z, 0) \;-\; \hat z\,y \;+\; \log\!\big(1 + e^{-|\hat z|}\big)\\[4pt] y = \mathbf{1}\{z_{\text{label}} > 0\}\end{gathered}`;
+const BCE_TEX_NARROW = String.raw`\begin{aligned}\ell_{\text{BCE}}(\hat z, y) &= \max(\hat z, 0) - \hat z\,y\\ &\quad + \log\!\big(1 + e^{-|\hat z|}\big)\\[4pt] y &= \mathbf{1}\{z_{\text{label}} > 0\}\end{aligned}`;
 const HUBER_TEX = String.raw`\begin{gathered}\ell_{\text{Huber}}(d) \;=\; \begin{cases} \tfrac12 d^2 & |d| < 1 \\[2pt] |d| - \tfrac12 & |d| \ge 1 \end{cases}\\[6pt] d = \hat z - z_{\text{label}}\end{gathered}`;
 const MEAN_TEX = String.raw`\mathcal{L} \;=\; \frac{\sum_i \text{masks}_i \,\ell_i}{\sum_i \text{masks}_i}`;
 const R2_TEX = String.raw`R^2 \;=\; 1 - \frac{\sum_i (y_i - \hat y_i)^2}{\sum_i (y_i - \bar y)^2}`;
@@ -228,7 +229,12 @@ export default function DecodingChapter() {
           positive and <TeX tex="-\log(1-\sigma(\hat z))" /> for a negative, rearranged so that no exponential can overflow{' '}
           <Cite kind="code" ref="rt/model.py:253-255" /> <Cite kind="spec" ref="§8.2" />:
         </p>
-        <MathBlock tex={BCE_TEX} label={<Cite kind="spec" ref="§8.2" />} />
+        <div className="sm:hidden">
+          <MathBlock tex={BCE_TEX_NARROW} label={<Cite kind="spec" ref="§8.2" />} />
+        </div>
+        <div className="hidden sm:block">
+          <MathBlock tex={BCE_TEX} label={<Cite kind="spec" ref="§8.2" />} />
+        </div>
         <BceFigure lane={live.binary} />
 
         <h3>Huber loss</h3>

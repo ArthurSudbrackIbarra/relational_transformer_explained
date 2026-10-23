@@ -84,7 +84,43 @@ export function Table5() {
       <div className="mb-2 text-[16px] font-semibold text-ink">
         Mean R² (%) over 8 RelBench regression tasks, with one attention layer removed <Cite kind="paper" ref="p.10 Table 5" />
       </div>
-      <div className="card scroll-quiet overflow-x-auto">
+      <div className="card overflow-hidden sm:hidden">
+        <table className="w-full border-collapse text-[15px]">
+          <caption className="sr-only">Paper Table 5, mean R² by removed layer</caption>
+          <thead>
+            <tr className="border-b border-grid text-ink-2">
+              <th scope="col" className="px-3 py-1.5 text-left font-semibold">
+                removed
+              </th>
+              <th scope="col" className="px-3 py-1.5 text-right font-semibold">
+                zero-shot
+              </th>
+              <th scope="col" className="px-3 py-1.5 text-right font-semibold">
+                fine-tuned
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {cols.map((c) => (
+              <tr key={c} className="border-b border-grid/70 last:border-0">
+                <th scope="row" className="px-3 py-1.5 text-left font-normal text-ink">
+                  {head[c]}
+                </th>
+                {(['zero', 'ft'] as const).map((r) => {
+                  const v = TABLE5[r][c];
+                  const min = Math.min(...cols.map((k) => TABLE5[r][k]));
+                  return (
+                    <td key={r} className={`num px-3 py-1.5 text-right ${v === min ? 'font-semibold text-ink' : 'text-ink-2'}`}>
+                      {v.toFixed(1)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="card scroll-quiet hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[480px] border-collapse text-[15px]">
           <caption className="sr-only">Paper Table 5, mean R² row</caption>
           <thead>
@@ -141,7 +177,37 @@ export function Table15() {
       <div className="mb-2 text-[16px] font-semibold text-ink">
         Zero-shot results for different orders of the three relational layers <Cite kind="paper" ref="p.24 Table 15" />
       </div>
-      <div className="card scroll-quiet overflow-x-auto">
+      <div className="card overflow-hidden sm:hidden">
+        <table className="w-full border-collapse text-[15px]">
+          <caption className="sr-only">Paper Table 15, mean rows by layer order</caption>
+          <thead>
+            <tr className="border-b border-grid text-ink-2">
+              <th scope="col" className="px-3 py-1.5 text-left font-semibold">
+                order
+              </th>
+              <th scope="col" className="px-3 py-1.5 text-right font-semibold">
+                AUROC (10 tasks)
+              </th>
+              <th scope="col" className="px-3 py-1.5 text-right font-semibold">
+                R² (8 tasks)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {TABLE15.orders.map((o, i) => (
+              <tr key={o} className="border-b border-grid/70 last:border-0">
+                <th scope="row" className="num px-3 py-1.5 text-left font-normal text-ink">
+                  {o}
+                  {o === 'CFN' && <span className="ml-2 font-sans text-[14px] text-muted">released</span>}
+                </th>
+                <td className="num px-3 py-1.5 text-right text-ink-2">{TABLE15.auroc[i].toFixed(1)}</td>
+                <td className="num px-3 py-1.5 text-right text-ink-2">{TABLE15.r2[i].toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="card scroll-quiet hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[560px] border-collapse text-[15px]">
           <caption className="sr-only">Paper Table 15, mean rows</caption>
           <thead>

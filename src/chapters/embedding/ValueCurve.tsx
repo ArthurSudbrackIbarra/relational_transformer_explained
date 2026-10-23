@@ -321,7 +321,7 @@ export const ValueCurve = memo(function ValueCurve({ live }: { live: EmbeddingSt
       {!curve || !cur || !col || !pair ? (
         <div className="rounded-lg border border-dashed border-border-strong px-4 py-8 text-center text-[16px] text-ink-2">Loading the weights…</div>
       ) : (
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
+        <div className="grid items-start gap-6 min-[1200px]:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
           <div className="min-w-0">
             <div className="relative" style={{ width: side, maxWidth: '100%' }}>
               <svg

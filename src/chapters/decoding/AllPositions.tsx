@@ -34,7 +34,8 @@ export function AllPositions({ lane, pos, setPos }: { lane: Lane; pos: number; s
   const theme = useResolvedTheme();
   const S = ctx.tokens.length;
   const [boxRef, box] = useElementSize<HTMLDivElement>();
-  const labelW = mode === 'loss' ? LABEL_W_LOSS : LABEL_W_OUT;
+  const tight = !!box.width && box.width < 480; // phone: no badges, narrower label column
+  const labelW = tight ? (mode === 'loss' ? 116 : 80) : mode === 'loss' ? LABEL_W_LOSS : LABEL_W_OUT;
   const avail = Math.max(200, (box.width || 900) - labelW);
   // as wide as fits (6-14 px per position); below 6 px the grid scrolls sideways instead of shrinking
   const cw = Math.max(6, Math.min(14, Math.floor(avail / S)));
@@ -107,7 +108,7 @@ export function AllPositions({ lane, pos, setPos }: { lane: Lane; pos: number; s
               <div className="shrink-0" style={{ width: labelW }}>
                 {rows.map((r) => (
                   <div key={r.key} className="flex items-center gap-1.5 text-[15px] text-ink-2" style={{ height: ROW_H }}>
-                    <SemBadge sem={r.sem} size="sm" />
+                    {!tight && <SemBadge sem={r.sem} size="sm" />}
                     <span className="font-mono text-ink">{r.key}</span>
                     {mode === 'loss' && <span className="num text-[14px] text-muted">({counts[r.sem]})</span>}
                   </div>

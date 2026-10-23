@@ -16,6 +16,7 @@ import { cx } from '../ui/cx';
 import { useSim } from '@/state/store';
 import { CODE, PAPER, SITE_REPO, SITE_TITLE } from '../prose/sources';
 import { Logo } from './Logo';
+import { useScrollCues } from './scrollCues';
 import { ChapterList, ChapterRail, QA_PATH } from './Sidebar';
 import { SimIndicator } from './SimIndicator';
 import { ReadingToggle, ThemeToggle } from './ThemeToggle';
@@ -28,7 +29,7 @@ function currentSlug(pathname: string): string | undefined {
 function TopBar({ onMenu, menuOpen, showMenuAlways }: { onMenu: () => void; menuOpen: boolean; showMenuAlways: boolean }) {
   return (
     <header className="sticky top-0 z-40 h-[var(--topbar-h)] border-b border-border bg-[color-mix(in_srgb,var(--page)_86%,transparent)] backdrop-blur-md">
-      <div className="flex h-full items-center gap-2 px-3 sm:px-4">
+      <div className="flex h-full items-center gap-1.5 px-2.5 sm:gap-2 sm:px-4">
         <IconButton
           label={menuOpen ? 'Close chapter menu' : 'Open chapter menu'}
           onClick={onMenu}
@@ -38,9 +39,9 @@ function TopBar({ onMenu, menuOpen, showMenuAlways }: { onMenu: () => void; menu
         >
           {menuOpen ? <X size={18} /> : <Menu size={18} />}
         </IconButton>
-        <Link to="/" data-plain className="flex min-w-0 items-center gap-2.5 rounded-md pr-1 text-ink">
+        <Link to="/" data-plain className="flex min-w-0 items-center gap-2 rounded-md pr-1 text-ink sm:gap-2.5">
           <Logo />
-          <span className="truncate text-[17.5px] font-semibold tracking-[-0.01em]">
+          <span className="truncate text-[16.5px] font-semibold tracking-[-0.01em] sm:text-[17.5px]">
             <span className="hidden sm:inline">{SITE_TITLE}</span>
             <span className="sm:hidden">RT Explained</span>
           </span>
@@ -173,6 +174,7 @@ export function Layout({ children }: LayoutProps) {
 
   // close the drawer on navigation
   useEffect(() => setDrawer(false), [pathname]);
+  useScrollCues(pathname);
 
   const withSidebar = !isLanding;
 

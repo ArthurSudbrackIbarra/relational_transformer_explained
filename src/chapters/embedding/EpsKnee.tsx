@@ -287,8 +287,8 @@ export const EpsKnee = memo(function EpsKnee({ live }: { live: EmbeddingStable }
             )}
             {/* divider between the curve panel and the dot rows */}
             <line x1={8} x2={W - right} y1={top + topH + 16} y2={top + topH + 16} style={{ stroke: 'var(--border-strong)' }} />
-            <text x={left} y={top + topH + 33} fontSize={SVG_TYPE.annotation} style={{ fill: 'var(--ink-2)' }}>
-              inputs of this forward pass, one dot per distinct input
+            <text x={narrow ? 8 : left} y={top + topH + 33} fontSize={SVG_TYPE.annotation} style={{ fill: 'var(--ink-2)' }}>
+              {narrow ? 'one dot per distinct input of this pass' : 'inputs of this forward pass, one dot per distinct input'}
             </text>
             {/* rows */}
             {ROWS.map((row, i) => {

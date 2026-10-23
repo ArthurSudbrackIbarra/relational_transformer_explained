@@ -44,6 +44,13 @@ o^{(j)}_q &= \sum_{k} \operatorname{softmax}_k\!\left(\frac{\operatorname{Mask}\
 x' &= x + \big[\,o^{(1)};\ \dots;\ o^{(H)}\,\big]\,W_o^{\top}
 \end{aligned}`;
 
+const MHA_TEX_NARROW = String.raw`\begin{aligned}
+h &= \mathrm{RMSNorm}_\ell(x)\\[2pt]
+Q &= h\,W_q^{\top}\\ K &= h\,W_k^{\top}\\ V &= h\,W_v^{\top}\\[2pt]
+o^{(j)}_q &= \sum_{k}\\ &\quad \operatorname{softmax}_k\!\bigg(\\ &\qquad \frac{\operatorname{Mask}\big(Q^{(j)}_q\cdot K^{(j)}_k;\ \mathbf{M}_\ell\big)}{\sqrt{d_{\text{head}}}}\bigg) V^{(j)}_k\\[2pt]
+x' &= x + \big[\,o^{(1)};\ \dots;\ o^{(H)}\,\big]\,W_o^{\top}
+\end{aligned}`;
+
 export default function AttentionChapter() {
   const live = useAttnLive();
   const { ctx, task, assets, target, query, H, dh, d, nBlocks, masks, S } = live;
@@ -147,18 +154,34 @@ export default function AttentionChapter() {
           <TeX tex="W_o" /> mixes the concatenated head outputs <Cite kind="code" ref="rt/model.py:20-47" />. For head <em>j</em> and query token{' '}
           <em>q</em>:
         </p>
-        <MathBlock
-          tex={MHA_TEX}
-          className="text-[18px] sm:text-[18.5px]"
-          label={<Cite kind="spec" ref="§6.1" />}
-          caption={
-            <span className="text-[18px]">
-              ℓ is the layer (column, feature, neighbor or full), <TeX tex="\mathbf{M}_\ell" /> its mask, and{' '}
-              <TeX tex={String.raw`\mathrm{Mask}(a;\mathbf{M})=a`} /> where <TeX tex={String.raw`\mathbf{M}[q,k]=1`} />, <TeX tex="-\infty" />{' '}
-              otherwise.
-            </span>
-          }
-        />
+        <div className="sm:hidden">
+          <MathBlock
+            tex={MHA_TEX_NARROW}
+            className="text-[18px] sm:text-[18.5px]"
+            label={<Cite kind="spec" ref="§6.1" />}
+            caption={
+              <span className="text-[18px]">
+                ℓ is the layer (column, feature, neighbor or full), <TeX tex="\mathbf{M}_\ell" /> its mask, and{' '}
+                <TeX tex={String.raw`\mathrm{Mask}(a;\mathbf{M})=a`} /> where <TeX tex={String.raw`\mathbf{M}[q,k]=1`} />, <TeX tex="-\infty" />{' '}
+                otherwise.
+              </span>
+            }
+          />
+        </div>
+        <div className="hidden sm:block">
+          <MathBlock
+            tex={MHA_TEX}
+            className="text-[18px] sm:text-[18.5px]"
+            label={<Cite kind="spec" ref="§6.1" />}
+            caption={
+              <span className="text-[18px]">
+                ℓ is the layer (column, feature, neighbor or full), <TeX tex="\mathbf{M}_\ell" /> its mask, and{' '}
+                <TeX tex={String.raw`\mathrm{Mask}(a;\mathbf{M})=a`} /> where <TeX tex={String.raw`\mathbf{M}[q,k]=1`} />, <TeX tex="-\infty" />{' '}
+                otherwise.
+              </span>
+            }
+          />
+        </div>
         <p>
           The paper writes attention for a single head, with <em>n</em> queries and keys of <TeX tex="d_k" /> numbers each and a divisor{' '}
           <TeX tex={String.raw`\sqrt{d_k}`} /> <Cite kind="paper" ref="p.5 §3.2" />. With heads, <TeX tex="d_k" /> is the width of one head (the{' '}

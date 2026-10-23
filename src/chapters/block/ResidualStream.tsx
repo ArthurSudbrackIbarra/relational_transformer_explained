@@ -135,13 +135,13 @@ function StreamMatrix({ stages, sel, setSel }: { stages: Stage[]; sel: number | 
   const [ref, size] = useElementSize<HTMLDivElement>();
   const W = Math.max(300, size.width || 600);
   const narrow = W < 520;
-  const labelW = narrow ? 76 : 96;
+  const labelW = narrow ? 80 : 104;
   const cosW = narrow ? 50 : 112;
   const d = stages[0].x.length;
   const nB = Math.max(1, ...stages.map((s) => s.block + 1));
   const gridW = W - labelW - cosW - 8;
   const cw = gridW / d;
-  const rh = 15;
+  const rh = 16;
   const gap = 2;
   const H = stages.length * (rh + gap);
   const m = useMemo(() => maxAbs(stages.flatMap((s) => Array.from(s.x))) || 1, [stages]);
@@ -161,10 +161,10 @@ function StreamMatrix({ stages, sel, setSel }: { stages: Stage[]; sel: number | 
           className="block"
           onPointerLeave={() => setHover(null)}
         >
-          <text x={labelW + gridW + 10} y={13} fontSize={13.5} style={{ fill: 'var(--muted)' }}>
+          <text x={labelW + gridW + 10} y={13} fontSize={14} style={{ fill: 'var(--muted)' }}>
             {narrow ? 'cos' : `cos to B${nB}`}
           </text>
-          <text x={labelW} y={13} fontSize={13.5} style={{ fill: 'var(--muted)' }}>
+          <text x={labelW} y={13} fontSize={14} style={{ fill: 'var(--muted)' }}>
             dims 0 … {d - 1}
           </text>
           <g transform="translate(0,22)">
@@ -175,7 +175,7 @@ function StreamMatrix({ stages, sel, setSel }: { stages: Stage[]; sel: number | 
               return (
                 <g key={r}>
                   {blockStart && r > 0 && <line x1={0} x2={W} y1={y - gap / 2} y2={y - gap / 2} style={{ stroke: 'var(--grid)' }} strokeWidth={1} />}
-                  <text x={labelW - 6} y={y + rh - 3} textAnchor="end" fontSize={13} className="num" style={{ fill: on ? 'var(--ink)' : 'var(--ink-2)', fontWeight: on ? 600 : 400 }}>
+                  <text x={labelW - 6} y={y + rh - 3} textAnchor="end" fontSize={14} className="num" style={{ fill: on ? 'var(--ink)' : 'var(--ink-2)', fontWeight: on ? 600 : 400 }}>
                     {rowLabel(s)}
                   </text>
                   {Array.from(s.x, (v, j) => (
@@ -189,7 +189,7 @@ function StreamMatrix({ stages, sel, setSel }: { stages: Stage[]; sel: number | 
                       <rect x={labelW + gridW + 10} y={y + 4} width={Math.max(0, Math.min(1, s.cosLast)) * 56} height={7} rx={3.5} style={{ fill: 'var(--seq-500)' }} />
                     </>
                   )}
-                  <text x={W - 2} y={y + rh - 3} textAnchor="end" fontSize={13} className="num" style={{ fill: 'var(--ink-2)' }}>
+                  <text x={W - 2} y={y + rh - 3} textAnchor="end" fontSize={14} className="num" style={{ fill: 'var(--ink-2)' }}>
                     {fx(s.cosLast, 2)}
                   </text>
                   <rect

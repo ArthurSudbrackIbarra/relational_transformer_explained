@@ -661,6 +661,29 @@
   }
 }
 
+/* ── Scroll cues (components/shell/scrollCues.ts): fade the edge that hides more content ── */
+[data-cue="right"] {
+  mask-image: linear-gradient(to left, transparent, #000 32px);
+}
+[data-cue="left"] {
+  mask-image: linear-gradient(to right, transparent, #000 32px);
+}
+[data-cue="both"] {
+  mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+}
+
+/* ── Touch: inline chips (citations, glossary terms) get a taller invisible hit area ── */
+@media (pointer: coarse) {
+  .tap-pad {
+    position: relative;
+  }
+  .tap-pad::after {
+    content: "";
+    position: absolute;
+    inset: -7px -2px;
+  }
+}
+
 /* ── KaTeX tweaks ───────────────────────────────────────────────────────── */
 .katex {
   font-size: 1.06em;
