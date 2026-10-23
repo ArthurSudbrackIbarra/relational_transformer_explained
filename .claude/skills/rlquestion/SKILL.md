@@ -114,6 +114,7 @@ Rules for the content:
   `<Link to="/<slug>">chapter N</Link>`, or `?section=<id>` for a section.
 - **Voice**: same as the chapters. Plain, precise, short sentences, no hype, no filler. Explain the "why" where it helps.
   Use mostly prose; lists only for real enumerations.
+- **Spelling**: American, like the paper and the code (normalize, color, neighbor, optimizer, labeled).
 - **Readability (the user's standing rule)**: never set small text. Floors: prose 18px, UI 15px, captions 14px, chips 13px,
   SVG labels 12px. When something does not fit, make room instead of shrinking.
 

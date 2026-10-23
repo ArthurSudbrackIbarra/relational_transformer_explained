@@ -23,7 +23,7 @@ export function useElementSize<T extends HTMLElement>(): [RefObject<T | null>, {
   return [ref, size];
 }
 
-/** Normalise `Set | array | undefined` highlight props into a Set. */
+/** Normalize `Set | array | undefined` highlight props into a Set. */
 export function toSet<T>(v: ReadonlySet<T> | readonly T[] | null | undefined): ReadonlySet<T> {
   if (!v) return EMPTY as ReadonlySet<T>;
   return v instanceof Set ? v : new Set(v as readonly T[]);

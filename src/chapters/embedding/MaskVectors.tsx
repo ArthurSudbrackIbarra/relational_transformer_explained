@@ -76,12 +76,12 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
       title="The four mask vectors, and what the masked target still knows"
       caption={
         <>
-          Left: mask_embs of the checkpoint this page runs, on one shared colour scale, each compared with its value in the exported initial
+          Left: mask_embs of the checkpoint this page runs, on one shared color scale, each compared with its value in the exported initial
           weights. Right: the live masked target, and what the code does with its hidden label.
         </>
       }
     >
-      {assets.weightsKind === 'init' && <StatusBadge status="warning">Untrained weights: values from a random initialisation</StatusBadge>}
+      {assets.weightsKind === 'init' && <StatusBadge status="warning">Untrained weights: values from a random initialization</StatusBadge>}
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <div className="grid gap-3.5">
           {TYPES.map((s, i) => {
@@ -114,7 +114,7 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
           <div className="grid gap-2 text-[15px] leading-snug text-ink-2 [&_code]:text-[14.5px]">
             <p className="!m-0">
               Each <Mt /> starts as <code>torch.randn({data.d})</code>, a standard normal vector of length about √{data.d} ={' '}
-              {fmt(Math.sqrt(data.d), 0)}, as long as a normalised value term with γ = 1 <Cite kind="spec" ref="§7.4" />. Only{' '}
+              {fmt(Math.sqrt(data.d), 0)}, as long as a normalized value term with γ = 1 <Cite kind="spec" ref="§7.4" />. Only{' '}
               <code>m_number</code> and <code>m_boolean</code> can ever get a gradient: the gate that adds <Mt /> is 1 only at a
               masked token of type t <Cite kind="code" ref="rt/model.py:221-224" />, RT never masks text <Cite kind="code" ref="rt/model.py:256-257" />,
               and no paper-era task has a datetime target <Cite kind="code" ref="rt/tasks.py:3-88" />. AdamW still applies weight decay to every
@@ -127,7 +127,7 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
                 value. <code>m_text</code> and <code>m_datetime</code>, which only see weight decay, got {pct(shrink(iText))} and{' '}
                 {pct(shrink(iDt))} shorter; <code>m_number</code> and <code>m_boolean</code> got {pct(shrink(0))} and{' '}
                 {pct(shrink(TYPES.indexOf(SemType.Boolean)))} shorter.
-                {minCos > 0.98 && ' So these lengths and patterns say more about the initialisation and the weight decay than about anything learned.'}
+                {minCos > 0.98 && ' So these lengths and patterns say more about the initialization and the weight decay than about anything learned.'}
               </p>
             )}
           </div>

@@ -65,7 +65,7 @@ export default function DecodingChapter() {
         lede={
           <>
             After the last block, every position holds a vector. This chapter turns the masked cell’s vector into an answer: four small linear heads,
-            one per data type; a probability or a number in the column’s own units; the loss that training minimises; and the two metrics the paper
+            one per data type; a probability or a number in the column’s own units; the loss that training minimizes; and the two metrics the paper
             reports.
           </>
         }
@@ -199,7 +199,7 @@ export default function DecodingChapter() {
       <Section id="regression" title="Regression targets: from z‑score to the column’s units" kicker="Step 3">
         <p>
           For a regression task the masked cell is a number, so the number head is read. Its output is a z-score: the prediction lives in the same
-          normalised scale as the stored label <Cite kind="spec" ref="§8.3" />. Each numeric column was z-scored with its own mean and sample standard
+          normalized scale as the stored label <Cite kind="spec" ref="§8.3" />. Each numeric column was z-scored with its own mean and sample standard
           deviation, and the Val and Test rows of a task table reuse the Train split’s statistics{' '}
           <Cite kind="code" ref="rustler/src/pre.rs:383-396" /> <Cite kind="spec" ref="§3.3" />. Undoing the z-score gives the prediction in the
           column’s original units:
@@ -218,7 +218,7 @@ export default function DecodingChapter() {
         <p>
           Training compares the read output with the hidden label. The paper: “we apply HuberLoss(r, r′) for regression and binary cross-entropy loss
           BCE(1{'{'}r &gt; 0{'}'}, r′) for binary classification. The overall loss is the mean over all masked cells in the batch”{' '}
-          <Cite kind="paper" ref="p.6 §3.3" />. Here r is the cell’s normalised value, so both losses work on z-scores <Cite kind="spec" ref="§8.2" />
+          <Cite kind="paper" ref="p.6 §3.3" />. Here r is the cell’s normalized value, so both losses work on z-scores <Cite kind="spec" ref="§8.2" />
           . The same objective is used in pretraining and in fine-tuning <Cite kind="paper" ref="p.6 §3.3" />.
         </p>
 
@@ -235,7 +235,7 @@ export default function DecodingChapter() {
         <p>
           Number targets use <code>F.huber_loss</code> with its default δ = 1, on the residual between the predicted and the stored z-score{' '}
           <Cite kind="code" ref="rt/model.py:250-251" /> <Cite kind="spec" ref="§8.2" />. The paper does not say why it chose Huber; the curve shows
-          what it does. Small errors are penalised like a squared error, large ones only linearly, so the gradient of a single cell never exceeds 1 in
+          what it does. Small errors are penalized like a squared error, large ones only linearly, so the gradient of a single cell never exceeds 1 in
           size: an unusual label, such as a product with a sudden burst of sales, pulls on the weights no harder than any other badly predicted cell.
         </p>
         <MathBlock tex={HUBER_TEX} label={<Cite kind="spec" ref="§8.2" />} />
@@ -352,7 +352,7 @@ export default function DecodingChapter() {
         <DecoderSizes />
         <Callout variant="note" title="The vector before the decoders">
           <p>
-            The normalised vector <TeX tex="\hat x" /> at the masked position is useful on its own. The paper’s Table 3 trains only a small MLP on top
+            The normalized vector <TeX tex="\hat x" /> at the masked position is useful on its own. The paper’s Table 3 trains only a small MLP on top
             of it (“RT as feature extractor”) <Cite kind="paper" ref="p.8 §4.4" />. That probe is not part of the released paper-era code{' '}
             <Cite kind="spec" ref="§9.5" />.
           </p>

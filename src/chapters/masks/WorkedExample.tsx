@@ -168,7 +168,7 @@ export function WorkedExample() {
         <AsciiGrid rows={ascii[layer]} q={q} allowed={allowed} />
         <FitMask
           n={TOY_L}
-          labelled
+          labeled
           fitLabels
           ticks={4}
           maxCell={15}

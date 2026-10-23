@@ -198,7 +198,7 @@ export function RegressionFigure({ lane }: { lane: Lane }) {
       title="From z-score to original units"
       caption={
         <>
-          One axis, two labelings: z above, {task.targetCol} below. Because ŷ = ẑ·σ + μ is a straight-line map, every point has both readings. Grey
+          One axis, two labelings: z above, {task.targetCol} below. Because ŷ = ẑ·σ + μ is a straight-line map, every point has both readings. Gray
           bars: the {int(labels.length)} {task.kind === 'forecast' ? 'Train labels' : 'values in the table'} whose μ and σ define the scale. The
           violet line is the number head’s output at the masked cell; the black line is the hidden label.
         </>

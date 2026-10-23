@@ -318,7 +318,7 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
         <>
           Pick any token: click a square, or a preset; in the strip the arrow keys move and Enter picks. The seven stages follow model.py:208-224,
           with the weights of the checkpoint this page runs. The player stays at the top of the screen while you scroll through the stages. Hover a
-          cell of any 64-d strip to see the arithmetic of that dimension in every stage. Post-norm vectors (③, ⑥, ⑦) share one colour scale; the
+          cell of any 64-d strip to see the arithmetic of that dimension in every stage. Post-norm vectors (③, ⑥, ⑦) share one color scale; the
           others have their own (shown as “scale ±…”).
         </>
       }
@@ -364,7 +364,7 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
           <>
             <div className="mt-2 flex flex-wrap gap-2">
               {assets.weightsKind === 'trained' && <StatusBadge status="good">trained mini model ({assets.ckpt})</StatusBadge>}
-              {assets.weightsKind === 'init' && <StatusBadge status="warning">untrained weights: values from a random initialisation</StatusBadge>}
+              {assets.weightsKind === 'init' && <StatusBadge status="warning">untrained weights: values from a random initialization</StatusBadge>}
             </div>
 
             {/* The player and its narration stay in view (sticky) while the reader scrolls through the stages. */}
@@ -695,7 +695,7 @@ function Stage({
           </span>
         )}
       </div>
-      {/* Not reached yet: only the data fades (strips grey and light); every text stays at full contrast. */}
+      {/* Not reached yet: only the data fades (strips gray and light); every text stays at full contrast. */}
       <div
         className={cx(
           side && 'grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]',

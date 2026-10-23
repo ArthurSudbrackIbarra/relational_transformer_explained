@@ -362,7 +362,7 @@ export function LiveLabelStats() {
             </div>
           )}
           <div className={cx('rounded-xl border border-accent/40 bg-accent-soft px-4 py-3', !isForecast && 'sm:col-span-1')}>
-            <div className="text-[15.5px] font-medium text-ink-2">The live seed{seedPos >= 0 ? ` (#${seedPos + 1} of ${seeds.length})` : ''}</div>
+            <div className="text-[15.5px] font-medium text-ink-2">The live seed{seedPos >= 0 ? `, one of the ${seeds.length}` : ''}</div>
             <div className="mt-1 text-[17px] text-ink">
               {isForecast ? (
                 <>

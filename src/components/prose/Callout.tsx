@@ -4,7 +4,7 @@
  *  - paper-vs-code: where the paper and the paper-era code differ (BUILD_PLAN
  *    §0.3: show the code, cite both). Pass `paper` and `code` to get the
  *    two-column "Paper says / Code does" layout.
- *  - warning: a pitfall (status colour + icon + label, never colour alone)
+ *  - warning: a pitfall (status color + icon + label, never color alone)
  *  - insight: the "why" behind a design choice
  */
 import { GitCompare, Info, Lightbulb, TriangleAlert, type LucideIcon } from 'lucide-react';

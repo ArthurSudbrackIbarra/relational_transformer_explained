@@ -2,7 +2,7 @@
  * Glossary of RT terms used by <Term id="…"> tooltips and the results
  * chapter's glossary list. Every definition is written from
  * research/RT_TECHNICAL_SPEC.md (paper-era code @2a899c8) and cites it.
- * Do not add behaviour the spec does not state.
+ * Do not add behavior the spec does not state.
  */
 
 export type CiteKind = 'spec' | 'paper' | 'code' | 'url';

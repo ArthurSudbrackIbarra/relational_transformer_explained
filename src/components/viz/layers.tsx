@@ -1,6 +1,6 @@
 /**
  * Attention-layer identity: NAME + ICON (BUILD_PLAN §5 "Attention layers are
- * identified by name label + icon"), never a colour of their own.
+ * identified by name label + icon"), never a color of their own.
  * Order inside a block is col → feat → nbr → full (model.py:83, spec §7.1).
  */
 import { Columns3, Grid3x3, Network, Rows3, type LucideIcon } from 'lucide-react';

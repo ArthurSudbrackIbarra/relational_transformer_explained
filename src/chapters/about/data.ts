@@ -29,6 +29,11 @@ export interface TsFixtureReport {
   worstStage?: string;
 }
 
+/** Largest official-vs-port |Δ| over the trained checkpoints on real contexts (the headline maximum also covers random weights). */
+export function maxCheckpointDiff(v: VerificationJson): number {
+  return Math.max(...Object.values(v.details.officialVsPort.perCheckpoint));
+}
+
 export interface VerificationJson {
   official_vs_port_max_abs_diff: number;
   ts_vs_torch_max_abs_diff: number;

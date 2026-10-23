@@ -1,7 +1,7 @@
 /**
  * TableSwatch: table identity mark (BUILD_PLAN §5 "Table identity =
- * categorical colour", §3.5 slots; task tables share slot 5). The label, if
- * shown, stays in ink (text never wears the series colour).
+ * categorical color", §3.5 slots; task tables share slot 5). The label, if
+ * shown, stays in ink (text never wears the series color).
  */
 import type { ReactNode } from 'react';
 import { catVar } from '@/styles/palette';

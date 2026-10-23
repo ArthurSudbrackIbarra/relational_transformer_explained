@@ -300,7 +300,7 @@ export interface RTWeights {
 export type MaskSet = Record<AttnLayer, Uint8Array>;
 
 export interface ForwardOptions {
-  /** Skip these attention sublayers in every block (inference-time ablation, clearly labelled in UI). */
+  /** Skip these attention sublayers in every block (inference-time ablation, clearly labeled in UI). */
   disabledLayers?: AttnLayer[];
   /** Record full per-layer internals (Q/K/V/scores/probs). Default true. */
   capture?: boolean;

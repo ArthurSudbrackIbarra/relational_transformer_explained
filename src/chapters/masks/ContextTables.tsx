@@ -380,7 +380,7 @@ function endShort(x1: number, y1: number, cx: number, cy: number, x2: number, y2
   const tx = x2 - cx;
   const ty = y2 - cy;
   const tl = Math.hypot(tx, ty) || 1;
-  // distance from the square's centre to its edge along the tangent, plus a small gap
+  // distance from the square's center to its edge along the tangent, plus a small gap
   const edge = half / Math.max(Math.abs(tx / tl), Math.abs(ty / tl)) + 3.5;
   return `M${x1},${y1} Q${cx},${cy} ${x2 - (tx / tl) * edge},${y2 - (ty / tl) * edge}`;
 }

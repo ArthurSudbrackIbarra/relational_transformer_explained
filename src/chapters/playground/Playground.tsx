@@ -1,5 +1,5 @@
 /**
- * The playground: seed picker (left), prediction + context (centre), ablation switches (right).
+ * The playground: seed picker (left), prediction + context (center), ablation switches (right).
  *  - ≥ 1400px: three columns;
  *  - 1200-1399px: the seed picker spans the top (laid out in two columns by a container query), the
  *    prediction and the switches sit side by side under it;

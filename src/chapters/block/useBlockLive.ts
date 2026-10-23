@@ -1,7 +1,7 @@
 /**
  * Live data for the block chapter: the global context and masks, the forward pass of the mini model
  * (full capture, cached by the engine pipeline: computed once and shared with every chapter), the
- * table colours and the token presets used by the figures. Nothing here recomputes the model.
+ * table colors and the token presets used by the figures. Nothing here recomputes the model.
  */
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';

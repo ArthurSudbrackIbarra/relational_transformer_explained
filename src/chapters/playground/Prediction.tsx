@@ -1,5 +1,5 @@
 /**
- * Centre-top: the prediction at the masked cell (spec §8.3-8.4), its change against the baseline,
+ * Center-top: the prediction at the masked cell (spec §8.3-8.4), its change against the baseline,
  * and a short history of the last runs.
  */
 import { ArrowDownRight, ArrowUpRight, Minus, Trash2 } from 'lucide-react';

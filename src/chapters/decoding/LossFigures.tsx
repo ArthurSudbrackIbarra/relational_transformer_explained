@@ -344,7 +344,7 @@ export function BatchFigure({ binary, regression, model }: { binary: Lane; regre
         <>
           {PER_TASK} Train rows of {taskLabel(binary.task)} and {PER_TASK} of {taskLabel(regression.task)}, each with its own sampled context (epoch
           0), run through one model (checkpoint <span className="font-mono">{model.ckpt}</span>). Bars are the per-cell losses; the line is their
-          mean, the number the optimizer minimises. The batch is an illustration: these exact steps were never taken in training.
+          mean, the number the optimizer minimizes. The batch is an illustration: these exact steps were never taken in training.
         </>
       }
     >
@@ -396,7 +396,7 @@ export function BatchFigure({ binary, regression, model }: { binary: Lane; regre
 function BatchBars({ items, mean }: { items: BatchItem[]; mean: number }) {
   const [ref, size] = useElementSize<HTMLDivElement>();
   const width = Math.max(300, size.width || 560);
-  // narrow screens: the entity alone (the bar colour and the legend give the task's loss type)
+  // narrow screens: the entity alone (the bar color and the legend give the task's loss type)
   const compact = width < 560;
   const labels = items.map(
     (it) => `${singular(it.task.entityTable ?? it.task.table ?? it.task.name)} ${it.entityRow}${compact ? '' : ` · ${it.task.name}`}`,

@@ -1,6 +1,6 @@
 /**
  * Status badge for verification results and warnings ONLY (BUILD_PLAN §5:
- * status colours never encode series). Always icon + label, never colour alone.
+ * status colors never encode series). Always icon + label, never color alone.
  */
 import { CircleCheck, CircleX, Info, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -24,7 +24,7 @@ export interface StatusBadgeProps {
   className?: string;
 }
 
-/** Pill with a status-coloured icon and an ink-coloured label. */
+/** Pill with a status-colored icon and an ink-colored label. */
 export function StatusBadge({ status, children, className }: StatusBadgeProps) {
   const Icon = ICON[status];
   return (

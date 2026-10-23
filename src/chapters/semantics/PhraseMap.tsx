@@ -1,8 +1,8 @@
 /**
  * Figure "A map of every column phrase": the 2-D PCA of all column phrases of the four databases
- * (public/data/embeddings/pca2d.json, python/embed.py), coloured and shaped by database. Hollow
+ * (public/data/embeddings/pca2d.json, python/embed.py), colored and shaped by database. Hollow
  * markers = key columns (interned but never on a token). A pinned phrase draws lines to its
- * nearest neighbours in the full 384-d space, computed live, because two axes keep only part of the
+ * nearest neighbors in the full 384-d space, computed live, because two axes keep only part of the
  * variance.
  */
 import { Minus, Plus, RotateCcw } from 'lucide-react';
@@ -103,7 +103,7 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
     window.setTimeout(() => (drag.current = null), 0);
   };
 
-  // text labels: the pinned phrase and the hovered one (neighbours get numbered badges instead)
+  // text labels: the pinned phrase and the hovered one (neighbors get numbered badges instead)
   const labels = useMemo(() => {
     const ids: { i: number; strong: boolean }[] = [];
     if (focusIdx >= 0) ids.push({ i: focusIdx, strong: true });
@@ -248,7 +248,7 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
           width={W}
           height={H}
           role="img"
-          aria-label={`2-D PCA map of ${points.length} column phrases from four databases. Arrow keys move between points, Enter pins the point and lists its nearest neighbours.`}
+          aria-label={`2-D PCA map of ${points.length} column phrases from four databases. Arrow keys move between points, Enter pins the point and lists its nearest neighbors.`}
           tabIndex={0}
           onKeyDown={onKey}
           className={cx('block select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent', view.k > 1 ? 'cursor-grab active:cursor-grabbing' : '')}
@@ -273,7 +273,7 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
             ↑ PC 2
           </text>
 
-          {/* neighbour lines */}
+          {/* neighbor lines */}
           {focusIdx >= 0 &&
             !hiddenDbs.has(points[focusIdx].db) &&
             neighbors.map((n) => {
@@ -331,7 +331,7 @@ export function PhraseMap({ points, store, catalog, focus, onFocus }: PhraseMapP
             );
           })}
 
-          {/* neighbour badges: the numbers match the list under the map */}
+          {/* neighbor badges: the numbers match the list under the map */}
           {focusIdx >= 0 &&
             !hiddenDbs.has(points[focusIdx].db) &&
             neighbors.map((n, j) => {

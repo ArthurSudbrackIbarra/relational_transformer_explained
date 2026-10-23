@@ -1,6 +1,6 @@
 /**
- * Radial view of the BFS (left pane of the chapter's centrepiece, after paper Fig. 6a).
- * The seed sits in the centre; every row the sampler has touched sits on the ring of its depth label
+ * Radial view of the BFS (left pane of the chapter's centerpiece, after paper Fig. 6a).
+ * The seed sits in the center; every row the sampler has touched sits on the ring of its depth label
  * (spec §4.5): a visited row on the depth it was visited with, inside the sector of the row that pushed
  * the entry it was popped from; a frontier row where it was first pushed. Filled marks are visited
  * rows (their cells are in the context), hollow marks are frontier entries still waiting.

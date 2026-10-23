@@ -175,7 +175,7 @@ export default function MasksChapter() {
         </Callout>
         <p>
           The figure uses the real scores of the trained mini model at the masked target. It lets you pick one of the three relational layers,
-          which Step 2 defines; for now, watch only what happens to the blocked keys. Tokens are labelled row·column
+          which Step 2 defines; for now, watch only what happens to the blocked keys. Tokens are labeled row·column
           {seed && entityTok ? (
             <>
               : <span className="font-mono">{rowTag(seed, prefixes)}</span> is the seed row {rowName(seed)} and{' '}
@@ -265,7 +265,7 @@ export default function MasksChapter() {
           )}{' '}
           The <Term id="full-attention">full</Term> mask is solid{hasPad ? ', apart from the padding rows and columns' : ''}. The tick numbers
           on the axes are token positions. To read the blocks cell by cell, switch the figure to “First {Math.min(FOURMASKS_ZOOM, ctx.numReal)},
-          labelled”.
+          labeled”.
         </p>
         <CodeRef
           title="The four masks, built from ids"

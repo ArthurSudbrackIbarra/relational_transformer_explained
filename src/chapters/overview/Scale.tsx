@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { Cite, formatNumber } from '@/components';
 import { DEFAULT_L, MINI_CONFIG, PAPER_CONFIG, PAPER_L, paramCount } from '@/engine/model';
 import { int } from './live';
+import { maxCheckpointDiff, useVerification } from '@/chapters/about/data';
 import { useResultsJson } from './Results';
 
 function Item({ icon, children }: { icon: 'same' | 'diff'; children: ReactNode }) {
@@ -35,7 +36,9 @@ export function SameAndDifferent() {
   const { data } = useResultsJson();
   const steps = data?.pretrain?.steps;
   const batch = data?.config?.batch;
-  const diff = data?.config?.attention?.maxAbsDiffForward;
+  const { data: ver } = useVerification();
+  // the official FlexAttention class vs this site's dense port, same trained weights, real contexts (chapter 16)
+  const diff = ver ? maxCheckpointDiff(ver) : undefined;
   return (
     <div className="wide my-6 grid gap-4 md:grid-cols-2">
       <div className="card px-5 py-4">
@@ -81,7 +84,8 @@ export function SameAndDifferent() {
           </Item>
           <Item icon="diff">
             Attention kernel: plain masked attention instead of FlexAttention, the same function
-            {diff !== undefined ? ` (largest difference ${formatNumber(diff, 2)} on a forward pass)` : ''}; chapter 16 shows the parity checks
+            {diff !== undefined ? ` (the official class and this site’s port differ by at most ${formatNumber(diff, 2)} on a forward pass)` : ''};
+            chapter 16 shows the parity checks
           </Item>
         </ul>
       </div>

@@ -298,7 +298,7 @@ export function LearnedProjection({ phrase, store, assets, catalog }: { phrase: 
           Column term of <Phrase text={phrase} strong />
         </span>
         {assets.status === 'ready' && assets.weightsKind === 'trained' && <StatusBadge status="good">trained mini model ({assets.ckpt})</StatusBadge>}
-        {assets.status === 'ready' && assets.weightsKind === 'init' && <StatusBadge status="warning">untrained weights: a random initialisation</StatusBadge>}
+        {assets.status === 'ready' && assets.weightsKind === 'init' && <StatusBadge status="warning">untrained weights: a random initialization</StatusBadge>}
         {assets.status === 'loading' && <StatusBadge status="info">loading weights…</StatusBadge>}
       </div>
       {res ? (

@@ -227,9 +227,10 @@ export default function ResultsChapter() {
         </Figure>
         <p>
           <Term id="column-attention">Column attention</Term> matters most for zero-shot transfer: without it, zero-shot R² drops from 22.8 to 11.9{' '}
-          <Cite kind="paper" ref="p.10 Table 5" />. After fine-tuning, feature and neighbor attention matter more, and “removing full attention has
-          the least impact in both zero-shot and fine-tuned settings, even significantly improving the results on some tasks”{' '}
-          <Cite kind="paper" ref="p.9 §5.2" />. For classification, the differences are minor <Cite kind="paper" ref="p.23 Table 13" />.
+          <Cite kind="paper" ref="p.10 Table 5" />. The paper reads the fine-tuned columns as “the impact is less pronounced, and the impact of
+          feature and neighbor attention is more significant”, and adds that “removing full attention has the least impact in both zero-shot and
+          fine-tuned settings, even significantly improving the results on some tasks” <Cite kind="paper" ref="p.9 §5.2" />. The first part holds
+          for AUROC; on fine-tuned R², removing column attention still costs the most <Cite kind="paper" ref="p.10 Table 5" />. For classification, the differences are minor <Cite kind="paper" ref="p.23 Table 13" />.
         </p>
         <Callout variant="warning" title="The paper retrains; the playground does not">
           <p>
@@ -241,7 +242,8 @@ export default function ResultsChapter() {
 
         <h3>Does the order of the layers matter?</h3>
         <p>
-          The released block runs column → feature → neighbor → full (“CFN”); the ICLR-submission code ran feature → neighbor → column (“FNC”){' '}
+          The released block runs column → feature → neighbor → full (“CFN”); the ICLR-submission code ran feature → neighbor → column → full (“FNC”; Table 15’s codes leave
+          the final full layer implicit){' '}
           <Cite kind="spec" ref="§6.6" />. Table 15 trains every order, plus a variant that runs the three relational layers in parallel and sums
           their outputs <Cite kind="paper" ref="p.24 Table 15" />. Zero-shot means span only {f1(Math.min(...ordAuroc))}–{f1(Math.max(...ordAuroc))}{' '}
           AUROC and {f1(Math.min(...ordR2))}–{f1(Math.max(...ordR2))} R²: “the specific order of relational attention layers is not critical to
@@ -342,7 +344,7 @@ export default function ResultsChapter() {
         <h3>Paying for context</h3>
         <p>
           Attention cost grows with the context length L. Figure 4 evaluates RT zero-shot with shorter contexts than it was pretrained with, and
-          varies Griffin’s neighbour sampling (fanout:hops) the same way <Cite kind="paper" ref="p.8 §4.5" />.
+          varies Griffin’s neighbor sampling (fanout:hops) the same way <Cite kind="paper" ref="p.8 §4.5" />.
         </p>
         <CostQuality />
         <p>

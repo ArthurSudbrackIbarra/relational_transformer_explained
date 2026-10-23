@@ -83,15 +83,15 @@ export function AllPositions({ lane, pos, setPos }: { lane: Lane; pos: number; s
       caption={
         mode === 'outputs' ? (
           <>
-            One column per position of the context, in token order. Each row is one decoder, coloured by its output (blue negative, red positive,
+            One column per position of the context, in token order. Each row is one decoder, colored by its output (blue negative, red positive,
             scaled per row). The text head’s 384 outputs per position are left out. The column with the dashed outline is the masked target. Hover or
             tap a column to read it; clicking also selects it in the figure above.
           </>
         ) : (
           <>
-            A grey cell means “this token has this type” (sem_types == i). The loss multiplies each decoder’s per-position loss by that row AND the
+            A gray cell means “this token has this type” (sem_types == i). The loss multiplies each decoder’s per-position loss by that row AND the
             masks row, so out of {int(S)} positions × 4 decoders, exactly one value survives: the masked target’s own type.
-            {ctx.numReal < S && <> Padding positions store sem_type 0, so they are grey in the number row; their masks entry is 0.</>}
+            {ctx.numReal < S && <> Padding positions store sem_type 0, so they are gray in the number row; their masks entry is 0.</>}
           </>
         )
       }

@@ -16,7 +16,7 @@ export interface LegendItem {
   muted?: boolean;
 }
 
-/** Horizontal legend; text stays in ink, the key carries the colour. */
+/** Horizontal legend; text stays in ink, the key carries the color. */
 export function Legend({ items, className }: { items: LegendItem[]; className?: string }) {
   if (items.length < 2) return null;
   return (

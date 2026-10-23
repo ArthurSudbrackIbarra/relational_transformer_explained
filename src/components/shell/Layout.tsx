@@ -262,7 +262,7 @@ function SiteFooter() {
 }
 
 /**
- * Content column wrapper for routed pages: centres content up to 1200px with a
+ * Content column wrapper for routed pages: centers content up to 1200px with a
  * 16px gutter on phones. Chapters use it via <ChapterPage>.
  */
 export function ContentColumn({ children, className }: { children: ReactNode; className?: string }) {

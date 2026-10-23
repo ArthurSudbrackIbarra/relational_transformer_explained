@@ -1,7 +1,7 @@
 /**
  * Section 6 figures:
  *  - PaddingDemo: the spec §6.3 toy context (5 padding tokens) with and without the `& pad` of
- *    model.py:187-188. "Without" is a labelled counterfactual on the raw ids.
+ *    model.py:187-188. "Without" is a labeled counterfactual on the raw ids.
  *  - TransposeFlip: the parent part of the feature mask, flipped across the diagonal, is the neighbor
  *    mask (live context; checked on every pair).
  *  - ZeroUpdateCheck: in the live forward pass, the neighbor sublayer's update is exactly 0 wherever the
@@ -75,7 +75,7 @@ export function PaddingDemo() {
       <div className="grid gap-x-6 gap-y-6 md:grid-cols-2">
         <FitMask
           n={TOY_L}
-          labelled
+          labeled
           fitLabels
           ticks={4}
           maxCell={15}
@@ -84,7 +84,7 @@ export function PaddingDemo() {
         />
         <FitMask
           n={TOY_L}
-          labelled
+          labeled
           fitLabels
           ticks={4}
           maxCell={15}

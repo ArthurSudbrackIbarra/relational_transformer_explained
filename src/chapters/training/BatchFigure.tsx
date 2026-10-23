@@ -166,7 +166,7 @@ export function BatchFigure({ set, dataset }: { set: PretrainSet | null; dataset
                       : `The first ${SHOWN_BATCHES} batches without a shuffle`}
                   </div>
                   <div className="text-[14.5px] text-ink-2">
-                    One row = one batch of {B} items. Colour and shape = database. Click a batch, then a cell.
+                    One row = one batch of {B} items. Color and shape = database. Click a batch, then a cell.
                   </div>
                 </div>
                 {shuffled && (

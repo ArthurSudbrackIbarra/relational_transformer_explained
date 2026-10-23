@@ -21,7 +21,7 @@ export interface MaskMatrixProps {
   /** Row-label band width / column-label band height in px (Heatmap defaults 140 / 104). */
   labelWidth?: number;
   labelHeight?: number;
-  /** Per-token table colour slots (identity strips along both axes). */
+  /** Per-token table color slots (identity strips along both axes). */
   slots?: number[];
   highlightRows?: ReadonlySet<number> | readonly number[];
   highlightCols?: ReadonlySet<number> | readonly number[];

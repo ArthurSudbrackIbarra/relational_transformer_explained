@@ -261,7 +261,7 @@ export type CheckpointName = (typeof CHECKPOINT_NAMES)[number];
 
 /** One-line provenance of each checkpoint, for the UI (selection rules: python/train.py, results.json). */
 export const CHECKPOINT_INFO: Record<CheckpointName, string> = {
-  init: 'Untrained: PyTorch-default initialisation after torch.manual_seed(0), the starting point of pretraining.',
+  init: 'Untrained: PyTorch-default initialization after torch.manual_seed(0), the starting point of pretraining.',
   'pretrain-churn': 'Pretraining step with the best ShopDB customer-churn validation AUROC (zero-shot, spec §9.1).',
   'pretrain-sales': 'Pretraining step with the best ShopDB product-sales validation R² (zero-shot, spec §9.1).',
   'pretrain-rating':
@@ -355,7 +355,7 @@ let fallbackInit: RTWeights | null = null;
 
 /**
  * The untrained weights used until trained checkpoints exist: `initWeights(MINI_CONFIG, 0)`, i.e.
- * PyTorch-default-style initialisation (nn.Linear kaiming-uniform, RMSNorm γ = 1, mask_embs ~ N(0,1);
+ * PyTorch-default-style initialization (nn.Linear kaiming-uniform, RMSNorm γ = 1, mask_embs ~ N(0,1);
  * spec §7.4) drawn from the site's seeded PRNG. One shared object, so every fallback shares the
  * forward-pass cache.
  */
@@ -384,7 +384,7 @@ export function loadCheckpoint(name: CheckpointName): Promise<LoadedCheckpoint> 
       weights,
       kind: name === 'init' ? 'init' : 'trained',
       fallback: false,
-      note: name === 'init' ? 'Exported untrained initialisation (init checkpoint).' : `Trained checkpoint "${name}": ${CHECKPOINT_INFO[name]}`,
+      note: name === 'init' ? 'Exported untrained initialization (init checkpoint).' : `Trained checkpoint "${name}": ${CHECKPOINT_INFO[name]}`,
     }),
     (e: unknown): LoadedCheckpoint => {
       ckptCache.delete(name);
@@ -395,7 +395,7 @@ export function loadCheckpoint(name: CheckpointName): Promise<LoadedCheckpoint> 
         fallback: true,
         note:
           name === 'init'
-            ? 'Untrained weights: initWeights(MINI_CONFIG, 0), PyTorch-default initialisation.'
+            ? 'Untrained weights: initWeights(MINI_CONFIG, 0), PyTorch-default initialization.'
             : `Checkpoint "${name}" is not available yet, so the model runs with untrained weights ` +
               '(initWeights(MINI_CONFIG, 0)). Predictions are not meaningful until trained weights are exported.',
         error: e instanceof Error ? e.message : String(e),

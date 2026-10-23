@@ -5,7 +5,7 @@
  * (ChaCha12) with `random_range` and `rand::seq::index::sample` (spec §4.2). Bit-exact
  * parity is not required for fidelity: what matters is that every draw is uniform and
  * that a context is a deterministic function of (epoch, seed row, seed). We use
- * xoshiro128** seeded through splitmix32, which has the same distributional behaviour.
+ * xoshiro128** seeded through splitmix32, which has the same distributional behavior.
  */
 export class Rng {
   private s0: number;

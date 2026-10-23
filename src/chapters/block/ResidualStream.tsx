@@ -157,7 +157,7 @@ function StreamMatrix({ stages, sel, setSel }: { stages: Stage[]; sel: number | 
           width={W}
           height={H + 22}
           role="img"
-          aria-label={`The followed token's ${d}-dimensional representation after each of ${stages.length} stages, as coloured cells, with its cosine similarity to the last block's output`}
+          aria-label={`The followed token's ${d}-dimensional representation after each of ${stages.length} stages, as colored cells, with its cosine similarity to the last block's output`}
           className="block"
           onPointerLeave={() => setHover(null)}
         >

@@ -1,4 +1,4 @@
-/** Site mark: three cell tokens in table colours and the dashed "?" target. */
+/** Site mark: three cell tokens in table colors and the dashed "?" target. */
 export function Logo({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">

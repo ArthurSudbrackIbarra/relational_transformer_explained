@@ -1,6 +1,6 @@
 /**
  * Step 6-7 figures.
- *  - PaddingCheck: a padding token exactly as the sampler initialises it (fly.rs:65-85) and its x₀,
+ *  - PaddingCheck: a padding token exactly as the sampler initializes it (fly.rs:65-85) and its x₀,
  *    computed by the engine's `embedTokens` (model.py:208-224): every term is gated by ¬is_padding.
  *  - ContextMatrix: the whole S × d input matrix X₀ of the live forward pass, split into its column
  *    term and value term (ForwardResult.embedding), as a heatmap with one column per token (wide
@@ -67,7 +67,7 @@ export const PaddingCheck = memo(function PaddingCheck({ live }: { live: Embeddi
   return (
     <Figure
       wide
-      title={realPad !== null ? `A padding position of the live context (pos ${realPad})` : 'A padding token, as the sampler initialises it'}
+      title={realPad !== null ? `A padding position of the live context (pos ${realPad})` : 'A padding token, as the sampler initializes it'}
       caption={
         realPad !== null ? (
           <>
@@ -167,7 +167,7 @@ export const ContextMatrix = memo(function ContextMatrix({ live }: { live: Embed
   }, [perm, ctx, order, slots, target]);
 
   const src = fr ? (panel === 'col' ? fr.embedding.colTerm : panel === 'val' ? fr.embedding.valueTerm : fr.embedding.x0) : null;
-  // one colour scale for the three panels, so they can be compared
+  // one color scale for the three panels, so they can be compared
   const m = useMemo(() => {
     if (!fr) return 1;
     let mx = 0;
@@ -247,14 +247,14 @@ export const ContextMatrix = memo(function ContextMatrix({ live }: { live: Embed
       }
       caption={
         <>
-          {narrow ? 'One row per token, one column per dimension' : 'One column per token, one row per dimension'}, on one shared colour scale for the
-          three views. {order === 'column' ? 'Each group is labelled with its column phrase; ' : ''}the coloured strip is the token’s table, and the
+          {narrow ? 'One row per token, one column per dimension' : 'One column per token, one row per dimension'}, on one shared color scale for the
+          three views. {order === 'column' ? 'Each group is labeled with its column phrase; ' : ''}the colored strip is the token’s table, and the
           dashed “?” marks the masked target. “Grouped by column” only reorders the display; the model has no positions{' '}
           <span className="whitespace-nowrap">(chapter 7)</span>. Click a token to inspect it in Step 2.
         </>
       }
     >
-      {assets.weightsKind === 'init' && <StatusBadge status="warning">Untrained weights: values from a random initialisation</StatusBadge>}
+      {assets.weightsKind === 'init' && <StatusBadge status="warning">Untrained weights: values from a random initialization</StatusBadge>}
       <div ref={wrapRef} className="w-full min-w-0">
         {!src ? (
           <div className="rounded-lg border border-dashed border-border-strong px-4 py-8 text-center text-[16px] text-ink-2">Loading the forward pass…</div>

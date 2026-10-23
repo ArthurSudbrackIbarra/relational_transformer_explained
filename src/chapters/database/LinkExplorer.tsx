@@ -102,9 +102,9 @@ export const LinkExplorer = memo(function LinkExplorer({
   const graphHighlight = useMemo(() => [rowKey(graphFocus)], [graphFocus]);
   const noHighlight = useMemo(() => [] as string[], []);
   const drawnIds = useMemo(() => new Set(graph.nodes.map((n) => String(n.id))), [graph]);
-  // a hovered chip whose row is not drawn (display limit) must not grey out the whole graph
+  // a hovered chip whose row is not drawn (display limit) must not gray out the whole graph
   const hoverDrawn = hover !== null && drawnIds.has(hover);
-  // small neighbourhoods get a small box; on a phone the box is never much taller than it is wide
+  // small neighborhoods get a small box; on a phone the box is never much taller than it is wide
   const [graphBox, graphSize] = useElementSize<HTMLDivElement>();
   const graphH = Math.round(Math.min(380, graphSize.width ? graphSize.width * 0.9 : 380, Math.max(220, 140 + 40 * Math.sqrt(graph.nodes.length))));
 
@@ -329,7 +329,7 @@ export const LinkExplorer = memo(function LinkExplorer({
       <div ref={graphBox} className="min-w-0">
         <div className="rounded-xl border border-border bg-surface-2/40 px-2 pt-2 pb-2.5">
           <div className="px-1.5 pb-1 text-[15px] font-semibold text-ink">
-            {rowLabel(graphFocus)} and its neighbours, one hop
+            {rowLabel(graphFocus)} and its neighbors, one hop
           </div>
           <EntityGraph
             nodes={graph.nodes}

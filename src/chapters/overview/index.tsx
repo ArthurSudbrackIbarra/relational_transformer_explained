@@ -370,7 +370,7 @@ export default function OverviewChapter() {
           title={
             live.entityNode !== null ? 'What becomes of every cell of the seed row and its parent row' : 'What becomes of every cell of the seed row'
           }
-          caption="Keys turn into links, missing values disappear, and every other cell becomes one token labelled with its phrase."
+          caption="Keys turn into links, missing values disappear, and every other cell becomes one token labeled with its phrase."
         >
           <CellCards live={live} />
         </Figure>
@@ -431,7 +431,7 @@ export default function OverviewChapter() {
         </Figure>
         <Callout variant="insight" title="Past labels of the same entity drive zero-shot transfer">
           <p>
-            In the paper’s context ablation, removing the target entity’s own past labels drops the mean zero-shot AUROC from 70.1 to 53.8 and the
+            In the paper’s context ablation, removing the target entity’s own past labels (its self labels) drops the mean zero-shot AUROC from 70.1 to 53.8 and the
             mean R² from 22.8 to −5.5. Removing other entities’ labels changes little (70.6 and 22.9) <Cite kind="paper" ref="p.9 Table 4" />. RT
             still does more than average them: it beats the EntityMean baseline, which predicts the mean of those past labels{' '}
             <Cite kind="paper" ref="p.9 §5.1" />.
@@ -451,7 +451,7 @@ export default function OverviewChapter() {
           title="Who the masked cell may attend to, in each layer"
           caption={
             <>
-              One strip per mask, one mark per token of the live context, in sequence order; coloured marks are the allowed keys. Hover a strip to
+              One strip per mask, one mark per token of the live context, in sequence order; colored marks are the allowed keys. Hover a strip to
               name a token.
             </>
           }

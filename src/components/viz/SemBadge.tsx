@@ -1,6 +1,6 @@
 /**
  * SemBadge: the semantic type of a cell, as a GLYPH (BUILD_PLAN §5: "Sem type
- * = glyph, not colour"). number `#`, text `Aa`, datetime clock, boolean toggle.
+ * = glyph, not color"). number `#`, text `Aa`, datetime clock, boolean toggle.
  * SemType codes are exactly common.rs:38-44 (Number=0, Text=1, DateTime=2,
  * Boolean=3; spec §3.2).
  */

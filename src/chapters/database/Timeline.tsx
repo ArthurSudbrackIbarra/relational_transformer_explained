@@ -115,7 +115,7 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
   const futW = textWidth(futText, SMALL_PX);
   const futX0 = width - M.right - futW;
   const showFut = xc < futX0 - 12 && (flip || cutX0 + cutW + 16 < futX0);
-  // the dashed seed-time line is labelled under the month labels, clamped too
+  // the dashed seed-time line is labeled under the month labels, clamped too
   const seedText = 'seed time';
   const seedW = textWidth(seedText, SMALL_PX);
   const seedX0 = Math.max(M.left, Math.min(width - M.right - seedW, xs - seedW / 2));
@@ -251,7 +251,7 @@ export const Timeline = memo(function Timeline({ db, idx, slots, anchor, focus, 
                 {(isFocus || kbHere) && (
                   <circle r={9} fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth={2} strokeDasharray={kbHere && !isFocus ? '3 2' : undefined} />
                 )}
-                {/* future rows: hollow, in the table colour, so they stay visible on the shaded region in both themes */}
+                {/* future rows: hollow, in the table color, so they stay visible on the shaded region in both themes */}
                 <path
                   d={shapePath(shapeOfSlot(slot), 4.6)}
                   style={{ fill: fut ? 'var(--surface)' : catVar(slot), stroke: fut ? catVar(slot) : 'var(--surface)', opacity: fut ? 0.75 : 1 }}

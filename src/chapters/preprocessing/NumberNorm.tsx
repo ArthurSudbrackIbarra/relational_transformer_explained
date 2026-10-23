@@ -1,7 +1,7 @@
 /**
  * Section 4a figure: per-column z-scores of number cells (pre.rs:330-341,
  * spec §3.3). One histogram, two rulers: raw units above, z-scores below
- * (same data, same pixel positions: z is an affine relabelling). A probe value
+ * (same data, same pixel positions: z is an affine relabeling). A probe value
  * shows z = (v − μ)/σ with the engine's live μ and σ (sample std, ddof = 1).
  */
 import { bin as d3bin, scaleLinear } from 'd3';

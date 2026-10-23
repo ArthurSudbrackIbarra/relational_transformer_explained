@@ -268,7 +268,7 @@ export function DecoderSizes() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// The text head never learns: compare the checkpoint with its initialisation
+// The text head never learns: compare the checkpoint with its initialization
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function TextHeadCheck({ lane }: { lane: Lane }) {
@@ -291,7 +291,7 @@ export function TextHeadCheck({ lane }: { lane: Lane }) {
   }, [w, w0, lane.assets.fallback, init.fallback]);
   if (!check) return null;
   if (lane.ckpt === 'init')
-    return <StatusBadge status="info">The loaded checkpoint is the initialisation itself, so there is nothing to compare.</StatusBadge>;
+    return <StatusBadge status="info">The loaded checkpoint is the initialization itself, so there is nothing to compare.</StatusBadge>;
   const uniform = check.tw.maxDev < 1e-4 && Math.abs(check.tb.mean - check.tw.mean) < 1e-4;
   return (
     <div className="rounded-lg border border-border bg-surface px-4 py-3 text-[16px] leading-relaxed text-ink">

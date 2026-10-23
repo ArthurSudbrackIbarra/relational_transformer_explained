@@ -1,4 +1,4 @@
-/** Store behaviour (BUILD_PLAN §7): defaults, invariants between knobs, storage safety. */
+/** Store behavior (BUILD_PLAN §7): defaults, invariants between knobs, storage safety. */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { isNonDefault, safeStorage, selectSimParams, SIM_DEFAULTS, useSim } from './store';
 

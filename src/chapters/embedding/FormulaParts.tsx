@@ -308,7 +308,7 @@ export const GateGrid = memo(function GateGrid({ live }: { live: EmbeddingStable
         label="Context tokens; the tokens of the chosen gate are highlighted"
       />
       <p className="!mt-2 !mb-0 text-[15px] leading-snug text-ink-2">
-        A square’s colour is its table, not its type.{' '}
+        A square’s color is its table, not its type.{' '}
         {shown.length === 0
           ? 'No token uses the selected gate, so none is highlighted.'
           : shown.length === 1

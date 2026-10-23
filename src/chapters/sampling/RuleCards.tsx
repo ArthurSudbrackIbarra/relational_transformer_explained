@@ -185,7 +185,7 @@ export function RuleCards() {
           <>
             the prose says “rows with timestamps later than the seed row are excluded” <Cite kind="paper" ref="p.4 §3.1" />, and training uses database rows
             “only up to the training cutoff timestamps” <Cite kind="paper" ref="p.6 §4.1" />; Algorithm 1 itself applies <span className="font-mono">T(q) ≤ T(s)</span> only
-            to P→F neighbours <Cite kind="paper" ref="p.15 Alg. 1" />.
+            to P→F neighbors <Cite kind="paper" ref="p.15 Alg. 1" />.
           </>
         }
         code={
@@ -226,7 +226,7 @@ export function RuleCards() {
         }
         paper={
           <>
-            <span className="font-mono">N ← RandomSample(N, w)</span> on all P→F neighbours <Cite kind="paper" ref="p.15 Alg. 1" />.
+            <span className="font-mono">N ← RandomSample(N, w)</span> on all P→F neighbors <Cite kind="paper" ref="p.15 Alg. 1" />.
           </>
         }
         code={
@@ -239,7 +239,7 @@ export function RuleCards() {
             {facts.biggest ? (
               <>
                 The bound fired {plural(facts.subs.length, 'time')}; the largest cut: {name(facts.biggest.it.node)} had {facts.biggest.ie.subsample!.candidates.length}{' '}
-                DB children, {ctx.params.w} kept.
+                DB children after the time filter, {ctx.params.w} kept.
               </>
             ) : (
               <>No row had more than w = {ctx.params.w} DB children that passed the filter.</>

@@ -5,7 +5,7 @@
 import { ArrowDown, Cpu, FileCode2, Globe } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ChartFrame, StatusBadge } from '@/components';
-import { bytes, int, sci, useResults, useVerification, type VerificationJson } from './data';
+import { bytes, int, maxCheckpointDiff, sci, useResults, useVerification, type VerificationJson } from './data';
 import { LogDotChart } from './LogDotChart';
 
 function ImplCard({ icon, name, file, lines, tone }: { icon: ReactNode; name: string; file: string; lines: ReactNode[]; tone: 'official' | 'site' }) {
@@ -41,7 +41,7 @@ function DeltaPill({ value, loading }: { value: number | null; loading: boolean 
   );
 }
 
-/** Desktop connector: a bracket from the centre of one card to the centre of the next, with the bound. */
+/** Desktop connector: a bracket from the center of one card to the center of the next, with the bound. */
 function Bracket({ value, what, loading }: { value: number | null; what: ReactNode; loading: boolean }) {
   return (
     <div className="flex min-w-0 flex-col items-center">
@@ -107,7 +107,8 @@ export function ThreeImplementations() {
     value: v?.official_vs_port_max_abs_diff ?? null,
     what: (
       <>
-        same weights in both: {nCk ?? '…'} checkpoints × {v?.n_contexts ?? '…'} real contexts from all four databases
+        same weights in both. The largest gap is with random weights; on {nCk ?? '…'} trained checkpoints × {v?.n_contexts ?? '…'} real
+        contexts from all four databases it is ≤ {v ? sci(maxCheckpointDiff(v)) : '…'}
       </>
     ),
   };

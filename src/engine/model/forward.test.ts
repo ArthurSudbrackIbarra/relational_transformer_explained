@@ -5,7 +5,7 @@
  *    but structurally valid B=2, S=128 batch, the weights, the dense masks of the OFFICIAL
  *    PE/rt/model.py and python/rt_model.py's activations (which match the official class to ~1e-6).
  *    The TS forward must match every activation to ≤ 1e-4.
- * 2. Model invariants from spec §12 (padding, empty neighbour rows, permutation, hidden label,
+ * 2. Model invariants from spec §12 (padding, empty neighbor rows, permutation, hidden label,
  *    ablations, lean capture, error cases, speed).
  * 3. Parity with PyTorch on TRAINED weights and REAL contexts: tests/fixtures/parity-trained*.*
  *    (python/parity.py --stage trained) hold contexts exported by scripts/export-contexts.ts (the default
@@ -177,7 +177,7 @@ describe('model invariants (spec §12)', () => {
     }
   });
 
-  it('a query with an empty neighbour row gets exactly 0 update (and probs row 0)', () => {
+  it('a query with an empty neighbor row gets exactly 0 update (and probs row 0)', () => {
     const d = weights.config.dModel;
     const S = fx.S;
     let nEmpty = 0;

@@ -121,7 +121,7 @@ export function useInspected(live: Pick<EmbeddingStable, 'S' | 'target'>) {
 export type EmbeddingLive = EmbeddingStable & ReturnType<typeof useInspected>;
 
 /**
- * The exported untrained initialisation of our mini model (public/data/weights/init.*, PyTorch
+ * The exported untrained initialization of our mini model (public/data/weights/init.*, PyTorch
  * defaults, spec §7.4), for "where training started" read-outs. null while loading or if missing.
  */
 export function useInitWeights(): RTWeights | null {

@@ -192,7 +192,7 @@ export const EpsKnee = memo(function EpsKnee({ live }: { live: EmbeddingStable }
         </>
       }
     >
-      {assets.weightsKind === 'init' && <StatusBadge status="warning">Untrained weights: the dots come from a random initialisation</StatusBadge>}
+      {assets.weightsKind === 'init' && <StatusBadge status="warning">Untrained weights: the dots come from a random initialization</StatusBadge>}
       <div className="mb-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[15px] text-ink-2" aria-label="Legend">
         <span className="inline-flex items-center gap-2">
           <svg width="22" height="8" aria-hidden="true">

@@ -7,7 +7,7 @@
  * per panel and H stacks; draws through a 1-pixel-per-cell ImageData scaled
  * with smoothing off, so it stays fast.
  *
- * Colour (dataviz): sequential = one blue hue, near-zero recedes to the
+ * Color (dataviz): sequential = one blue hue, near-zero recedes to the
  * surface; diverging = blue↔red with gray midpoint; binary = one sequential
  * step vs the surface. A scale legend is always drawn; values are reachable
  * without hover through the readout line and keyboard focus.
@@ -37,7 +37,7 @@ export interface HeatmapProps {
   stacks?: number;
   /** Panel titles, e.g. ["head 0", …]. */
   stackLabels?: string[];
-  /** Colour scale. Default 'sequential'. */
+  /** Color scale. Default 'sequential'. */
   scale?: 'sequential' | 'diverging' | 'binary';
   /** Sequential: [min, max] (default [0, max]). Diverging: max |v| comes from domain[1] (default data max |v|). */
   domain?: [number, number];

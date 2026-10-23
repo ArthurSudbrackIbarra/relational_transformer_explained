@@ -1,5 +1,5 @@
 /**
- * Visual identity of every method in the paper's comparison tables (dataviz: colour follows the
+ * Visual identity of every method in the paper's comparison tables (dataviz: color follows the
  * entity, never its rank; fixed slots, never cycled; composite encoding past the palette).
  *
  *   family  → hue (categorical slot)

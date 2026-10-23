@@ -99,7 +99,7 @@ export function StepThrough({ live }: { live: AttnLive }) {
               </StatusBadge>
             </span>
           )}
-          {assets.weightsKind === 'init' && <StatusBadge status="warning">untrained weights: values from a random initialisation</StatusBadge>}
+          {assets.weightsKind === 'init' && <StatusBadge status="warning">untrained weights: values from a random initialization</StatusBadge>}
         </span>
       }
       controls={narrow ? <CompactSelection live={live} /> : <SelectionBar live={live} />}
@@ -237,7 +237,7 @@ function describe(stage: (typeof STAGES)[number]['id'], live: AttnLive, qv: Quer
       return (
         <>
           <strong className="font-semibold">RMSNorm.</strong> Divide x by its root-mean-square, then multiply by this sublayer’s learned gain γ.
-          Only the normalised copy h goes into attention; x itself waits for the residual add.
+          Only the normalized copy h goes into attention; x itself waits for the residual add.
         </>
       );
     case 'qkv':
@@ -278,7 +278,7 @@ function describe(stage: (typeof STAGES)[number]['id'], live: AttnLive, qv: Quer
         </>
       ) : (
         <>
-          <strong className="font-semibold">Softmax.</strong> No key is allowed, so there is nothing to normalise: the row stays all zeros and this
+          <strong className="font-semibold">Softmax.</strong> No key is allowed, so there is nothing to normalize: the row stays all zeros and this
           head outputs exactly 0.
         </>
       );
@@ -337,8 +337,8 @@ function XVisual({ live, qv, W }: { live: AttnLive; qv: QueryView; W: number }) 
     for (let s = 0; s < numReal; s++) for (let j = 0; j < d; j++) out[j * numReal + s] = X[s * d + j];
     return out;
   }, [qv.cap, d, numReal]);
-  // Colour domain: the 95th percentile of |x| (a few large dimensions would otherwise wash out the rest);
-  // larger values are drawn at full colour. Display only.
+  // Color domain: the 95th percentile of |x| (a few large dimensions would otherwise wash out the rest);
+  // larger values are drawn at full color. Display only.
   const m = useMemo(() => {
     const a = Float32Array.from(XT, Math.abs).sort();
     return a.length ? Math.max(1e-6, a[Math.min(a.length - 1, Math.floor(a.length * 0.95))]) : 1;
@@ -370,7 +370,7 @@ function XVisual({ live, qv, W }: { live: AttnLive; qv: QueryView; W: number }) 
               token #{hover.c} {live.labels[hover.c]} · dim {hover.r} = <span className="text-ink">{sgn(hover.v, 4)}</span>
             </>
           ) : (
-            <>columns = tokens in context order · rows = the {d} dimensions · outlined: the query · colour saturates at ±{m.toFixed(2)}</>
+            <>columns = tokens in context order · rows = the {d} dimensions · outlined: the query · color saturates at ±{m.toFixed(2)}</>
           )}
         </div>
       </div>
@@ -390,7 +390,7 @@ function NormVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
     const r = Math.sqrt(ms / d + cfg.eps);
     return Float32Array.from(qv.x, (v) => v / r);
   }, [qv.x, d, cfg.eps]);
-  // One colour scale for x, x / rms(x) and h, so the rescaling shows as a change of colour strength.
+  // One color scale for x, x / rms(x) and h, so the rescaling shows as a change of color strength.
   const dom = useMemo(() => maxAbsOf(qv.x, scaled, qv.h), [qv.x, scaled, qv.h]);
   const layerName = LAYER_INFO[live.layer].name.toLowerCase();
   const rows: { label: string; values: Float32Array; note: string; gamma?: boolean }[] = [
@@ -411,7 +411,7 @@ function NormVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
         </div>
       ))}
       <p className="!mb-0 text-[14.5px] text-muted">
-        x, x / rms(x) and h share one colour scale (±{dom.toFixed(2)}), so a stronger colour means a larger number; the readout under each strip gives
+        x, x / rms(x) and h share one color scale (±{dom.toFixed(2)}), so a stronger color means a larger number; the readout under each strip gives
         its length ‖v‖.
       </p>
     </div>
@@ -454,7 +454,7 @@ function QKVVisual({ live, qv, W, inspected }: { live: AttnLive; qv: QueryView; 
           </div>
           <span className="text-[20px] text-muted">·</span>
           <div className="flex flex-col items-center gap-1">
-            <VStrip values={qv.h} cellW={14} cellH={cell} maxAbs={mh} label="h, the normalised input" onHover={(i) => setHover(i === null ? null : `h[${i}] = ${sgn(qv.h[i], 4)}`)} />
+            <VStrip values={qv.h} cellW={14} cellH={cell} maxAbs={mh} label="h, the normalized input" onHover={(i) => setHover(i === null ? null : `h[${i}] = ${sgn(qv.h[i], 4)}`)} />
             <span className="font-mono text-[14px] text-ink-2">h</span>
           </div>
           <span className="text-[20px] text-muted">=</span>

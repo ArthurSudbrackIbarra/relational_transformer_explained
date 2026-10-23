@@ -43,7 +43,7 @@ export function TextCells({ live, store }: { live: SemanticsLive; store: Embeddi
   const value = tok && typeof tok.raw === 'string' ? tok.raw : '';
   const ePhrase = phrase && store.has(phrase) ? store.get(phrase) : null;
   const eValue = value && store.has(value) ? store.get(value) : null;
-  const neighbours = useMemo(() => (value ? nearest(store, value, live.pdb.text, 5) : []), [store, value, live.pdb]);
+  const neighbors = useMemo(() => (value ? nearest(store, value, live.pdb.text, 5) : []), [store, value, live.pdb]);
   const textIdx = tok ? live.pdb.textToIdx.get(value) : undefined;
   const colIdx = tok ? live.pdb.columnIndex[phrase] : undefined;
   const domain = useMemo(() => {
@@ -125,7 +125,7 @@ export function TextCells({ live, store }: { live: SemanticsLive; store: Embeddi
               </p>
               <p className="!mb-0 text-[15px] leading-snug text-ink-2">
                 No string joins a value to its column. {store.has(`${tok.colName} of ${tok.tableName}: ${value}`) ? '' : 'It is not in the string table, so it has no vector.'}{' '}
-                The two vectors meet only inside the model, after each has been projected and normalised. Cosine between them:{' '}
+                The two vectors meet only inside the model, after each has been projected and normalized. Cosine between them:{' '}
                 <span className="num text-ink">{ePhrase && eValue ? f3(cosine(ePhrase, eValue)) : '—'}</span>.
               </p>
             </div>
@@ -134,7 +134,7 @@ export function TextCells({ live, store }: { live: SemanticsLive; store: Embeddi
                 Closest strings to <Quoted text={value} /> in {DB_SHORT[live.dbName]}’s string table
               </div>
               <ol className="!m-0 grid !list-none gap-1 !p-0">
-                {neighbours.map((n) => (
+                {neighbors.map((n) => (
                   <li key={n.text} className="!m-0 flex min-w-0 items-baseline justify-between gap-3 !p-0 text-[15px]">
                     <span className="min-w-0 truncate font-mono text-ink">{n.text}</span>
                     <span className="num shrink-0 text-ink-2">{f3(n.cos)}</span>

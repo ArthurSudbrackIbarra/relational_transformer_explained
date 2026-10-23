@@ -125,7 +125,7 @@ const REFS: RefItem[] = [
     title: 'Flex Attention: A Programming Model for Generating Optimized Attention Kernels',
     venue: 'arXiv 2412.05496, 2024',
     url: 'https://arxiv.org/abs/2412.05496',
-    why: 'How the code applies the four relational masks as sparse block masks (paper ref. [8]).',
+    why: 'How the code applies the four attention masks as sparse block masks (paper ref. [8]).',
   },
   {
     key: 'LLaMA',

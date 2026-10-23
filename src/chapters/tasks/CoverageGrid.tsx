@@ -2,7 +2,7 @@
  * Step (e) of the customer-churn builder: "repeat for every active customer". One row per
  * customer, one column per prediction timestamp (chronological; the last two are Val and Test).
  * A cell is drawn only where the engine's task table HAS a row (TaskDef.tables): solid = churn true,
- * hollow = churn false; grey = no row. Columns fade in left to right, so the table visibly fills up.
+ * hollow = churn false; gray = no row. Columns fade in left to right, so the table visibly fills up.
  */
 import { motion } from 'motion/react';
 import { useMemo } from 'react';
@@ -67,7 +67,7 @@ export function CoverageGrid({
   const splitK = (sp: Split) => stamps.findIndex((s) => s.split === sp);
   const kVal = splitK('Val');
   const kTest = splitK('Test');
-  // narrow columns: centred "Val" and "Test" would collide (or "Test" would pass the right edge)
+  // narrow columns: centered "Val" and "Test" would collide (or "Test" would pass the right edge)
   const tight = colW < 25;
 
   return (
@@ -116,7 +116,7 @@ export function CoverageGrid({
           #{entityCount - 1}
         </text>
 
-        {/* "no row" background: every (customer, timestamp) slot starts grey; a task row covers it */}
+        {/* "no row" background: every (customer, timestamp) slot starts gray; a task row covers it */}
         {stamps.map((s, k) => (
           <g key={`bg-${s.t}`} aria-hidden="true">
             {Array.from({ length: Math.ceil(entityCount / 10) }, (_, g) => {

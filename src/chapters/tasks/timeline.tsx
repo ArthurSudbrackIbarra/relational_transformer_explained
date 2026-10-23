@@ -34,12 +34,12 @@ export function TimeAxis({ x, y, narrow }: { x: TimeScale; y: number; narrow: bo
       <line x1={r0} x2={r1} y1={y} y2={y} style={{ stroke: 'var(--axis)' }} strokeWidth={1} />
       {ticks.map((d) => {
         const m = d.getUTCMonth();
-        const labelled = m % every === 0;
+        const labeled = m % every === 0;
         const px = x(d);
         return (
           <g key={d.getTime()}>
-            <line x1={px} x2={px} y1={y} y2={y + (labelled ? 5 : 3)} style={{ stroke: 'var(--axis)' }} strokeWidth={1} />
-            {labelled && (
+            <line x1={px} x2={px} y1={y} y2={y + (labeled ? 5 : 3)} style={{ stroke: 'var(--axis)' }} strokeWidth={1} />
+            {labeled && (
               <text
                 x={px}
                 y={y + 17}
@@ -72,7 +72,7 @@ export function LaneLabel({ x, y, children }: { x: number; y: number; children: 
   );
 }
 
-/** Hexagon = the task-table shape (slot 5), centred at (cx, cy). */
+/** Hexagon = the task-table shape (slot 5), centered at (cx, cy). */
 export function TaskMarker({
   cx,
   cy,

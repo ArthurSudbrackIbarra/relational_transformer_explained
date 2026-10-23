@@ -5,7 +5,7 @@
  * parent list (pre.rs:479) and the edges (pre.rs:515-529). The list keeps
  * FK-column order, but the attention masks only test membership
  * (model.py:171-178), so buyer and seller look alike (spec §1.2, §4.13).
- * Hypothetical schema, drawn in neutral colours on purpose.
+ * Hypothetical schema, drawn in neutral colors on purpose.
  */
 import { ArrowRight, Link2, KeyRound } from 'lucide-react';
 import { Cite } from '@/components';

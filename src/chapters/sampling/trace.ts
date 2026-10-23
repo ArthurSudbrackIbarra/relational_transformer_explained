@@ -9,7 +9,7 @@
  *  - `replay`: the exact frontier state after any prefix of the trace (stack, depth buckets with the
  *    swap-remove draws, visited set, token count). It re-applies the recorded decisions; it never
  *    re-decides anything;
- *  - `buildLayout`: a deterministic radial layout of every row the BFS ever touched (seed at the centre).
+ *  - `buildLayout`: a deterministic radial layout of every row the BFS ever touched (seed at the center).
  *    A visited row sits on the ring of the depth it was visited with and hangs off the row that pushed
  *    the frontier entry actually popped ("the first pop wins", spec §4.5); a row that never left the
  *    frontier sits where it was first pushed.
@@ -297,7 +297,7 @@ export interface Layout {
 }
 
 /**
- * Radial tree on the discovery tree: the seed in the centre, each row on the ring of its depth label,
+ * Radial tree on the discovery tree: the seed in the center, each row on the ring of its depth label,
  * and each subtree in an angular sector proportional to its number of leaves (a radial "cluster").
  */
 export function buildLayout(ctx: SampledContext, radius = 260): Layout {

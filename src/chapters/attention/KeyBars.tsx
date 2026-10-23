@@ -58,7 +58,7 @@ export function KeyBars({ tokens, groups, order, scores, probs, allowed, stage, 
   const collapse = stage === 'softmax' && nAllowed > 0 && nAllowed < n;
   const fewLabels = collapse && nAllowed <= 40 && Math.min(34, plotW / Math.max(1, nAllowed)) >= 24; // 45° labels need ≥ 24 px per bar
   const LANE = 20; // the "−∞" lane under the plot (stage 'mask')
-  // Collapsed softmax bars are labelled "key = value", so equal values (and equal weights) are easy to spot.
+  // Collapsed softmax bars are labeled "key = value", so equal values (and equal weights) are easy to spot.
   const barLabel = (k: number) => truncate(`${labels[k]} = ${tokens[k]?.isTarget ? '?' : tokenValue(tokens[k])}`, LABEL_MAX);
   // Rotated (45°) key labels under the collapsed softmax bars need room: ~7.8 px per 13 px mono character.
   const maxLabel = fewLabels ? Math.max(4, ...allowedOrder.map((k) => barLabel(k).length)) : 0;
@@ -127,7 +127,7 @@ export function KeyBars({ tokens, groups, order, scores, probs, allowed, stage, 
     return { x: xk, y: s >= 0 ? yMid - h : yMid, w: spread.bw, h, opacity: 1, blocked: false };
   };
 
-  // Resolved colours (not CSS variables) so motion can blend a score bar into a weight bar.
+  // Resolved colors (not CSS variables) so motion can blend a score bar into a weight bar.
   const scoreFill = TOKENS[mode].ink2;
   const probFill = sequentialCss(mode === 'dark' ? 0.55 : 0.68, mode);
   // Animate only real changes of the data or the stage. A change of width (resize, sidebar, scrollbar) moves the bars at once,
@@ -241,7 +241,7 @@ export function KeyBars({ tokens, groups, order, scores, probs, allowed, stage, 
               const g = geom(k);
               const box = { x: g.x, y: g.y, width: Math.max(0, g.w), height: Math.max(0, g.h), opacity: g.opacity };
               if (!blockedGroup) {
-                // Allowed keys: the grey score bar turns into a blue weight bar at the softmax stage.
+                // Allowed keys: the gray score bar turns into a blue weight bar at the softmax stage.
                 const soft = stage === 'softmax';
                 return (
                   <motion.rect

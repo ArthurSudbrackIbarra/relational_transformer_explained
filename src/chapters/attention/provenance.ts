@@ -81,7 +81,7 @@ export function provenanceSentence(p: Provenance): string {
   const dbs = dbList(p);
   switch (p.kind) {
     case 'init':
-      return 'These weights are untrained (a random initialisation), so the patterns carry no learned meaning.';
+      return 'These weights are untrained (a random initialization), so the patterns carry no learned meaning.';
     case 'zero-shot':
       return (
         `It was pretrained on ${dbs}; ${p.dbTitle} was held out, so no gradient update ever used it and every map here is a zero-shot attention pattern.` +
@@ -101,7 +101,7 @@ export function provenanceClause(p: Provenance): string {
   const dbs = dbList(p, true);
   switch (p.kind) {
     case 'init':
-      return 'left at its random initialisation (no training at all)';
+      return 'left at its random initialization (no training at all)';
     case 'zero-shot':
       return `pretrained on ${dbs}, with ${p.dbTitle} held out, so these are zero-shot patterns`;
     case 'seen':

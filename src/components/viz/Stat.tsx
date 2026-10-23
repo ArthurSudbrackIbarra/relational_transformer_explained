@@ -16,7 +16,7 @@ export interface StatProps {
   delta?: number;
   /** What the delta compares against, e.g. "vs EntityMean". */
   deltaLabel?: ReactNode;
-  /** Whether an increase is good (decides the delta colour). Default true. */
+  /** Whether an increase is good (decides the delta color). Default true. */
   upIsGood?: boolean;
   formatDelta?: (d: number) => string;
   caption?: ReactNode;

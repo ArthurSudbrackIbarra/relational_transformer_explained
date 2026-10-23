@@ -337,7 +337,7 @@ export function Kbd({ children }: { children: ReactNode }) {
   );
 }
 
-/** A labelled row of figure controls (sits above the figure it scopes; dataviz "filters in one row"). */
+/** A labeled row of figure controls (sits above the figure it scopes; dataviz "filters in one row"). */
 export function ControlRow({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cx('flex flex-wrap items-end gap-x-4 gap-y-3', className)}>{children}</div>;
 }

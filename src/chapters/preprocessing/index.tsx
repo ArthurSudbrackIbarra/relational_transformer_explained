@@ -326,7 +326,7 @@ export default function PreprocessingChapter() {
           title={`${dbShort}: ${nf(totalRows)} rows in ${files.length} files, one index space`}
           caption={
             <>
-              Press play to replay pass 1: <code>pre.rs</code> reads the files in glob order and each file’s offset is the running row count. Segments are coloured by table; all
+              Press play to replay pass 1: <code>pre.rs</code> reads the files in glob order and each file’s offset is the running row count. Segments are colored by table; all
               task tables share magenta. The accent pin is the live seed row; the other pin follows the row picked below.
             </>
           }
@@ -381,7 +381,7 @@ export default function PreprocessingChapter() {
           <RowToCellsFigure key={k} data={data} picks={picks.rows} />
         </Figure>
         <p>
-          These cell records are not tokens yet. A cell becomes a <Term id="cell-token">token</Term> only when the sampler picks its row for a context window (Chapter 6).
+          These cell records are not tokens yet. A cell becomes a <Term id="cell-token">token</Term> only when the sampler picks its row for a context window (chapter 6).
           Even then one rule can skip it, and it belongs to the task, not to preprocessing: a task may name <strong>leakage columns</strong>, and the sampler leaves those cells
           out for the seed row and for every row with the seed’s timestamp <Cite kind="code" ref="rustler/src/fly.rs:457-460" /> <Cite kind="spec" ref="§4.9" />
           {leakTask ? (
@@ -453,7 +453,7 @@ export default function PreprocessingChapter() {
         >
           <p>
             So the code settles what the paper leaves loose: four types, not three <Cite kind="spec" ref="§10" note="Row 17 of the discrepancy table." />. It matters beyond the
-            input: the sem type of the masked cell picks the loss, binary cross-entropy for a boolean and Huber for a number (Chapter 12){' '}
+            input: the sem type of the masked cell picks the loss, binary cross-entropy for a boolean and Huber for a number (chapter 12){' '}
             <Cite kind="code" ref="rt/model.py:250-255" /> <Cite kind="spec" ref="§2.6" />.
             {binTask && binIsBool ? (
               <>
@@ -495,7 +495,7 @@ export default function PreprocessingChapter() {
           wide
           caption={
             <>
-              The z-score is a new ruler under the same data: 0 sits on the mean and one unit is one σ (the shaded band is μ ± σ). Bars are coloured by table. Default probe: the
+              The z-score is a new ruler under the same data: 0 sits on the mean and one unit is one σ (the shaded band is μ ± σ). Bars are colored by table. Default probe: the
               seed’s own {entityFile ? singular(entityFile.tableName) : 'row'}, where it applies.
             </>
           }
@@ -589,7 +589,7 @@ export default function PreprocessingChapter() {
         </Figure>
         <p>
           For task labels the code does what the paper asks: statistics “computed on the training split” <Cite kind="paper" ref="p.4 §3.1" />. The labels being evaluated do not
-          shape their own encoding, and because the three splits share one table name and one column phrase (Chapter 3), a Train label seen in the context and the Val label being
+          shape their own encoding, and because the three splits share one table name and one column phrase (chapter 3), a Train label seen in the context and the Val label being
           predicted are on the same scale <Cite kind="spec" ref="§2.2" />.
         </p>
         <Callout
@@ -621,7 +621,7 @@ export default function PreprocessingChapter() {
       <Section id="inspector" title="Pick a cell, see its encoding">
         <p>
           Here is the whole chapter in one panel. Click any cell of any table, task splits included. The panel walks it through <code>pre.rs</code>: its role, its semantic type,
-          the statistics that normalize it, the record slots it fills, and the embedding term that will read it in Chapter 8.
+          the statistics that normalize it, the record slots it fills, and the embedding term that will read it in chapter 8.
         </p>
         <Figure wide title="The cell inspector" caption={<>Picking cells here is local to this figure; the global seed does not change.</>}>
           <CellInspectorFigure key={k} data={data} picks={picks.cells} />
@@ -633,7 +633,7 @@ export default function PreprocessingChapter() {
           as the target later, and the model swaps its value term for a learned <Term id="mask-vector">mask vector</Term> <Cite kind="spec" ref="§5.3" />.
         </p>
         <CodeRef title="What each type stores in the cell record" file="rustler/src/pre.rs" lines="553-605" code={PRE_VALUES_553_605} />
-        <CodeRef title="Preview of Chapter 8: one value term per cell, picked by its sem type" file="rt/model.py" lines="216-224" code={MODEL_EMB_216_224} />
+        <CodeRef title="A preview of chapter 8: one value term per cell, picked by its sem type" file="rt/model.py" lines="216-224" code={MODEL_EMB_216_224} />
       </Section>
 
       <Section id="precision" title="A note on precision">
@@ -670,7 +670,7 @@ export default function PreprocessingChapter() {
           </li>
           <li>
             <strong>Order of a parent’s child links.</strong> For the same reason, the P→F edges inside each parent’s list come in a different order{' '}
-            <Cite kind="code" ref="rustler/src/pre.rs:523-529" />. That changes only which random draw of the sampler picks which child (Chapter 6), not which children can be
+            <Cite kind="code" ref="rustler/src/pre.rs:523-529" />. That changes only which random draw of the sampler picks which child (chapter 6), not which children can be
             picked.
           </li>
           <li>

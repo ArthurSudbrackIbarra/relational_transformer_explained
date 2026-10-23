@@ -1,7 +1,7 @@
 /**
- * TokenStrip: the context window as a sequence of token chips, coloured by
+ * TokenStrip: the context window as a sequence of token chips, colored by
  * table (left bar), sem type as a glyph, the masked target as a dashed accent
- * chip with "?", padding greyed (BUILD_PLAN §5).
+ * chip with "?", padding grayed (BUILD_PLAN §5).
  *
  * Takes engine `Token`s (types only). Order = sampler emission order (spec
  * §4.12); order has no effect on the model (no positional encodings, §6.5).

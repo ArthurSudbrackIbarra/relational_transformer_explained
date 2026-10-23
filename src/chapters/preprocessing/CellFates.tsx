@@ -6,7 +6,7 @@
  * task table are drawn as one bar (they share one schema); the table view
  * keeps one row per file.
  *
- * Fates use a neutral grey ramp, not categorical colours: categorical colour
+ * Fates use a neutral gray ramp, not categorical colors: categorical color
  * means table identity on this site (BUILD_PLAN §5), shown by the swatches.
  */
 import { useMemo, useState } from 'react';

@@ -195,7 +195,7 @@ describe.each(DB_NAMES)('database %s', (name) => {
     expect(getDatabase(name)).toBe(db);
   });
 
-  it('gives every DB table a distinct colour slot (1..8, never the task slot) and task tables slot 5', () => {
+  it('gives every DB table a distinct color slot (1..8, never the task slot) and task tables slot 5', () => {
     const slots = db.tables.map((t) => tableColorSlot(name, t.schema.name));
     expect(new Set(slots).size).toBe(slots.length);
     for (const s of slots) {
@@ -313,7 +313,7 @@ describe('registry', () => {
     for (const d of list) expect(d.title).toBe(getDatabase(d.name).title);
   });
 
-  it('uses the plan colour slots for ShopDB (BUILD_PLAN §3.5)', () => {
+  it('uses the plan color slots for ShopDB (BUILD_PLAN §3.5)', () => {
     expect(tableColorSlot('shop', 'customers')).toBe(1);
     expect(tableColorSlot('shop', 'products')).toBe(2);
     expect(tableColorSlot('shop', 'orders')).toBe(3);
@@ -387,7 +387,7 @@ describe('ShopDB is unchanged', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Self-label persistence of the pretraining tasks (BUILD_PLAN §3: "make entity behaviour persistent";
+// Self-label persistence of the pretraining tasks (BUILD_PLAN §3: "make entity behavior persistent";
 // spec §11.2: the target entity's past labels drive zero-shot transfer)
 // ─────────────────────────────────────────────────────────────────────────────
 

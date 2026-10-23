@@ -69,7 +69,7 @@ export function useMedia(query: string): boolean {
 /** Phone widths (below Tailwind's sm breakpoint): long formulas break into lines there. */
 export const usePhone = () => useMedia('(max-width: 639px)');
 
-/** Table identity: colour swatch (+ shape) and the file label in mono ink. */
+/** Table identity: color swatch (+ shape) and the file label in mono ink. */
 export function FileTag({ file, slot, className, showType = true }: { file: TableFile; slot: number; className?: string; showType?: boolean }) {
   return (
     <TableSwatch
@@ -98,7 +98,7 @@ export function ColGlyph({ file, col, size = 'xs' }: { file: TableFile; col: str
   return <SemBadge sem={semOfDType(c?.dtype ?? 'float')} size={size} />;
 }
 
-/** A small labelled readout used under figures: "μ = 37.01". */
+/** A small labeled readout used under figures: "μ = 37.01". */
 export function Readout({ label, children, className, hint }: { label: ReactNode; children: ReactNode; className?: string; hint?: ReactNode }) {
   return (
     <div className={cx('min-w-0 rounded-lg bg-surface-2 px-3 py-2', className)}>

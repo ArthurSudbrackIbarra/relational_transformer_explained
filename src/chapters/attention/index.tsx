@@ -64,7 +64,7 @@ export default function AttentionChapter() {
           <>
             All four kinds of attention layer in RT run the same computation, each with its own weights; what sets them apart is the mask that
             decides which token may read which. This chapter follows one token through one attention sublayer with the real numbers of the trained
-            mini model, from the normalised input to the residual update, then shows the attention patterns of every layer and head.
+            mini model, from the normalized input to the residual update, then shows the attention patterns of every layer and head.
           </>
         }
         learn={[
@@ -161,7 +161,8 @@ export default function AttentionChapter() {
         />
         <p>
           The paper writes attention for a single head, with <em>n</em> queries and keys of <TeX tex="d_k" /> numbers each and a divisor{' '}
-          <TeX tex={String.raw`\sqrt{d_k}`} /> <Cite kind="paper" ref="p.5 §3.2" />. With heads, <TeX tex="d_k" /> is the width of one head: the
+          <TeX tex={String.raw`\sqrt{d_k}`} /> <Cite kind="paper" ref="p.5 §3.2" />. With heads, <TeX tex="d_k" /> is the width of one head (the{' '}
+          <TeX tex={String.raw`d_\text{head}`} /> of other chapters): the
           code calls FlexAttention without a scale, and its default is <TeX tex={String.raw`1/\sqrt{E}`} />, where <em>E</em> is the last
           dimension of each head’s query <Cite kind="spec" ref="§6.1" />. That is 256 / 8 = 32 in the paper model and {d} / {H} = {dh} here.
         </p>
@@ -218,7 +219,7 @@ export default function AttentionChapter() {
         <Callout variant="note" title="What this sublayer does not have">
           <p>
             No bias in any of the four projections <Cite kind="code" ref="rt/model.py:25-28" />, no dropout, no positional encoding and no
-            normalisation of queries or keys <Cite kind="spec" ref="§7.1" />. Attention is bidirectional: there is no causal mask, only the
+            normalization of queries or keys <Cite kind="spec" ref="§7.1" />. Attention is bidirectional: there is no causal mask, only the
             relational one <Cite kind="spec" ref="§6.1" />.
           </p>
         </Callout>
@@ -255,7 +256,7 @@ export default function AttentionChapter() {
           The step-through followed one row of one head. A sublayer computes such a row for every token at once: one S×S matrix of weights per
           head, where row <em>q</em> is the softmax over the keys that <em>q</em> may read. Below are all {4 * H} matrices of one block. Every head
           of a layer uses the same mask, because <code>_make_block_mask</code> passes <code>H=None</code> to <code>create_block_mask</code>{' '}
-          <Cite kind="code" ref="rt/model.py:89-101" />, so the grey pattern repeats along each row of panels. The heads differ only in how they
+          <Cite kind="code" ref="rt/model.py:89-101" />, so the gray pattern repeats along each row of panels. The heads differ only in how they
           spread weight inside it.
         </p>
         <HeadGrid live={live} />
@@ -301,7 +302,7 @@ export default function AttentionChapter() {
         <p>
           This site runs in your browser without a GPU, so its engine loops over each query’s allowed keys in plain TypeScript. The arithmetic is
           the same masked softmax: scores scaled by <TeX tex={String.raw`1/\sqrt{d_{\text{head}}}`} />, blocked keys excluded, weights
-          normalised over the allowed keys <Cite kind="spec" ref="§6.1" />. One case needs care. A query with no allowed key would divide 0 by 0.
+          normalized over the allowed keys <Cite kind="spec" ref="§6.1" />. One case needs care. A query with no allowed key would divide 0 by 0.
           In the pinned PyTorch 2.6 kernel such a row outputs exactly 0, neither NaN nor a uniform average, and with a bias-free{' '}
           <TeX tex="W_o" /> the update is exactly 0 too <Cite kind="spec" ref="§6.1" />. Our loop skips such rows by construction, which gives the
           same zeros. The checks below verify the output of our engine on the live forward pass:
@@ -426,7 +427,7 @@ function LabelsIntroProse({ live }: { live: AttnLive }) {
         .{' '}
         {forecast && (
           <>
-            Some of those labels belong to the same {entity} as the seed row (its own past labels), others to other {entities}{' '}
+            Some of those labels belong to the same {entity} as the seed row (its own past labels: chapter 6’s self labels), others to other {entities}{' '}
             <Cite kind="spec" ref="§2.5" />.
           </>
         )}
@@ -458,7 +459,7 @@ function LabelShareProse({ live }: { live: AttnLive }) {
   const cmp = (v: number, u: number) => (Math.abs(v - u) < 0.0005 ? 'about what' : v > u ? 'more than' : 'less than');
   return (
     <p>
-      In block 1, averaged over heads, the target gives {pctw(first.self)} of its column-layer weight to its {f.nSelf} own past labels. They are{' '}
+      In block 1, averaged over heads, the target gives {pctw(first.self)} of its column-layer weight to its {f.nSelf} self labels. They are{' '}
       {f.nSelf} of the {f.nAllowed} cells it can read there ({pctw(f.uniformSelf)}), so that is {cmp(first.self, f.uniformSelf)} an even split
       would give.
       {f.nOther > 0 && (

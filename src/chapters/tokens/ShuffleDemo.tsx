@@ -143,7 +143,7 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
       }
       caption={
         <>
-          Each square is one token (colour = table, “?” = the masked target). Shuffling moves the squares to random positions: the token arrays are
+          Each square is one token (color = table, “?” = the masked target). Shuffling moves the squares to random positions: the token arrays are
           permuted, the four masks are rebuilt from the permuted ids <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:165-191" />,</span> and the full forward pass runs
           again in your browser. Mathematically the result is exact. In floating point a different key order can change the last bits, so the
           official bfloat16 model gives equality up to rounding. This site’s engine adds up its dot products and weighted sums in 64-bit floats and

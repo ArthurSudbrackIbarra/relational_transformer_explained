@@ -1,5 +1,5 @@
 /**
- * VectorStrip: one d-dimensional vector as a strip of diverging-colour cells
+ * VectorStrip: one d-dimensional vector as a strip of diverging-color cells
  * (blue < 0 < red, gray midpoint) with hover values. Wraps into rows of
  * `columns` cells (e.g. 64 per row for a 384-d MiniLM embedding).
  *
@@ -20,7 +20,7 @@ export interface VectorStripProps {
   columns?: number;
   /** Cell height px (default 14). Width fits the container. */
   cellHeight?: number;
-  /** Symmetric colour domain max |v| (default: this vector's max |v|). Share it to compare vectors. */
+  /** Symmetric color domain max |v| (default: this vector's max |v|). Share it to compare vectors. */
   domain?: number;
   /** Outlined slices [start, end). */
   ranges?: { start: number; end: number; label?: string }[];

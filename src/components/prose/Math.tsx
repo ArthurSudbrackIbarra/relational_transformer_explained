@@ -47,7 +47,7 @@ export interface MathBlockProps extends MathProps {
   caption?: ReactNode;
 }
 
-/** Display math, centred, horizontally scrollable if too wide for a phone. */
+/** Display math, centered, horizontally scrollable if too wide for a phone. */
 export function MathBlock({ tex, label, caption, className }: MathBlockProps) {
   const html = useMemo(() => render(tex, true), [tex]);
   return (

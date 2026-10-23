@@ -316,7 +316,7 @@ export const ValueCurve = memo(function ValueCurve({ live }: { live: EmbeddingSt
         </>
       }
     >
-      {assets.weightsKind === 'init' && <StatusBadge status="warning">Untrained weights: values from a random initialisation</StatusBadge>}
+      {assets.weightsKind === 'init' && <StatusBadge status="warning">Untrained weights: values from a random initialization</StatusBadge>}
       <div ref={wrapRef} className="h-0 w-full max-w-[480px]" aria-hidden="true" />
       {!curve || !cur || !col || !pair ? (
         <div className="rounded-lg border border-dashed border-border-strong px-4 py-8 text-center text-[16px] text-ink-2">Loading the weights…</div>

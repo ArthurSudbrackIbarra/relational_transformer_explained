@@ -44,7 +44,7 @@ export function wordpiecesOf(text: string): string[] | null {
 
 export const DB_SHORT: Record<DbName, string> = { shop: 'ShopDB', school: 'SchoolDB', racing: 'RacingDB', forum: 'ForumDB' };
 
-/** Colour slot of a database in figures that colour by database (fixed order, never cycled). */
+/** Color slot of a database in figures that color by database (fixed order, never cycled). */
 export const DB_SLOT: Record<DbName, number> = { shop: 1, school: 2, racing: 3, forum: 4 };
 
 export type PhraseRole = 'pk' | 'fk' | 'time' | 'feature' | 'label';
@@ -60,7 +60,7 @@ export interface PhraseInfo {
   role: PhraseRole;
   /** PK and FK columns get a phrase index but never produce a cell (pre.rs:439-533). */
   onToken: boolean;
-  /** Table colour slot (task tables = 5). */
+  /** Table color slot (task tables = 5). */
   slot: number;
 }
 
@@ -352,7 +352,7 @@ export const signed1 = (v: number) => (v > 0 ? `+${v.toFixed(1)}` : v < 0 ? `−
 
 /**
  * Share of the phrases' total variance kept by the two PCA axes:
- * Σᵢ(xᵢ² + yᵢ²) / Σᵢ‖eᵢ − ē‖². Exact because pca2d.json holds the projections of the centred
+ * Σᵢ(xᵢ² + yᵢ²) / Σᵢ‖eᵢ − ē‖². Exact because pca2d.json holds the projections of the centered
  * vectors onto the top-2 principal directions of these same phrases (python/embed.py `pca_2d`).
  */
 export function pcaVarianceKept(points: readonly PcaPoint[], store: EmbeddingStore): number | null {

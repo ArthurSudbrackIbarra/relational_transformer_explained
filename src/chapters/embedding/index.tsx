@@ -386,7 +386,7 @@ export default function EmbeddingChapter() {
         </p>
         <EmbeddingParamStats />
         <p>
-          This is all the transformer gets. From here on, information moves between tokens only through attention, along the four relational masks of
+          This is all the transformer gets. From here on, information moves between tokens only through attention, along the four attention masks of
           the next chapter.
         </p>
       </Section>
@@ -524,7 +524,7 @@ function q4Explanation(live: EmbeddingStable): ReactNode {
     <>
       {base} In the checkpoint this page runs, ε is {Math.round(share * 100)}% of the sum for a typical column projection
       {share > 0.5 ? ', so the column terms sit in this regime' : share > 0.2 ? ', so the column terms are close to this regime' : ', so the column terms are mostly out of it'}{' '}
-      (Step 3). At initialisation they sit in it in both models, ours and the paper’s.
+      (Step 3). At initialization they sit in it in both models, ours and the paper’s.
     </>
   );
 }

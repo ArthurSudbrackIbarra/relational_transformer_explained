@@ -300,7 +300,7 @@ export function SimilarityMatrix({ store, catalog, home, focus, onFocus }: Simil
               onPointerLeave={() => setHover(null)}
               className="block rounded-md focus-visible:outline-2 focus-visible:outline-accent"
             >
-              {/* database headers: shape + name in ink (colour means table in this figure) */}
+              {/* database headers: shape + name in ink (color means table in this figure) */}
               {dbSpans.map((s) => {
                 const x0 = cx0(s.j0);
                 const x1 = cx0(s.j1) + cell;

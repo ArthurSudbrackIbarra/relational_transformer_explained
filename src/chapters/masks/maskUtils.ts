@@ -3,7 +3,7 @@
  * always come from the engine (`buildMasks`, through `useMasks`). The two "recompute" helpers below
  * re-evaluate single expressions of rt/model.py:164-191 so the chapter can show (a) the parent part of
  * the feature mask on its own and (b) what the code would compute WITHOUT the `& pad` (a clearly
- * labelled counterfactual).
+ * labeled counterfactual).
  */
 import { ATTN_ORDER, type AttnLayer, type MaskSet, type PreprocessedDB, type RawDatabase, type SampledContext, type Token } from '@/engine/types';
 

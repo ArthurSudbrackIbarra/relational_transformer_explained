@@ -100,7 +100,7 @@ function layoutFor(W: number) {
   const cellW = Math.ceil(valueW + 16);
   const chipW = Math.ceil(valueW + 20);
 
-  // table cards, flowed into centred rows
+  // table cards, flowed into centered rows
   const sizes = TABLES.map((t) => ({
     w: Math.ceil(Math.max(t.cols.length * cellW + (t.cols.length - 1) * GAP + 2 * PAD, textWidth(t.name, HEAD_PX, { mono: true, weight: 600 }) + 2 * PAD)),
     h: HEAD_H + t.rows.length * CELL_H + (t.rows.length - 1) * GAP + PAD,

@@ -1,5 +1,5 @@
 /**
- * Section 1 figure: how fast the neighbourhood of the seed grows with hops, against L.
+ * Section 1 figure: how fast the neighborhood of the seed grows with hops, against L.
  * A plain BFS over foreign-key links in both directions (no time filter, no width bound), restricted
  * to the tables the sampler may visit for this task (DB tables + the seed's own task table, fly.rs:417).
  * The totals count every row of those tables: an upper bound, since rows that can only be reached as

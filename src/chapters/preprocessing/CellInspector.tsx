@@ -286,7 +286,7 @@ function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: Table
       : `\\begin{aligned} x &= \\mathrm{RMSNorm}_{\\text{col}}\\!\\big(W_{\\text{col}}\\,E(${colArg}) + b\\big) \\\\ &\\quad + ${tok?.isTarget ? `m_{\\text{${tname}}}` : valueTex} \\end{aligned}`;
     const ctxStepNo = steps.length + 2;
     steps.push({
-      title: leaked ? 'Embedding term it would feed (Chapter 8)' : 'Embedding term it will feed (Chapter 8)',
+      title: leaked ? 'Embedding term it would feed (chapter 8)' : 'Embedding term it will feed (chapter 8)',
       body: (
         <>
           <TexBox
@@ -357,7 +357,7 @@ function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: Table
           tasks.
         </>
       ) : (
-        <>Not in the current context window: the sampler did not emit this cell for seed #{ctx.params.seedNode} (Chapter 6). Its record still exists, ready for other contexts.</>
+        <>Not in the current context window: the sampler did not emit this cell for seed #{ctx.params.seedNode} (chapter 6). Its record still exists, ready for other contexts.</>
       ),
     });
   }

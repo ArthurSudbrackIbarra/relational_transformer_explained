@@ -4,7 +4,7 @@
  *  - a per-table view of the context filled by those weights (paper Fig. 1 style), and
  *  - for the column layer, how the weight splits between the seed entity's own past labels and
  *    other entities' labels, in every block (in-context labels: useInContextLabels, spec §2.5).
- * Everything is read from the capture; the reading of it is labelled as interpretation.
+ * Everything is read from the capture; the reading of it is labeled as interpretation.
  */
 import { Lightbulb } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -166,7 +166,7 @@ export function TargetLook({ live }: { live: AttnLive }) {
                   </>
                 ) : (
                   <span className="text-muted">
-                    One square per cell token, grouped by table and row. Filled squares are keys the target may read (stronger colour = more weight, colour ∝ √weight);
+                    One square per cell token, grouped by table and row. Filled squares are keys the target may read (stronger color = more weight, color ∝ √weight);
                     hollow squares are blocked. The dashed square is the target itself. Hover a square, or focus the view and use the arrow keys.
                   </span>
                 )}
@@ -417,8 +417,8 @@ export function LabelShare({ live }: { live: AttnLive }) {
   // Autocomplete tasks have no entity: every visible cell of the target column is another row's value (spec §2.4).
   const segDefs: { id: SegId; label: string }[] = forecast
     ? [
-        { id: 'self', label: `own past labels (same ${entity})` },
-        { id: 'other', label: `other ${entities}’ labels` },
+        { id: 'self', label: `self labels (same ${entity})` },
+        { id: 'other', label: 'other-entity labels' },
         { id: 'me', label: 'the target itself' },
       ]
     : [

@@ -29,7 +29,7 @@ function Wiring({ variant }: { variant: 'paper' | 'code' }) {
   const plusX = 290;
   const id = `wire-${variant}`;
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={variant === 'paper' ? 'Algorithm 2: the sublayer output is normalised, then added to X' : 'Code: a normalised copy of x goes into the sublayer, whose output is added to x'} className="block max-w-full">
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={variant === 'paper' ? 'Algorithm 2: the sublayer output is normalized, then added to X' : 'Code: a normalized copy of x goes into the sublayer, whose output is added to x'} className="block max-w-full">
       <defs>
         <marker id={id} viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path d="M0,0 L10,5 L0,10 z" style={{ fill: 'var(--ink-2)' }} />
@@ -81,8 +81,8 @@ export function WiringCompare() {
           </div>
           <p className="!mb-0 mt-2 text-[15.5px] leading-snug text-ink-2">
             {v === 'paper'
-              ? 'The sublayer reads the raw stream and its output is normalised before the add.'
-              : 'The sublayer reads a normalised copy; its raw output is added. The stream itself is never normalised inside the block.'}
+              ? 'The sublayer reads the raw stream and its output is normalized before the add.'
+              : 'The sublayer reads a normalized copy; its raw output is added. The stream itself is never normalized inside the block.'}
           </p>
         </div>
       ))}
@@ -151,7 +151,7 @@ export function StreamNormChart({ fr, pos, tokenName }: { fr: ForwardResult; pos
       table={table}
     >
       <div ref={ref} className="relative min-w-0">
-        <svg width={W} height={H} role="img" aria-label="Line chart of the residual-stream norm and the normalised sublayer inputs, per sublayer" className="block">
+        <svg width={W} height={H} role="img" aria-label="Line chart of the residual-stream norm and the normalized sublayer inputs, per sublayer" className="block">
           <g transform={`translate(${M.left},${M.top})`}>
             {/* block bands */}
             {Array.from({ length: nB }, (_, b) => {

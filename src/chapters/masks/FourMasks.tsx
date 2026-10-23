@@ -11,7 +11,7 @@ import { countRow, int, LAYER_ORDER, maskStats, pct, rowName } from './maskUtils
 import type { LiveMasks } from './useLiveMasks';
 
 /**
- * Tokens in the labelled view: 20 is the most that fits two matrices side by side at 1440 px with
+ * Tokens in the labeled view: 20 is the most that fits two matrices side by side at 1440 px with
  * 15 px cells, the size at which the Heatmap draws its labels at 13 px.
  */
 export const FOURMASKS_ZOOM = 20;
@@ -68,7 +68,7 @@ export function FourMasks({ live }: { live: LiveMasks }) {
             onChange={setView}
             options={[
               { value: 'all', label: `All ${hidePad && hasPad ? ctx.numReal : S} tokens` },
-              { value: 'zoom', label: `First ${zoomN}, labelled` },
+              { value: 'zoom', label: `First ${zoomN}, labeled` },
             ]}
           />
           <ScaleNote inline className="mb-1.5" />
@@ -83,10 +83,10 @@ export function FourMasks({ live }: { live: LiveMasks }) {
       }
       caption={
         <>
-          Rows are queries, columns are keys; a filled square means the query may attend to that key. The coloured strips along both axes give
+          Rows are queries, columns are keys; a filled square means the query may attend to that key. The colored strips along both axes give
           each token’s table (key below), in emission order, so the blocks you see are rows and tables. Hover any square to compare that one pair
           in all four masks; click to pin the query (it carries over to the next chapters). The pinned query’s row is framed in violet.
-          {view === 'zoom' && ' The labelled view shows the top-left corner: the first tokens the sampler emitted.'}
+          {view === 'zoom' && ' The labeled view shows the top-left corner: the first tokens the sampler emitted.'}
         </>
       }
     >
@@ -128,7 +128,7 @@ export function FourMasks({ live }: { live: LiveMasks }) {
             <FitMask
               key={l}
               n={crop}
-              labelled={view === 'zoom'}
+              labeled={view === 'zoom'}
               maxCell={view === 'zoom' ? 16 : 7}
               minLabelCell={15}
               ticks={crop > 64 ? 32 : 16}
@@ -216,10 +216,10 @@ export function FourMasks({ live }: { live: LiveMasks }) {
 
 const LAYER_SHORT = { col: 'column', feat: 'feature', nbr: 'neighbor', full: 'full' } as const;
 
-/** Colour key for the identity strips: one swatch per table in the context (task splits share one). */
+/** Color key for the identity strips: one swatch per table in the context (task splits share one). */
 export function TableKey({ tables, padding = false }: { tables: readonly { name: string; slot: number }[]; padding?: boolean }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[15px] text-ink-2" aria-label="Table colours of the axis strips">
+    <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[15px] text-ink-2" aria-label="Table colors of the axis strips">
       <span className="text-muted">strips:</span>
       {tables.map((t) => (
         <TableSwatch key={t.name} slot={t.slot} label={t.name} size={10} className="text-[15px]" />

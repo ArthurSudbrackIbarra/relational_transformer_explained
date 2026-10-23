@@ -4,7 +4,7 @@
  * baseline end, a 2px surface gap between touching bars, value at the tip,
  * negative values supported (bars grow from one baseline), per-bar hover
  * tooltip (the whole band is the hit target), legend for ≥ 2 series, a
- * table-view twin. Single series → one colour (slot 1); `emphasis` grays the rest.
+ * table-view twin. Single series → one color (slot 1); `emphasis` grays the rest.
  */
 import { scaleLinear } from 'd3';
 import { useMemo, useState, type ReactNode } from 'react';

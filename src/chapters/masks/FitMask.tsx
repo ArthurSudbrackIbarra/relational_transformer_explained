@@ -4,7 +4,7 @@
  * band around the pinned query row.
  *
  * Labels use the Heatmap's own thresholds (HEATMAP_GEOMETRY) and label bands sized to the longest
- * label (measured, so no label is truncated). When `labelled` and the labels do not fit at the
+ * label (measured, so no label is truncated). When `labeled` and the labels do not fit at the
  * smallest legible cell, the matrix either keeps that cell size and scrolls sideways (default) or,
  * with `fitLabels`, drops the labels and shows position ticks instead, so it never scrolls.
  */
@@ -28,7 +28,7 @@ export interface FitMaskProps {
   /** Tokens shown (top-left n×n). */
   n: number;
   /** Ask for row/column labels. */
-  labelled: boolean;
+  labeled: boolean;
   maxCell: number;
   /** Query row to mark with an accent band (null: none). */
   bandRow?: number | null;
@@ -48,7 +48,7 @@ export interface FitMaskProps {
 
 export function FitMask({
   n,
-  labelled,
+  labeled,
   maxCell,
   bandRow = null,
   axisTitles = true,
@@ -73,7 +73,7 @@ export function FitMask({
 
   let withLabels = false;
   let cell = 1;
-  if (labelled && matrix.labels) {
+  if (labeled && matrix.labels) {
     const c = Math.min(maxCell, Math.floor((w0 - G.strip - labelW) / N));
     if (c >= minLabelCell) {
       cell = c;

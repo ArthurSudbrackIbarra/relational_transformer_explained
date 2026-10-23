@@ -61,7 +61,7 @@ export function xScale(domain: [number, number], x0: number, x1: number, minGap 
 // markers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** A method marker centred at (0,0): filled with a 2px surface ring, or hollow with a 2.2px stroke. */
+/** A method marker centered at (0,0): filled with a 2px surface ring, or hollow with a 2.2px stroke. */
 export function MethodMark({ m, r = 6.5, dim = false }: { m: MethodStyle; r?: number; dim?: boolean }) {
   const color = catVar(m.slot);
   return (
@@ -92,7 +92,7 @@ export function MethodGlyph({ id, size = 14 }: { id: string; size?: number }) {
   );
 }
 
-/** Legend row of methods: glyph + label (text in ink, never in the series colour). */
+/** Legend row of methods: glyph + label (text in ink, never in the series color). */
 export function MethodLegend({ ids, className }: { ids: string[]; className?: string }) {
   return (
     <ul

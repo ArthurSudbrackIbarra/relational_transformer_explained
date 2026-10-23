@@ -1,7 +1,7 @@
 /**
  * The database as a relational entity graph (paper p.16 App. B): one node per
- * row, one edge per FK link, drawn for the k-hop neighbourhood of the focus row.
- * The layout is radial: the focus row in the centre and one ring per hop
+ * row, one edge per FK link, drawn for the k-hop neighborhood of the focus row.
+ * The layout is radial: the focus row in the center and one ring per hop
  * distance, so the distance is read from the position, not from labels. Rows
  * with many children are drawn with a capped number of them (display limit
  * only, stated in the UI). The layout follows the focus row only while the
@@ -16,7 +16,7 @@ import { parseRowKey, rowCaption, rowKey, rowLabel, sameRow, type LinkIndex, typ
 
 const CAP_FOCUS = 60;
 const CAP_DEEP = 12;
-/** Screen px between neighbouring nodes on a ring (node diameter is 15 px). */
+/** Screen px between neighboring nodes on a ring (node diameter is 15 px). */
 const NODE_GAP = 19;
 /** Radial distance between the sub-bands of a crowded ring. */
 const BAND_GAP = 15;
@@ -54,7 +54,7 @@ export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
   const width = Math.max(300, size.width || 720);
   const narrow = width < 560;
 
-  // breadth-first neighbourhood: hop distance of every row, and the row it was reached from
+  // breadth-first neighborhood: hop distance of every row, and the row it was reached from
   const g = useMemo(() => {
     const hopOf = new Map<string, number>([[rowKey(drawn), 0]]);
     const via = new Map<string, string>();
@@ -95,7 +95,7 @@ export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
     for (const k of hopOf.keys()) {
       const r = parseRowKey(k);
       const h = hopOf.get(k)!;
-      nodes.push({ id: k, label: rowLabel(r), table: r.table, slot: slots[r.table] ?? 0, title: `${rowLabel(r)} ${rowCaption(db, r)} · ${h === 0 ? 'centre' : `${h} hop${h === 1 ? '' : 's'}`}` });
+      nodes.push({ id: k, label: rowLabel(r), table: r.table, slot: slots[r.table] ?? 0, title: `${rowLabel(r)} ${rowCaption(db, r)} · ${h === 0 ? 'center' : `${h} hop${h === 1 ? '' : 's'}`}` });
       for (const p of idx.parentsOf(r)) {
         if (p.parentRow === null) continue;
         const pk = rowKey({ table: p.parentTable, row: p.parentRow });
@@ -109,7 +109,7 @@ export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
 
   // Radial layout in screen px (the graph is drawn at scale ≈ 1): ring h is an ellipse whose size grows
   // with h; its rows sit evenly along it, ordered by the angle of the row they were reached from, so
-  // each row stays near its neighbour one ring in. A ring with more rows than fit gets sub-bands.
+  // each row stays near its neighbor one ring in. A ring with more rows than fit gets sub-bands.
   const counts = useMemo(() => {
     const c = [0, 0, 0, 0];
     for (const h of g.hopOf.values()) c[h]++;
@@ -169,7 +169,7 @@ export const NeighbourhoodGraph = memo(function NeighbourhoodGraph({
     <div ref={box} className="min-w-0">
       <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
         <Segmented
-          label="Neighbourhood size"
+          label="Neighborhood size"
           value={hopsUi}
           onChange={chooseHops}
           options={[

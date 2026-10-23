@@ -2,7 +2,7 @@
  * Section 1 figure: why masking means "−∞ before the softmax" and not "multiply the scores by M".
  * Uses the REAL scaled scores q·k/√d_head of the trained mini model at the masked target (captured by
  * the engine's forward pass, before masking) and the engine's softmax probabilities. The "⊙ M read
- * literally" view is a clearly labelled counterfactual: softmax(score · M), which is what the v1/v2
+ * literally" view is a clearly labeled counterfactual: softmax(score · M), which is what the v1/v2
  * formula says on paper. A per-key strip shows the mechanism for every key: raw score → logit after
  * masking → softmax weight.
  */
@@ -122,7 +122,7 @@ export function SoftmaxDemo({ live }: { live: LiveMasks }) {
         <p className="text-[16.5px] text-ink-2">This sublayer is switched off in the playground’s inference-time ablation, so it has no scores to show.</p>
       ) : (
         <div className="grid gap-5">
-          {assets.weightsKind === 'init' && <StatusBadge status="warning">Untrained weights: the scores are from a random initialisation</StatusBadge>}
+          {assets.weightsKind === 'init' && <StatusBadge status="warning">Untrained weights: the scores are from a random initialization</StatusBadge>}
           <MassBar
             title={
               <>

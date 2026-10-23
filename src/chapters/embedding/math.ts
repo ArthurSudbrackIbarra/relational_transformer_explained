@@ -2,7 +2,7 @@
  * Pure helpers for the "embedding" chapter. Every number they produce comes from the live engine's
  * weights (PyTorch state_dict names of PE/rt/model.py) and the precomputed MiniLM embeddings; the
  * kernels are the engine's own (`linearVec`, `rmsnormRow`, `scalarValueTerm`, `embedTokens`), so
- * nothing here re-implements model behaviour. The extra quantities (mean square, scale factor,
+ * nothing here re-implements model behavior. The extra quantities (mean square, scale factor,
  * per-dimension decompositions, a 2-D PCA of a curve) are read-outs for display only.
  */
 import { scalarValueTerm, tensor, linearVec, rmsnormRow, SEM_KEYS, type SemKey } from '@/engine/model';
@@ -158,7 +158,7 @@ function topEigen(C: Float64Array, d: number, prev: Float64Array | null): { v: F
 export interface Pca2 {
   e1: Float64Array;
   e2: Float64Array;
-  /** Share of the (centred) variance captured by the first two components. */
+  /** Share of the (centered) variance captured by the first two components. */
   explained: number;
 }
 

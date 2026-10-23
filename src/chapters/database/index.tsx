@@ -408,7 +408,7 @@ export default function DatabaseChapter() {
         <p>
           Schemas differ from one database to the next. That is why the paper argues that pretraining needs a schema-agnostic architecture, one that
           takes in the multi-table structure through attention masks <Cite kind="paper" ref="p.3 §2.1" />. RT never receives this diagram as such.
-          It sees cells, each labelled with its column and table name, plus the links between rows (chapters 4, 5 and 9).
+          It sees cells, each labeled with its column and table name, plus the links between rows (chapters 4, 5 and 9).
         </p>
         <MetaCode />
       </Section>
@@ -609,7 +609,7 @@ export default function DatabaseChapter() {
           title="Which children does the width bound cap?"
           paper={
             <>
-              Algorithm 1 keeps at most w of <em>all</em> the P→F neighbours of a row that pass the time filter, picked at random{' '}
+              Algorithm 1 keeps at most w of <em>all</em> the P→F neighbors of a row that pass the time filter, picked at random{' '}
               <Cite kind="paper" ref="p.15 Alg. 1" />.
             </>
           }
@@ -756,7 +756,7 @@ export default function DatabaseChapter() {
               the future.
             </>
           ) : (
-            <>The focus row has no time-stamped neighbours; pick a customer or a product to see a timeline.</>
+            <>The focus row has no time-stamped neighbors; pick a customer or a product to see a timeline.</>
           )}
         </p>
         {anchor && (
@@ -820,8 +820,8 @@ export default function DatabaseChapter() {
         </p>
         <Figure
           wide
-          title={`The neighbourhood of ${rowLabel(lazyFocus)} as an entity graph`}
-          caption="Each node is one row, coloured and shaped by its table; each arrow is one foreign-key link, child to parent. The dashed rings mark the hop distance from the centre row. Click a node to recentre."
+          title={`The neighborhood of ${rowLabel(lazyFocus)} as an entity graph`}
+          caption="Each node is one row, colored and shaped by its table; each arrow is one foreign-key link, child to parent. The dashed rings mark the hop distance from the center row. Click a node to recenter."
         >
           <NeighbourhoodGraph db={db} idx={idx} slots={slots} focus={lazyFocus} onFocus={setFocus} />
         </Figure>

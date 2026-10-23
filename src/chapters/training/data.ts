@@ -233,7 +233,7 @@ export function mainRun(c: Curves | null): CurveRun | undefined {
   return c.runs[c.mainPretrainRun ?? 'pretrain'] ?? c.runs.pretrain;
 }
 
-/** Centred moving average (window w, shrinking at the ends). */
+/** Centered moving average (window w, shrinking at the ends). */
 export function movingAverage(ys: readonly number[], w: number): number[] {
   const n = ys.length;
   const half = Math.floor(w / 2);
@@ -321,7 +321,7 @@ export function sci(v: number | undefined, digits = 2): string {
   if (v === 0) return '0';
   let e = Math.floor(Math.log10(Math.abs(v)));
   let m = Number((v / 10 ** e).toFixed(digits));
-  // 9.9999e-4 rounds to "10.0": renormalise to 1.0e-3
+  // 9.9999e-4 rounds to "10.0": renormalize to 1.0e-3
   if (Math.abs(m) >= 10) {
     e += 1;
     m = Number((v / 10 ** e).toFixed(digits));

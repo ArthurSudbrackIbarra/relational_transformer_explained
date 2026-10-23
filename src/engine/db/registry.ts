@@ -1,6 +1,6 @@
 /**
  * Database registry (BUILD_PLAN §2): deterministic, cached access to the four dummy databases,
- * their tasks, and the table colour slots used by every view (BUILD_PLAN §3.5, §5).
+ * their tasks, and the table color slots used by every view (BUILD_PLAN §3.5, §5).
  */
 import type { RawDatabase, RawTable, RawValue, Split, TaskDef } from '../types';
 import { generateForum } from './generators/forum';
@@ -130,7 +130,7 @@ export function getTask(taskId: string): TaskDef {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Table colour slots (BUILD_PLAN §3.5)
+// Table color slots (BUILD_PLAN §3.5)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Every task table, in every DB and split, uses categorical slot 5 (magenta). */
@@ -145,7 +145,7 @@ const DB_TABLE_SLOTS: Record<DbName, Record<string, number>> = {
 };
 
 /**
- * Categorical colour slot (1..8) of a table. Accepts a plain table name ("orders",
+ * Categorical color slot (1..8) of a table. Accepts a plain table name ("orders",
  * "customer-churn") or a table_info key ("customer-churn:Val", "orders:Db").
  * Throws for a table that does not belong to the DB.
  */
@@ -201,7 +201,7 @@ export function pickShowcaseEntity(db: RawDatabase, taskId?: string): ShowcaseEn
   const byVal = perEntity('Val');
   const byTest = perEntity('Test');
 
-  // how many child rows reference the entity (a richer neighbourhood makes a better example)
+  // how many child rows reference the entity (a richer neighborhood makes a better example)
   const childCount = new Array<number>(entityTable.rows.length).fill(0);
   for (const t of db.tables) {
     for (const [fk, parent] of Object.entries(t.schema.fkeys)) {

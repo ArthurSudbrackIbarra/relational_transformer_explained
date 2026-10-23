@@ -6,7 +6,7 @@
  *  - text for an LLM (JSON in the style of the paper's LLM-baseline prompt, built from the same
  *    sampled context RT reads);
  *  - a graph of rows for a schema-specific GNN.
- * The illustrations only describe the data; none of them is RT behaviour.
+ * The illustrations only describe the data; none of them is RT behavior.
  */
 import { useMemo, useState, type ReactNode } from 'react';
 import { Cite, EntityGraph, Segmented, TableSwatch, formatNumber, type GraphEdgeSpec, type GraphNodeSpec } from '@/components';

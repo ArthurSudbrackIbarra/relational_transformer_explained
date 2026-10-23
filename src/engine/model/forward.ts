@@ -135,7 +135,7 @@ export function embedTokens(tokens: readonly Token[], textEmb: TextEmbedder, w: 
     const key: SemKey = SEM_KEYS[t.sem];
     if (key === undefined) throw new Error(`forward: token ${i} has invalid sem type ${t.sem}`);
     if (t.mask) {
-      valueTerm.set(tensor(w, `mask_embs.${key}`), o); // raw m_t, not normalised (model.py:221-224)
+      valueTerm.set(tensor(w, `mask_embs.${key}`), o); // raw m_t, not normalized (model.py:221-224)
     } else {
       let pre: Float32Array;
       if (t.sem === SemType.Text) {

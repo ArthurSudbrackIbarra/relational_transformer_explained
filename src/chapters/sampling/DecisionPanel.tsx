@@ -179,7 +179,7 @@ function TimeFilter({ items, seedTs, db, pdb, slots, hover, onHover }: {
           const shown = fitText(lane.label, labelW - 6, FS, { mono: true });
           let body: React.ReactNode;
           if (dense) {
-            // one stacked bar per time bin: passes (filled), later (hollow), other task table (grey)
+            // one stacked bar per time bin: passes (filled), later (hollow), other task table (gray)
             const bins = Array.from({ length: nBins }, () => ({ pass: 0, future: 0, other: 0 }));
             const nullBin = { pass: 0, future: 0, other: 0 };
             for (const it of lane.items) {
@@ -233,7 +233,7 @@ function TimeFilter({ items, seedTs, db, pdb, slots, hover, onHover }: {
             body = lane.items.map((it) => {
               const cx0 = it.ts === null ? W - noTsW / 2 - 4 : x(it.ts);
               const filled = it.status === 'db' || it.status === 'task';
-              const grey = it.status === 'other-task';
+              const gray = it.status === 'other-task';
               const r = hover === it.node ? 5.5 : 4.2;
               return (
                 <g key={it.node} transform={`translate(${cx0},${y})`} onPointerEnter={() => onHover(it.node)} onPointerLeave={() => onHover(null)} style={{ cursor: 'default' }}>
@@ -242,8 +242,8 @@ function TimeFilter({ items, seedTs, db, pdb, slots, hover, onHover }: {
                   <path
                     d={shapePath(shapeOfSlot(lane.slot), r)}
                     style={{
-                      fill: filled ? catVar(lane.slot) : grey ? 'var(--axis)' : 'var(--surface)',
-                      stroke: filled ? 'var(--surface)' : grey ? 'var(--axis)' : catVar(lane.slot),
+                      fill: filled ? catVar(lane.slot) : gray ? 'var(--axis)' : 'var(--surface)',
+                      stroke: filled ? 'var(--surface)' : gray ? 'var(--axis)' : catVar(lane.slot),
                       opacity: it.status === 'future' ? 0.8 : 1,
                     }}
                     strokeWidth={1.2}
@@ -444,7 +444,7 @@ export function DecisionPanel({ step, iters, ctx, db, pdb, task, slots, before, 
             <TimeFilter items={children} seedTs={seedNode.ts} db={db} pdb={pdb} slots={slots} hover={hover} onHover={onHover} />
           )}
           <p className="mt-1 text-[14px] leading-snug text-muted">
-            Filled: passes. Hollow: later than the seed, skipped. Grey: another task table, skipped. Busy tables are drawn as counts per time bin. Equal
+            Filled: passes. Hollow: later than the seed, skipped. Gray: another task table, skipped. Busy tables are drawn as counts per time bin. Equal
             timestamps pass; rows without a timestamp always pass{seedNode.ts === null ? ' (and this seed has none, so nothing is time-filtered)' : ''}.
           </p>
         </div>

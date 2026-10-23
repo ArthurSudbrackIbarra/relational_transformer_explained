@@ -72,7 +72,7 @@ export function DecoderFan({ lane, pos, setPos }: { lane: Lane; pos: number; set
       }
       caption={
         <>
-          All values are the live forward pass of the mini model. The colour of a cell is the sign and size of one coordinate (blue negative, red
+          All values are the live forward pass of the mini model. The color of a cell is the sign and size of one coordinate (blue negative, red
           positive). Pick another position to see that the four heads produce outputs there too; only the masked cell’s own type is ever read.
         </>
       }

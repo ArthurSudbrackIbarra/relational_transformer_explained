@@ -22,7 +22,7 @@ export function HyperTable({ curves, results, dataset }: { curves: Curves | null
   const hp = run?.hp;
   const rows: Row[] = [
     {
-      what: 'Initialisation',
+      what: 'Initialization',
       paper: (
         <>
           PyTorch defaults after <code>seed_everything(0)</code> <Cite kind="code" ref="rt/main.py:98" />

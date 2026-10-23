@@ -76,7 +76,7 @@ const L_GRID = [16, 32, 48, 64, 96, 128, 160, 192, 256, 320, 384, 448, 512];
 const W_GRID = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64];
 
 /**
- * Fill of a table's segment. The splits of one task table share a colour (one table name, spec §2.5), so
+ * Fill of a table's segment. The splits of one task table share a color (one table name, spec §2.5), so
  * the Val / Test rows (the seed's own split) are hatched to tell them apart from the Train rows.
  */
 function segmentFill(slot: number, tableType: string): string {
@@ -149,7 +149,7 @@ export function ExperimentStats() {
           {pad > 0 && <li className="text-muted">padding · {pad}t</li>}
         </ul>
         {segments.some((c) => !c.seed && c.tableType !== 'Db' && c.tableType !== 'Train') && (
-          <p className="mt-1 text-[14px] text-muted">Hatched: Val or Test rows of the task table (all splits share one table name and colour).</p>
+          <p className="mt-1 text-[14px] text-muted">Hatched: Val or Test rows of the task table (all splits share one table name and color).</p>
         )}
       </div>
     </div>

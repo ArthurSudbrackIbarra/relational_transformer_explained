@@ -2,7 +2,7 @@
  * Section 3: all heads, all layers. The 4 layers × 4 heads attention matrices (AttnCapture.probs,
  * [H·S·S], query-major) of the selected block as small multiples, with the layer's mask drawn as
  * "blocked" cells. Per head: the mean largest weight and how much of its weight it places differently
- * from the mean of the heads (½ Σ_k |p_h − p̄|, averaged over real queries). A colour mode shows
+ * from the mean of the heads (½ Σ_k |p_h − p̄|, averaged over real queries). A color mode shows
  * p_h − p̄ directly. Click a panel to focus it (sets the store's layer + head), click a cell to make
  * its row the query (on touch screens a tap pins the readout instead). A focused large view below has
  * a readout, table identity strips and a table legend.
@@ -227,12 +227,12 @@ export function HeadGrid({ live }: { live: AttnLive }) {
         <div className="mb-2 flex flex-wrap items-end gap-x-4 gap-y-3">
           <SelectionBar live={live} showLayer={false} showHead={false} showQuery={false} />
           <Segmented
-            label="Colour"
+            label="Color"
             value={scale}
             onChange={setScale}
             options={[
-              { value: 'sqrt', label: '√weight', title: 'Colour ∝ √weight: makes small weights visible' },
-              { value: 'linear', label: 'weight', title: 'Colour ∝ weight' },
+              { value: 'sqrt', label: '√weight', title: 'Color ∝ √weight: makes small weights visible' },
+              { value: 'linear', label: 'weight', title: 'Color ∝ weight' },
               { value: 'diff', label: 'head − mean of heads', title: 'Diverging: where this head puts more (red) or less (blue) weight than the mean of the heads' },
             ]}
           />
@@ -353,7 +353,7 @@ export function HeadGrid({ live }: { live: AttnLive }) {
               Focused: block {block + 1} · <LayerLabel layer={layer} /> · head {head + 1}
             </div>
             <div className="text-[14.5px] text-muted">
-              the query’s row #{query} is outlined; grey cells are blocked by the {LAYER_INFO[layer].name.toLowerCase()} mask
+              the query’s row #{query} is outlined; gray cells are blocked by the {LAYER_INFO[layer].name.toLowerCase()} mask
             </div>
           </div>
           <FocusMap live={live} data={focusData} blocked={blocked[layer]} scale={scale} diffMax={panels.diffMax[layer]} ord={ord} />
@@ -370,7 +370,7 @@ export function HeadGrid({ live }: { live: AttnLive }) {
         keys, or is all zero when none is allowed. Under each head, <em>top</em> is its largest weight averaged over the real queries, and{' '}
         <em>Δ</em> is the share of its weight it places differently from the mean of the {H} heads (½ Σ<sub>k</sub> |p<sub>head</sub> − p<sub>mean</sub>|,
         averaged over queries). With √ scaling, a uniform row over {int(numReal)} keys ({pctw(1 / Math.max(1, numReal))} each) still shows as a pale wash;
-        the difference mode shows where one head departs from the others. All {H} heads of a layer share one mask, so their grey pattern is identical.
+        the difference mode shows where one head departs from the others. All {H} heads of a layer share one mask, so their gray pattern is identical.
       </p>
     </div>
   );
@@ -478,7 +478,7 @@ function GridLegend({ scale }: { scale: ScaleMode }) {
         <span className="num">{scale === 'diff' ? 'more weight than the mean of heads' : '1'}</span>
       </span>
       <span className="text-muted">
-        {scale === 'sqrt' ? 'colour ∝ √weight' : scale === 'linear' ? 'colour ∝ weight' : 'colour ∝ p_head − p_mean, scaled per layer'}
+        {scale === 'sqrt' ? 'color ∝ √weight' : scale === 'linear' ? 'color ∝ weight' : 'color ∝ p_head − p_mean, scaled per layer'}
       </span>
       <span className="inline-flex items-center gap-1.5">
         <span className="inline-block h-2.5 w-5 border border-accent" /> the query’s row

@@ -271,7 +271,7 @@ export function SalesFigure({
                   )}
                   {r.split !== 'Train' &&
                     (narrow ? (
-                      // narrow: the split name on its own line above the number, so neighbouring labels never collide
+                      // narrow: the split name on its own line above the number, so neighboring labels never collide
                       <text x={(a + b) / 2} y={y(r.stored) - 19} textAnchor="middle" className="fill-[var(--ink-2)] text-[13px]">
                         <tspan x={(a + b) / 2}>{r.split === 'Val' ? 'val' : 'test'}</tspan>
                         <tspan x={(a + b) / 2} dy={14} style={{ fontVariantNumeric: 'tabular-nums' }}>

@@ -197,7 +197,7 @@ export function TargetVsLabel({ live }: { live: TokensLive }) {
   );
   const labelHead = (
     <button type="button" className="inline-flex items-center gap-1.5 text-left hover:text-accent-text" onClick={() => inspectAndGo(lab.pos, 'Back to Step 3')} title="Inspect in Step 1">
-      <TableSwatch slot={slots[lab.tableName] ?? 0} /> {pick.kind === 'self' ? 'own past label' : 'other row’s label'} · pos {lab.pos}
+      <TableSwatch slot={slots[lab.tableName] ?? 0} /> {pick.kind === 'self' ? 'self label (own past label)' : 'other row’s label'} · pos {lab.pos}
     </button>
   );
   return (

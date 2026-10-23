@@ -131,7 +131,7 @@ export default function BlockChapter() {
         slug="block"
         lede={
           <>
-            Attention is one sublayer. A block chains five of them: four relational attentions and a gated feed-forward network, each adding its
+            Attention is one sublayer. A block chains five of them: four attention layers (three relational, one full) and a gated feed-forward network, each adding its
             result to a running vector per token. This chapter assembles the block, stacks it, and follows the masked target through the whole stack
             with the live numbers of the trained mini model.
           </>
@@ -257,7 +257,7 @@ export default function BlockChapter() {
           lines="62-86"
           code={MODEL_BLOCK_62_86}
           highlightLines={[83, 84, 85]}
-          note="Line 84 is the whole attention sublayer: normalise a copy, attend under this layer's mask, add the result. Line 85 does the same with the FFN."
+          note="Line 84 is the whole attention sublayer: normalize a copy, attend under this layer's mask, add the result. Line 85 does the same with the FFN."
         />
       </Section>
 
@@ -275,7 +275,7 @@ export default function BlockChapter() {
         </p>
         <h3>Algorithm 2 and the code disagree on placement</h3>
         <p>
-          The paper’s Algorithm 2 normalises the <em>output</em> of each sublayer before adding it. The code normalises the <em>input</em>: the
+          The paper’s Algorithm 2 normalizes the <em>output</em> of each sublayer before adding it. The code normalizes the <em>input</em>: the
           sublayer reads <TeX tex="\mathrm{RMSNorm}_\ell(x)" />, and its raw output is added to the stream <Cite kind="paper" ref="p.26 Alg. 2" />{' '}
           <Cite kind="code" ref="rt/model.py:84-85" />. This placement is called <Term id="pre-norm">pre-norm</Term>.
         </p>
@@ -302,7 +302,7 @@ export default function BlockChapter() {
         >
           <p>
             The code agrees with the paper’s own statement that “other architectural details (normalization, activations, etc.) follow the design
-            choices of LLaMA” <Cite kind="paper" ref="p.5 §3.2" />. LLaMA normalises the input of each sublayer instead of the output, citing
+            choices of LLaMA” <Cite kind="paper" ref="p.5 §3.2" />. LLaMA normalizes the input of each sublayer instead of the output, citing
             training stability <Cite kind="url" ref="https://arxiv.org/abs/2302.13971" title="Touvron et al. 2023, LLaMA, §2.2 Pre-normalization" />.
           </p>
         </Callout>
@@ -354,7 +354,7 @@ export default function BlockChapter() {
         </p>
         <MathBlock tex={SWIGLU_TEX} className="text-[18px] sm:text-[19px]" label={<Cite kind="code" ref="rt/model.py:59" />} />
         <p>
-          <TeX tex="W_1" /> and <TeX tex="W_3" /> map the normalised vector h from d = {d} to d<sub>ff</sub> = {dFF} hidden units; <TeX tex="W_2" />{' '}
+          <TeX tex="W_1" /> and <TeX tex="W_3" /> map the normalized vector h from d = {d} to d<sub>ff</sub> = {dFF} hidden units; <TeX tex="W_2" />{' '}
           maps back to {d}. The paper model uses 256 → 1024 → 256. In both, d<sub>ff</sub> = 4d: RT does not use LLaMA’s ⅔ sizing of the hidden
           layer <Cite kind="spec" ref="§7.1" />. The name <Term id="swiglu">SwiGLU</Term> joins Swish, another name for SiLU, with GLU, a gated linear
           unit <Cite kind="url" ref="https://arxiv.org/abs/2002.05202" title="Shazeer 2020, GLU Variants Improve Transformer" />: SiLU(W₁h) is the
@@ -370,7 +370,7 @@ export default function BlockChapter() {
         <Callout variant="note" title="The only gate in the block">
           <p>
             Besides SwiGLU’s W₃ branch, the paper-era block has no other gate. It also has no dropout, no attention bias, no positional encoding and
-            no normalisation of queries and keys <Cite kind="spec" ref="§7.1" />.
+            no normalization of queries and keys <Cite kind="spec" ref="§7.1" />.
           </p>
         </Callout>
         <CodeRef title="FFN: SwiGLU with three bias-free maps" file="rt/model.py" lines="50-59" code={MODEL_FFN_50_59} highlightLines={[59]} />
@@ -385,7 +385,7 @@ export default function BlockChapter() {
         <p>
           The model is a list of identical blocks with separate weights, followed by one more RMSNorm, <code>norm_out</code>{' '}
           <Cite kind="code" ref="rt/model.py:147-150" />. The forward pass runs the blocks in sequence, passing each the same four block masks, which
-          were built once from the token ids, and then normalises <Cite kind="code" ref="rt/model.py:226-229" />. The paper model has 12 blocks of
+          were built once from the token ids, and then normalizes <Cite kind="code" ref="rt/model.py:226-229" />. The paper model has 12 blocks of
           width 256 with 8 heads <Cite kind="paper" ref="p.6 §4.1" /> <Cite kind="code" ref="scripts/example_pretrain.py:32" />; the mini model has{' '}
           {nBlocks} blocks of width {d} with {H} heads.
         </p>
@@ -413,11 +413,11 @@ export default function BlockChapter() {
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 5 */}
-      <Section id="residual-stream" title="The residual stream of the target token" kicker="Step 5">
+      <Section id="residual-stream" title="The residual stream of the masked target" kicker="Step 5">
         <p>
           {nBlocks * 5} sublayers sit between the embedding and the decoders of the mini model ({nBlocks} blocks × 5), and each one adds its update to the
           target’s stream. The grid measures every update; the matrix shows the vector itself after each stage, one row per stage, on a shared
-          colour scale. Pick another token to compare.
+          color scale. Pick another token to compare.
         </p>
         <Figure wide title="One token through the whole stack">
           <ResidualStream live={live} follow={follow} setFollow={setFollow} />
@@ -468,7 +468,7 @@ export default function BlockChapter() {
               information about which {entity} it concerns.
             </li>
             <li>
-              <LayerLabel layer="nbr" />: {entity} cells read their child rows, the labelled task rows
+              <LayerLabel layer="nbr" />: {entity} cells read their child rows, the labeled task rows
               {childTables.length > 0 ? ` and the ${childTables.join(' and ')} rows` : ''} alike. This is where per-{entity} aggregates can form,
               “analogously to message-passing in GNNs” <Cite kind="paper" ref="p.5 §3.2" />.
             </li>
@@ -600,9 +600,9 @@ export default function BlockChapter() {
               prompt: 'In the code, is RMSNorm applied before or after each sublayer?',
               choices: [
                 {
-                  text: 'Before: x + MHA(RMSNorm(x)), so the stream itself is never normalised inside a block.',
+                  text: 'Before: x + MHA(RMSNorm(x)), so the stream itself is never normalized inside a block.',
                   correct: true,
-                  why: 'model.py:84-85 normalise a copy for the sublayer and add the raw output. This is LLaMA-style pre-norm.',
+                  why: 'model.py:84-85 normalize a copy for the sublayer and add the raw output. This is LLaMA-style pre-norm.',
                 },
                 {
                   text: 'After: x + Norm(MHA(x)), as in Algorithm 2.',

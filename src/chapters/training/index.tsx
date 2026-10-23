@@ -388,14 +388,16 @@ export default function TrainingChapter() {
         <p>
           {churn.zsStep !== undefined && sales.zsStep !== undefined ? (
             <>
-              In our run, customer-churn keeps step {int(churn.zsStep)} and product-sales keeps step {int(sales.zsStep)}. One pretraining run, two
-              checkpoints: that is why the site ships a <span className="font-mono">pretrain-churn</span> and a{' '}
-              <span className="font-mono">pretrain-sales</span> file, and why the global “auto” checkpoint depends on the task.{' '}
+              In our run, customer-churn keeps step {int(churn.zsStep)} and product-sales keeps step {int(sales.zsStep)}. One pretraining run, one
+              checkpoint per task: that is why the site ships a <span className="font-mono">pretrain-churn</span> and a{' '}
+              <span className="font-mono">pretrain-sales</span> file (plus <span className="font-mono">pretrain-rating</span> and{' '}
+              <span className="font-mono">pretrain-verified</span> for the two review tasks, and <span className="font-mono">pretrain-final</span>,
+              the last step), and why the global “auto” checkpoint depends on the task.{' '}
             </>
           ) : null}
           {churn.valJump !== undefined && (
             <>
-              Notice also how much the validation curve moves between neighbouring evaluations: up to {fx(churn.valJump * 100, 1)} AUROC points for
+              Notice also how much the validation curve moves between neighboring evaluations: up to {fx(churn.valJump * 100, 1)} AUROC points for
               customer-churn, on {churn.nVal ?? '…'} validation seeds. With so few seeds, which step wins is partly chance. At the chosen step the
               test AUROC is {P(churn.zsTest)}; at the last step it would have been {P(churn.lastTest)}.
             </>
@@ -474,7 +476,7 @@ export default function TrainingChapter() {
           customers and others below. PyTorch draws every initial weight and bias from an interval symmetric around zero{' '}
           <Cite kind="spec" ref="§7.4" />, so a network and its twin with the boolean decoder’s weights and bias negated are equally likely. The twin
           outputs the opposite logit for every seed and ranks every pair the other way round (AUROC 100 − x), so the expected AUROC over
-          initialisations is 50. Any single network is one draw from a wide distribution.
+          initializations is 50. Any single network is one draw from a wide distribution.
         </p>
         <p>
           The metrics average over every seed. To see what training changes for one prediction, here is the running example’s context passed through
@@ -511,7 +513,7 @@ export default function TrainingChapter() {
           <ul>
             <li>
               <strong>A head start.</strong> The pretrained run starts where zero-shot ends (sales test R² {P(sales.ft.step0)}), the random init at{' '}
-              {P(sales.ft.untStep0)}. The paper’s Figure 3 shows the same kind of gap: its pretrained curves start at the labelled zero-shot points,
+              {P(sales.ft.untStep0)}. The paper’s Figure 3 shows the same kind of gap: its pretrained curves start at the labeled zero-shot points,
               70.8 AUROC and 29.0 R², and the untrained ones start below the bottom of its axes <Cite kind="paper" ref="p.7 Fig. 3" />.
             </li>
             {sales.ft.earlyMin !== undefined && sales.ft.step0 !== undefined && sales.ft.earlyMin < sales.ft.step0 && (

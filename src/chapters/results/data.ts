@@ -7,11 +7,11 @@
  *  - Values are percentages exactly as printed (AUROC % or R² %), one decimal.
  *  - `null` = no number in the paper (Table 10 prints "nan" for RelLLM R²; Table 16 prints "−" for RelLLM).
  *  - `LT9` = the paper prints "< −9" (Table 16, LLM regression).
- *  - `mean` is the mean row AS PRINTED. Recomputed means are only ever shown labelled as such.
+ *  - `mean` is the mean row AS PRINTED. Recomputed means are only ever shown labeled as such.
  *  - Row order is the paper's row order for that table.
  *
  * Nothing in this file is computed: it is a transcription. Any derived number on the page is computed
- * from these arrays at render time and labelled as computed.
+ * from these arrays at render time and labeled as computed.
  */
 
 // ─────────────────────────────────────────────────────────────────────────────

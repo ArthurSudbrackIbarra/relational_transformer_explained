@@ -2,7 +2,7 @@
  * DotPlot: one row per task (plus the printed mean row), one marker per method on a shared value axis.
  * Used for Tables 1, 2/16, 3 and 10. Off-scale values ("< −9", or below the axis) become a chevron at
  * the axis edge with the printed value. Hover or focus a row for every value; the right-hand column
- * prints the focus method's value (selective direct labelling). Markers glide when the metric changes.
+ * prints the focus method's value (selective direct labeling). Markers glide when the metric changes.
  */
 import { motion, useReducedMotion } from 'motion/react';
 import { useState, type ReactNode } from 'react';

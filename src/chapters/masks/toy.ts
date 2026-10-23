@@ -110,7 +110,7 @@ export const TOY_TOKENS: Token[] = Array.from({ length: TOY_L }, (_, pos): Token
   };
 });
 
-/** ShopDB colour slots (BUILD_PLAN §3.5): customers 1, products 2, orders 3, task tables 5. */
+/** ShopDB color slots (BUILD_PLAN §3.5): customers 1, products 2, orders 3, task tables 5. */
 export const TOY_SLOTS: Record<string, number> = { customers: 1, products: 2, orders: 3, 'customer-churn': 5 };
 
 /** Toy row names as the spec writes them (c0, o1, p1, #16 …). */

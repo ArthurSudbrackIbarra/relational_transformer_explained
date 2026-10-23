@@ -3,7 +3,7 @@
  * laid out with d3-force (deterministic: seeded random source, fixed ticks).
  *
  * Table identity = hue × shape (composite encoding; the ShopDB slots fail the
- * all-pairs colour check, see index.css) plus a legend. Highlight API:
+ * all-pairs color check, see index.css) plus a legend. Highlight API:
  * `highlight`, `muted`, `rings`, `badges`, `highlightEdges`, `selected`.
  * Pass `positions` to pin a layout (e.g. keep nodes still while a BFS animates).
  */
@@ -70,7 +70,7 @@ export interface EntityGraphProps {
   /** Accessible name. */
   title?: string;
   /**
-   * Optional guide ellipses centred on the layout origin (layout units), drawn under the edges,
+   * Optional guide ellipses centered on the layout origin (layout units), drawn under the edges,
    * e.g. hop-distance rings around a pinned radial layout. Each label sits at the top of its ring.
    */
   guides?: readonly { rx: number; ry: number; label?: string }[];
@@ -90,7 +90,7 @@ const R = 7.5;
 /** Node label and badge sizes (screen px; constant whatever the zoom). */
 const LABEL_PX = 13.5;
 const BADGE_PX = 13;
-/** Gap between a node's centre and its label. */
+/** Gap between a node's center and its label. */
 const LABEL_GAP = R + 7;
 
 type LabelPlacement = { dx: number; dy: number; anchor: 'start' | 'end' | 'middle' };

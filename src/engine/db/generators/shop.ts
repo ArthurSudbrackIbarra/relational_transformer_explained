@@ -314,7 +314,7 @@ export function generateShop(seed = SHOP_SEED): GeneratedDb {
   };
   const textOf = (rating: number): string | null => {
     if (rr.bool(0.08)) return null; // star-only review: a missing value → no token (spec §3.5)
-    // text correlates with rating: usually the same star level, sometimes a neighbouring one
+    // text correlates with rating: usually the same star level, sometimes a neighboring one
     let level = rating;
     const u = rr.next();
     if (u < 0.1) level = Math.max(1, rating - 1);

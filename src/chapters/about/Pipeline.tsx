@@ -289,7 +289,7 @@ function Detail({ id }: { id: StageId }) {
         <>
           <p>
             Every string the model can meet (table names, “&lt;column&gt; of &lt;table&gt;” phrases, text cell values) is collected once and embedded
-            with the frozen <span className="font-mono text-[16px]">all-MiniLM-L12-v2</span> sentence encoder, mean-pooled and L2-normalised, as the
+            with the frozen <span className="font-mono text-[16px]">all-MiniLM-L12-v2</span> sentence encoder, mean-pooled and L2-normalized, as the
             official preprocessing does <Cite kind="spec" ref="§3.6" /> <Cite kind="code" ref="rt/embed.py:12-72" />. The browser only looks vectors
             up; it never runs the encoder.
           </p>

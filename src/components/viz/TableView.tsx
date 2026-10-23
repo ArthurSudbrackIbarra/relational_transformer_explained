@@ -22,7 +22,7 @@ import { toSet } from './useSize';
 export interface TableViewProps {
   schema: TableSchema;
   rows: readonly Record<string, RawValue>[];
-  /** Table colour slot (left border + header swatch). */
+  /** Table color slot (left border + header swatch). */
   slot?: number;
   /** Display title (default schema.name); e.g. "customer-churn (Train)". */
   title?: ReactNode;
@@ -176,7 +176,7 @@ export function TableView({
     const left = idxW + cols.slice(0, i).reduce((s, c) => s + colWidth(c.name), 0);
     const right = left + colWidth(scrollToCol);
     if (left < el.scrollLeft || right > el.scrollLeft + el.clientWidth) {
-      // centre the column (the row-position column scrolls with the table)
+      // center the column (the row-position column scrolls with the table)
       const target = Math.max(0, left - Math.max(0, (el.clientWidth - (right - left)) / 2));
       el.scrollTo(pendingTop.current !== null ? { left: target, top: pendingTop.current, behavior: 'smooth' } : { left: target, behavior: 'smooth' });
     }

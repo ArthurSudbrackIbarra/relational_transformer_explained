@@ -153,7 +153,7 @@ export default function TasksChapter() {
       text = (
         <>
           Other {entityWord}s’ task rows can only be reached through other {entityWord} rows, further from the seed{' '}
-          <Cite kind="spec" ref="§2.5" /> (<Link to="/sampling">Chapter 6</Link>).
+          <Cite kind="spec" ref="§2.5" /> (<Link to="/sampling">chapter 6</Link>).
         </>
       );
     }
@@ -328,7 +328,7 @@ export default function TasksChapter() {
           ShopDB’s version is <code>customer-churn</code>: will the customer place <em>no</em> order in the next {churn.timedeltaDays} days?
           Each row has three
           columns: a <code>timestamp</code> t, a foreign key <code>customer_id</code>, and the label <code>churn</code>. Like RelBench task
-          tables, it has no primary key <Cite kind="spec" ref="§2.1" />. The label summarises the future window (t, t + Δ], here with
+          tables, it has no primary key <Cite kind="spec" ref="§2.1" />. The label summarizes the future window (t, t + Δ], here with
           Δ = {churn.timedeltaDays} days <Cite kind="spec" ref="§2.2" />.
         </p>
         <Figure
@@ -397,7 +397,7 @@ export default function TasksChapter() {
             footer={
               <>
                 customer_id is a foreign key: no token, only a link to the customer. The z-scored view shows the values as stored for the
-                model (Chapter 4).{tableNarrow && ' On narrow screens the label column is listed before customer_id.'}
+                model (chapter 4).{tableNarrow && ' On narrow screens the label column is listed before customer_id.'}
               </>
             }
           />
@@ -421,7 +421,7 @@ export default function TasksChapter() {
             <>
               Choose where a seed row sits. The sampler skips a task row only if its timestamp is <em>later</em> than the seed’s, so rows at
               the same timestamp pass <Cite kind="code" ref="rustler/src/fly.rs:421-424" />. The figure shows only this time filter: whether
-              a row that passes it actually lands in the context depends on the search and on L (<Link to="/sampling">Chapter 6</Link>).
+              a row that passes it actually lands in the context depends on the search and on L (<Link to="/sampling">chapter 6</Link>).
             </>
           }
         >
@@ -547,7 +547,7 @@ export default function TasksChapter() {
           One more difference concerns time. The paper says it uses “database rows only up to the training cutoff timestamps”{' '}
           <Cite kind="paper" ref="p.6 §4.1" />, but the paper-era code drops no database row by date; the sampler’s filter on child rows
           is the only time guard <Cite kind="code" ref="rustler/src/fly.rs:421-424" /> <Cite kind="spec" ref="§10 #10" />. ShopDB keeps
-          every row, as the code does (<Link to="/training">Chapter 13</Link> has the details).
+          every row, as the code does (<Link to="/training">chapter 13</Link> has the details).
         </p>
         <CodeTabs
           tabs={[
@@ -741,8 +741,8 @@ export default function TasksChapter() {
       {/* ───────────────────────────── 5 ───────────────────────────── */}
       <Section id="prompting" title="Task-table prompting">
         <p>
-          This is the first of RT’s two innovations in input representation; the second, cell-level tokenization, is{' '}
-          <Link to="/tokens">Chapter 7</Link> <Cite kind="paper" ref="p.4 §3.1" />. “For each task, we attach a dedicated task table to the
+          This is the first of RT’s two innovations in input representation; the second, cell-level tokenization, is the subject of{' '}
+          <Link to="/tokens">chapter 7</Link> <Cite kind="paper" ref="p.4 §3.1" />. “For each task, we attach a dedicated task table to the
           database. Only one task table
           is active at a time, ensuring that sampling is task-specific. Rows from the task table serve as seed rows for context
           construction, and from the model’s perspective task tables are treated as ordinary relational tables”{' '}
@@ -761,7 +761,7 @@ export default function TasksChapter() {
           “augments the database input with task-specific context, enabling zero-shot predictions across diverse schemas”{' '}
           <Cite kind="paper" ref="p.4 §3.1" />, that is, predictions on a new database without weight updates{' '}
           <Cite kind="paper" ref="p.4 §2.3" />. And since the task’s past rows carry their labels, the table also shows the
-          model what answers look like for this entity and its neighbours <Cite kind="spec" ref="§2.5" />.
+          model what answers look like for this entity and its neighbors <Cite kind="spec" ref="§2.5" />.
         </p>
         <p>
           In the code, “only one task table is active” works like this. Preprocessing indexes every task table of the database{' '}
@@ -801,7 +801,7 @@ export default function TasksChapter() {
           Nothing tells the model which row holds the question. Every task row carries an <code>is_task_node</code> flag, but the model
           never reads it <Cite kind="spec" ref="§2.1" />. The seed is special only because its label cell is the one masked token{' '}
           <Cite kind="code" ref="rustler/src/fly.rs:492-496" />. The next chapter turns all these rows into numbers: which cells become
-          tokens, and how each value is normalized (<Link to="/preprocessing">Chapter 4</Link>).
+          tokens, and how each value is normalized (<Link to="/preprocessing">chapter 4</Link>).
         </p>
         <Code s={FLY_MASK} title="The one masked cell: the seed row’s target column" />
 

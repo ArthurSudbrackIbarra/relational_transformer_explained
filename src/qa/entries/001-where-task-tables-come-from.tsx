@@ -232,7 +232,7 @@ export default function Answer() {
       <Section id="no-history" title="And if the task has no history at all?">
         <p>
           Then there are no past labels to put in the context, and the paper’s numbers say to expect little. Removing the target
-          entity’s own past labels drops mean zero-shot AUROC from 70.1 to 53.8 <Cite kind="paper" ref="p.9 Table 4" />. On{' '}
+          entity’s own past labels (its self labels) drops mean zero-shot AUROC from 70.1 to 53.8 <Cite kind="paper" ref="p.9 Table 4" />. On{' '}
           <code>rel-trial/study-outcome</code>, contexts contain no labels at all (0 ± 0 per context){' '}
           <Cite kind="paper" ref="p.23 Table 12" />, and RT’s zero-shot AUROC is 51.8, next to the 50.0 of random guessing{' '}
           <Cite kind="paper" ref="p.8 Table 1" />. <Link to="/results">Chapter 15</Link> shows the same collapse on this site’s model.

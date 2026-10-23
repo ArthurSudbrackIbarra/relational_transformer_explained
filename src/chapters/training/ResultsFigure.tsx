@@ -2,7 +2,7 @@
  * Results on ShopDB (results.json): for each forecast task, five models on one axis as a dot plot
  * (position, not length: AUROC differences of a few points would vanish in bars from 0), with the
  * val split used for selection (hollow) and the reported test split (filled). Plus: the spread of
- * seven untrained initialisations (diagnostics.untrainedInitSeeds), the paper's means for context,
+ * seven untrained initializations (diagnostics.untrainedInitSeeds), the paper's means for context,
  * and a "re-run it in your browser" panel that recomputes each number with the live engine.
  */
 import { Check, Play, X } from 'lucide-react';
@@ -275,7 +275,7 @@ function PaperContext() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Luck: seven untrained initialisations
+// Luck: seven untrained initializations
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function InitSpread({ results }: { results: Results | null }) {
@@ -311,7 +311,7 @@ function InitSpreadInner({ results, seeds }: { results: Results; seeds: Record<s
         <div className="mb-3 flex flex-wrap items-end gap-3">
           <div className="mr-auto min-w-0">
             <div className="text-[17px] font-semibold text-ink">How lucky is an untrained network?</div>
-            <div className="text-[15px] text-ink-2">Seven random initialisations, no training at all, evaluated like the zero-shot model</div>
+            <div className="text-[15px] text-ink-2">Seven random initializations, no training at all, evaluated like the zero-shot model</div>
           </div>
           <Segmented
             label="Split"
@@ -324,7 +324,7 @@ function InitSpreadInner({ results, seeds }: { results: Results; seeds: Record<s
           />
         </div>
         <div ref={ref}>
-          <svg width={width} height={H} role="img" aria-label="Metric of seven untrained initialisations" className="block">
+          <svg width={width} height={H} role="img" aria-label="Metric of seven untrained initializations" className="block">
             {lanes.map((l, li) => {
               const all = [...l.vals.map((d) => d.v), l.zs ?? NaN, l.em ?? NaN].filter(Number.isFinite).map((v) => v * 100);
               const isA = l.t.metric === 'auroc';
@@ -372,7 +372,7 @@ function InitSpreadInner({ results, seeds }: { results: Results; seeds: Record<s
                     </g>
                   ))}
                   {marks.map((m, mi) => {
-                    // first mark labelled above the axis, second below it, so they never collide
+                    // first mark labeled above the axis, second below it, so they never collide
                     const right = x(m.v) > width * 0.7;
                     return (
                       <g key={m.label}>
@@ -426,15 +426,15 @@ function InitSpreadInner({ results, seeds }: { results: Results; seeds: Record<s
         <details className="mt-1 text-[15px]">
           <summary className="cursor-pointer text-ink-2">Table view</summary>
           <DataTable
-            caption="Untrained initialisations"
+            caption="Untrained initializations"
             columns={['init seed', ...SHOP_FORECAST.map((t) => `${t.short} ${split.toLowerCase()} (%)`)]}
             rows={Object.entries(seeds).map(([s, m]) => [s === '0' ? '0 (our init)' : s, ...SHOP_FORECAST.map((t) => pct(m[`${t.id}/${split}`]))])}
           />
         </details>
       </div>
       <figcaption className="mx-auto mt-3 max-w-[var(--prose-max)] text-[16px] leading-snug text-ink-2">
-        Dots: PyTorch-default initialisations after <code>torch.manual_seed(s)</code>, s = 0…{Object.keys(seeds).length - 1}. The filled dot, s = 0,
-        is the starting point of our pretraining run. Vertical lines: the pretrained zero-shot model (blue) and EntityMean (grey) on the same split.
+        Dots: PyTorch-default initializations after <code>torch.manual_seed(s)</code>, s = 0…{Object.keys(seeds).length - 1}. The filled dot, s = 0,
+        is the starting point of our pretraining run. Vertical lines: the pretrained zero-shot model (blue) and EntityMean (gray) on the same split.
       </figcaption>
     </figure>
   );

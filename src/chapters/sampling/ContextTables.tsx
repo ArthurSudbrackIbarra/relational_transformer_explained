@@ -1,5 +1,5 @@
 /**
- * Right pane of the centrepiece (after paper Fig. 6b): the context as per-table mini tables that fill
+ * Right pane of the centerpiece (after paper Fig. 6b): the context as per-table mini tables that fill
  * up in visit order. Uses the shared TableView: key columns keep their key/link icons (they produce no
  * token), the masked target shows "?", the row being processed is highlighted.
  */

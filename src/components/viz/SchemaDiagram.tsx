@@ -1,7 +1,7 @@
 /**
  * SchemaDiagram: tables as cards listing their columns with PK / FK / time
  * markers and sem-type badges; FK arrows drawn F→P (child row → parent row,
- * spec §1.3), card accent = table colour (BUILD_PLAN §5).
+ * spec §1.3), card accent = table color (BUILD_PLAN §5).
  *
  * Auto layout: tables without FKs (pure parents) in the left column, each
  * child one column right of its deepest parent, task tables last. Arrows are
@@ -42,7 +42,7 @@ export interface SchemaDiagramProps {
   keysOnly?: boolean;
   /** Horizontal gap between layout columns, where the arrows run (px). Default 56. */
   gutter?: number;
-  /** Colour each arrow by its child table (at rest); hover still uses the accent. Default false. */
+  /** Color each arrow by its child table (at rest); hover still uses the accent. Default false. */
   tintArrows?: boolean;
   className?: string;
 }

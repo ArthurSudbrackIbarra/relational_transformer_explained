@@ -9,7 +9,7 @@
  *     smoothed one, eval points drawn as markers;
  *   - `clipX`: draw every series only up to an x (the checkpoint-selection replay);
  *   - highlighted points (the selected checkpoint) and keyboard scrubbing (← → when focused).
- * All text uses SVG_TYPE sizes (never below 13px here) and ink tokens, never the series colour.
+ * All text uses SVG_TYPE sizes (never below 13px here) and ink tokens, never the series color.
  */
 import { scaleLinear, scaleLog } from 'd3';
 import { useMemo, useState, type ReactNode } from 'react';
@@ -406,7 +406,7 @@ export function TrainChart({
             {highlights?.map((h) => {
               const hx0 = px(h.x);
               const hy0 = yv(h.y);
-              // label to the right of the ring if it fits, else to the left, else centred above (clamped to the plot)
+              // label to the right of the ring if it fits, else to the left, else centered above (clamped to the plot)
               const tw = h.label ? textWidth(h.label, T.annotation) * 1.04 : 0;
               let lx = 14;
               let anchor: 'start' | 'end' = 'start';

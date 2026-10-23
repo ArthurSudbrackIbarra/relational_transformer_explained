@@ -415,8 +415,8 @@ function Inspector({ live, block, active, stages, follow }: { live: BlockLive; b
           <p className="!mb-2 mt-1.5 text-[16px] leading-snug text-ink-2">
             {active < 0 ? (
               <>
-                This is {block === 0 ? 'the input embedding x⁽⁰⁾ of chapter 8' : `the output of block ${block}`}. The block never rescales it:
-                each sublayer reads a normalised copy and adds its update back.
+                This is {block === 0 ? 'the input embedding x⁽⁰⁾ (chapter 8’s x₀)' : `the output of block ${block}`}. The block never rescales it:
+                each sublayer reads a normalized copy and adds its update back.
               </>
             ) : (
               <>
@@ -526,7 +526,7 @@ function Inspector({ live, block, active, stages, follow }: { live: BlockLive; b
         <VectorStrip values={prev.x} label="x entering" domain={m} cellHeight={18} />
         {stage.update && <VectorStrip values={stage.update} label="Δ, the update the sublayer adds" domain={m} cellHeight={18} />}
         <VectorStrip values={stage.x} label="x + Δ, leaving" domain={m} cellHeight={18} />
-        <Note>All three strips share one colour scale (±{fx(m)}), so you can compare them cell by cell.</Note>
+        <Note>All three strips share one color scale (±{fx(m)}), so you can compare them cell by cell.</Note>
       </div>
     </div>
   );

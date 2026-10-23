@@ -168,7 +168,7 @@ export function ChurnBuilder({
       el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
       return;
     }
-    // all customers: centre the followed customer's latest row
+    // all customers: center the followed customer's latest row
     const rows = el.querySelectorAll<HTMLElement>('[data-own-row]');
     const last = rows[rows.length - 1];
     if (last) {

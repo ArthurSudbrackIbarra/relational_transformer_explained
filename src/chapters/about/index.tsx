@@ -28,7 +28,7 @@ import {
 import { AttentionKernels } from './AttentionKernels';
 import { BrowserParity } from './BrowserParity';
 import { RunCommands, SamplerCrossCheck } from './CrossCheck';
-import { findBlock, int, sci, useRawSource, useVerification } from './data';
+import { findBlock, int, maxCheckpointDiff, sci, useRawSource, useVerification } from './data';
 import { DifferenceCards, RandomnessAudit } from './Differences';
 import { CheckpointParity, ThreeImplementations, TsFixtureTable } from './Parity';
 import { PipelineMap } from './Pipeline';
@@ -52,7 +52,7 @@ function Glance() {
   return (
     <div className="mt-6 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
       <Stat label="TypeScript vs PyTorch" value={v ? sci(v.ts_vs_torch_max_abs_diff) : '…'} caption={v ? `largest |Δ| over every activation, ${Object.keys(v.details.tsVsTorch).length} fixtures` : ' '} emphasis />
-      <Stat label="Official model.py vs port" value={v ? sci(v.official_vs_port_max_abs_diff) : '…'} caption={v ? `largest |Δ|, ${v.checkpoints.length} checkpoints × ${v.n_contexts} contexts` : ' '} />
+      <Stat label="Official model.py vs port" value={v ? sci(v.official_vs_port_max_abs_diff) : '…'} caption={v ? `largest |Δ|, with random weights; ${v.checkpoints.length} trained checkpoints × ${v.n_contexts} contexts: ≤ ${sci(maxCheckpointDiff(v))}` : ' '} />
       <Stat label="Sampler cross-check" value={v ? `${v.sampler_crosscheck.mismatches} diffs` : '…'} caption={v ? `${int(v.sampler_crosscheck.contexts)} contexts rebuilt independently` : ' '} />
       <Stat label="Tests" value={v ? `${int(v.details.testsTotal - v.details.testsFailed)}/${int(v.details.testsTotal)}` : '…'} caption={v ? `passing, last full run ${v.date}` : ' '} />
     </div>
@@ -183,7 +183,7 @@ export default function AboutChapter() {
             <>
               Each dot is the largest difference over all values of one stage: the input embedding x0, the output of each of the 20 sublayers
               (four attention layers and the feed-forward network in four blocks, numbered from 0 as in the fixtures), the final norm, the decoders,
-              the loss and the prediction. The grey tick marks one float32 step at that stage’s largest value. Dots near their tick are rounding.
+              the loss and the prediction. The gray tick marks one float32 step at that stage’s largest value. Dots near their tick are rounding.
             </>
           }
         >
@@ -228,7 +228,7 @@ export default function AboutChapter() {
 
         <h3>The test suite</h3>
         <p>
-          The unit tests pin down the behaviour the spec describes: preprocessing statistics on the spec’s toy database, the sampler’s invariants
+          The unit tests pin down the behavior the spec describes: preprocessing statistics on the spec’s toy database, the sampler’s invariants
           (one target, the seed first, parents before children, the temporal filter, the width bound, the hard stop at L), the masks of the spec’s
           worked example, the forward pass against PyTorch, and properties of the generated databases. Every title below is read from the test files
           themselves.
@@ -309,7 +309,7 @@ export default function AboutChapter() {
           title="Dense softmax vs the engine’s, on the live context"
           caption={
             <>
-              Each strip has one cell per key position of the live context (grey = padding). Raw scores use the diverging scale (blue negative, red
+              Each strip has one cell per key position of the live context (gray = padding). Raw scores use the diverging scale (blue negative, red
               positive). Weights use the blue sequential scale relative to the row’s largest weight; a weight of exactly 0 stays blank and red marks
               NaN. Hover a cell to read its values. The arrows step through the query positions. This uses the global context, so it follows your
               simulation settings.
@@ -378,7 +378,7 @@ export default function AboutChapter() {
               name, not MiniLMv2 <Cite kind="spec" ref="§10" />.
             </>
           }
-          verdict={<>This site uses the model the code loads, all-MiniLM-L12-v2, with mean pooling and L2 normalisation.</>}
+          verdict={<>This site uses the model the code loads, all-MiniLM-L12-v2, with mean pooling and L2 normalization.</>}
         />
         <p>
           This course is an independent teaching re-implementation. It is not an official release of the paper’s authors, and its small model is not

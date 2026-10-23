@@ -1,5 +1,5 @@
 /**
- * RT weights: binary format, loading, PyTorch-default initialisation.
+ * RT weights: binary format, loading, PyTorch-default initialization.
  *
  * File format (written by python/export_weights.py, read here):
  *   <name>.bin   float32 little-endian, every tensor's values concatenated (row-major / C order)
@@ -108,7 +108,7 @@ export function loadWeights(name: string): Promise<RTWeights> {
 }
 
 /**
- * PyTorch-default initialisation (spec §7.4; no custom init in PE/rt/model.py):
+ * PyTorch-default initialization (spec §7.4; no custom init in PE/rt/model.py):
  *  - nn.Linear weight: kaiming_uniform_(a=√5) ⇒ U(−1/√fan_in, 1/√fan_in); bias: U(−1/√fan_in, 1/√fan_in);
  *  - nn.RMSNorm γ = 1;
  *  - mask_embs: torch.randn(d) ⇒ N(0, 1) (model.py:143).

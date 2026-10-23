@@ -53,7 +53,7 @@ export interface DeltaRow {
   emphasis?: boolean;
 }
 
-/** Rows of "variant · Δ bar · value", Δ = display(variant) − display(base), centred on zero. */
+/** Rows of "variant · Δ bar · value", Δ = display(variant) − display(base), centered on zero. */
 export function DeltaRows({ rows, baseOutput, task, caption }: { rows: DeltaRow[]; baseOutput: number; task: TaskDef; caption: string }) {
   const { stats } = usePlayLive();
   const base = readout(baseOutput, task, stats).display;

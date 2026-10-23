@@ -212,7 +212,7 @@ export function ZeroShotTasks({ metric }: { metric: Metric }) {
       caption={
         metric === 'clf' ? (
           <>
-            Each row is one RelBench task; the grey bar spans the compared methods. The right column prints {METHODS[preset.focus]?.label}. Off-scale
+            Each row is one RelBench task; the gray bar spans the compared methods. The right column prints {METHODS[preset.focus]?.label}. Off-scale
             values would show as a chevron at the left edge. Switch to the table for the paper’s full Table 1.
           </>
         ) : (

@@ -1,6 +1,6 @@
 /**
  * Step 3 read-out: how short the column term comes out in the checkpoint this page runs, and why the
- * column projection starts below ε at initialisation in both our model and the paper's. Every number
+ * column projection starts below ε at initialization in both our model and the paper's. Every number
  * is computed from the live forward pass, the live weights or the exported init weights.
  */
 import { memo } from 'react';
@@ -50,7 +50,7 @@ export const EpsFinding = memo(function EpsFinding({ live }: { live: EmbeddingSt
   const gNum = gVals[0].len;
   const colLowest = gVals.every((v) => gCol < v.len);
 
-  // initialisation: the exported init weights on the same phrases
+  // initialization: the exported init weights on the same phrases
   const initMs =
     init && store && init.config.dModel === d ? median(phrases.map((p) => meanSquare(columnProjection(init, store, p).pre))) : NaN;
   const dText = weights.config.dText;
@@ -84,7 +84,7 @@ export const EpsFinding = memo(function EpsFinding({ live }: { live: EmbeddingSt
         </p>
       )}
       <p>
-        Why the column projection starts small follows from the default initialisation, in our model and in the paper’s alike. PyTorch draws
+        Why the column projection starts small follows from the default initialization, in our model and in the paper’s alike. PyTorch draws
         every weight and bias of <code>nn.Linear({dText}, d)</code> uniformly from <TeX tex={String.raw`\pm 1/\sqrt{${dText}}`} />{' '}
         <Cite kind="spec" ref="§7.4" />, and c has length 1 <Cite kind="spec" ref="§3.6" />. Each output dimension then has{' '}
         <TeX tex={String.raw`\mathbb{E}[x_j^2] = (\|c\|^2 + 1)/(3\cdot ${dText}) = 1/${(3 * dText) / 2} \approx ${(2 / (3 * dText)).toFixed(4)}`} />

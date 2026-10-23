@@ -1,7 +1,7 @@
 /**
  * Horizontal dot plot on a log₁₀ x-axis, for absolute differences (|TS − PyTorch|, |official − port|).
- * One dot per row (single series in the accent colour); an optional grey tick per row marks a reference
- * value (one float32 step at that row's magnitude); dashed vertical lines mark thresholds, labelled in a
+ * One dot per row (single series in the accent color); an optional gray tick per row marks a reference
+ * value (one float32 step at that row's magnitude); dashed vertical lines mark thresholds, labeled in a
  * band above the axis so they never collide with the dots.
  * Exact zeros (if any) sit in a separate "0" column on the left as hollow dots.
  * Below 520px the row labels move above their dot lines, so the plot keeps the full width.
@@ -16,7 +16,7 @@ export interface LogDotRow {
   id: string;
   label: string;
   value: number;
-  /** Optional per-row reference (grey tick). */
+  /** Optional per-row reference (gray tick). */
   ref?: number;
   /** Extra tooltip lines. */
   extra?: { k: string; v: string }[];

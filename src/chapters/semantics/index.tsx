@@ -169,7 +169,7 @@ export default function SemanticsChapter() {
           <Nw>
             <Cite kind="paper" ref="p.4 §3.1" />.
           </Nw>{' '}
-          The value is normalised (numbers, dates and booleans; chapter 4) or embedded (text; Step 5) and becomes the token’s value term. The
+          The value is normalized (numbers, dates and booleans; chapter 4) or embedded (text; Step 5) and becomes the token’s value term. The
           other two are joined into a short English phrase, “&lt;column_name&gt; of &lt;table_name&gt;”, and embedded by a frozen text encoder.
           The paper’s examples are “price of product” and “age of user”, and it calls this{' '}
           <Nw>
@@ -266,7 +266,7 @@ export default function SemanticsChapter() {
         </p>
         <p>
           The table name reaches a token only through the phrase. Each token also carries <code>table_name_idx</code>, but only as an integer:
-          the column mask compares it <Cite kind="code" ref="rt/model.py:181-183" />, and the sampler uses it to recognise task{' '}
+          the column mask compares it <Cite kind="code" ref="rt/model.py:181-183" />, and the sampler uses it to recognize task{' '}
           <Nw>
             tables <Cite kind="code" ref="rustler/src/fly.rs:417" />.
           </Nw>{' '}
@@ -424,7 +424,7 @@ export default function SemanticsChapter() {
         <Figure
           wide
           title={`Cosine similarity: ${DB_SHORT[live.dbName]} phrases vs the ${others} databases`}
-          caption="Colour runs from 0 to the legend’s maximum: the largest cosine shown, rounded up to 0.1. The ring marks each row’s best match. Rows are grouped by table, columns by database and then by table (named above each group, with the table’s colour). On a narrow screen the cells scroll sideways under fixed row labels."
+          caption="Color runs from 0 to the legend’s maximum: the largest cosine shown, rounded up to 0.1. The ring marks each row’s best match. Rows are grouped by table, columns by database and then by table (named above each group, with the table’s color). On a narrow screen the cells scroll sideways under fixed row labels."
         >
           {store && catalog ? (
             <SimilarityMatrix store={store} catalog={catalog} home={live.dbName} focus={focus} onFocus={setFocus} />
@@ -503,12 +503,12 @@ export default function SemanticsChapter() {
           ) : (
             'they keep only part of the variance'
           )}
-          , so nearby points are not always near neighbours. Pin a phrase to draw its true nearest neighbours, measured in all 384 dimensions.
+          , so nearby points are not always near neighbors. Pin a phrase to draw its true nearest neighbors, measured in all 384 dimensions.
         </p>
         <Figure
           wide
           title="Column phrases of the four databases, 2-D PCA"
-          caption="Colour and shape mark the database. Hollow markers are key columns (interned, never on a token). Dashed lines join the pinned phrase to its five nearest phrases in 384-d. Click a database chip to hide it."
+          caption="Color and shape mark the database. Hollow markers are key columns (interned, never on a token). Dashed lines join the pinned phrase to its five nearest phrases in 384-d. Click a database chip to hide it."
         >
           {pcaPoints && store && catalog ? (
             <PhraseMap points={pcaPoints} store={store} catalog={catalog} focus={focus} onFocus={setFocus} />
@@ -677,7 +677,7 @@ export default function SemanticsChapter() {
             entity” <Cite kind="paper" ref="p.9 §5.1" />.
           </Nw>{' '}
           Names are a consistent but smaller signal. One way to read the zero-shot versus fine-tuned difference (ours, not the paper’s): a
-          fine-tuned model has seen many labelled examples of the task and can learn what each column means from its values, while a zero-shot
+          fine-tuned model has seen many labeled examples of the task and can learn what each column means from its values, while a zero-shot
           model must rely more on what the names say.
         </p>
         <Figure wide>
@@ -919,7 +919,7 @@ export default function SemanticsChapter() {
               choices: [
                 { text: 'W_col, its bias and the RMSNorm gain', correct: true, why: 'enc_dict["col_name"] and norm_dict["col_name"] are the first trainable modules (model.py:115-140).' },
                 { text: 'All of MiniLM’s layers, plus W_col', why: 'MiniLM never runs during training; its vectors are read from a file.' },
-                { text: 'None: the phrase vector is added to the token unchanged', why: 'The 384-d vector is first projected to d and normalised by learned layers.' },
+                { text: 'None: the phrase vector is added to the token unchanged', why: 'The 384-d vector is first projected to d and normalized by learned layers.' },
               ],
               explanation: 'The encoder is frozen by construction: its output is plain data stored before training starts.',
             },

@@ -3,7 +3,7 @@
  *  - MatrixCanvas: a dense matrix (weights or activations) on canvas, diverging blue↔red, with an
  *    emphasised band of rows or columns (e.g. the 16 rows of W_q that make head j's query).
  *  - VStrip: a vector drawn vertically (one cell per dimension), for "h → W → q" layouts.
- * Colours come from the shared diverging scale (BUILD_PLAN §5: signed vector values).
+ * Colors come from the shared diverging scale (BUILD_PLAN §5: signed vector values).
  */
 import { useEffect, useRef, useState } from 'react';
 import { divergingRgb, rgbCss, sequentialCss } from '@/components/viz/scales';
@@ -18,7 +18,7 @@ export interface MatrixCanvasProps {
   /** CSS px per cell (width, height). */
   cellW: number;
   cellH: number;
-  /** Symmetric colour domain max |v|. */
+  /** Symmetric color domain max |v|. */
   maxAbs: number;
   /** Emphasised half-open ranges; everything else is faded. */
   bandRows?: [number, number] | null;

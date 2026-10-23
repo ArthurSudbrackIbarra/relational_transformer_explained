@@ -1,5 +1,5 @@
 /**
- * The chapter's centrepiece: fly.rs building the live context, one decision at a time.
+ * The chapter's centerpiece: fly.rs building the live context, one decision at a time.
  *
  *   controls (split, seed, L, w, RNG seed; local to this chapter unless applied)
  *   StepPlayer + narration (driven by SampledContext.events; sticky on wide screens)
@@ -304,7 +304,7 @@ export function BfsFigure() {
               variant="secondary"
               iconRight={<ArrowDown size={13} />}
               onClick={() => {
-                // back to the card's own "Show me" button, centred, with focus on it
+                // back to the card's own "Show me" button, centered, with focus on it
                 const target = back.el.querySelector<HTMLElement>('[data-show-me]') ?? back.el;
                 pl.clearOrigin();
                 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

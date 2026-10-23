@@ -14,7 +14,7 @@ const T = SVG_TYPE;
 export interface CurveSeries {
   id: string;
   label: string;
-  /** CSS colour (a token var). */
+  /** CSS color (a token var). */
   color: string;
   fn: (x: number) => number;
   dash?: string;
@@ -298,7 +298,7 @@ export function CurveChart({
   );
 }
 
-/** A labelled readout row: "label · value" with an optional note. */
+/** A labeled readout row: "label · value" with an optional note. */
 export function Readout({ label, value, note, strong }: { label: ReactNode; value: ReactNode; note?: ReactNode; strong?: boolean }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-grid/70 py-2 last:border-0">

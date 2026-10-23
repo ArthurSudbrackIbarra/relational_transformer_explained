@@ -4,7 +4,7 @@
  * BUILD_PLAN §5. Calm, scholarly, modern (distill.pub × Observable). One accent
  * (violet = categorical slot 7), data is the loudest thing.
  *
- * Every colour is a CSS custom property defined for light (default) and dark.
+ * Every color is a CSS custom property defined for light (default) and dark.
  * Dark values apply (a) when the OS prefers dark AND the viewer has not stamped
  * data-theme="light" on <html>, and (b) whenever data-theme="dark". The toggle
  * therefore wins both ways (dataviz skill, references/palette.md).
@@ -42,7 +42,7 @@
  *     - TokenStrip / TableView / SchemaDiagram always pair the swatch with the
  *       table name (label, legend or tooltip), and every chart has a table view.
  *   The light-mode contrast WARN (aqua, yellow, magenta < 3:1) is relieved the
- *   same way: visible labels next to every coloured mark, and table views.
+ *   same way: visible labels next to every colored mark, and table views.
  *
  *   Sequential blue ramp (--seq-*): continuous encoding (heatmaps), so the
  *   lightest step is allowed to recede toward the surface (palette.md); the
@@ -314,7 +314,7 @@
  * A book page: Libron (OFL, github.com/nicoverbruggen/libron, files in ./fonts/libron)
  * for all text, monospace kept for values and code. Light = warm paper; dark =
  * a lamplit page (warm charcoal, cream ink) instead of the neutral dark theme.
- * Only the neutrals change: categorical and sequential data colours keep their
+ * Only the neutrals change: categorical and sequential data colors keep their
  * meaning across modes. These rules come after the dark tokens on purpose:
  * `:root[data-reading]` ties their specificity and wins by order, and the two
  * dark reading rules below out-rank it.
@@ -694,7 +694,7 @@
   }
 }
 
-/* Forced colours: keep focus and target outlines visible */
+/* Forced colors: keep focus and target outlines visible */
 @media (forced-colors: active) {
   .target-outline {
     outline-color: Highlight;

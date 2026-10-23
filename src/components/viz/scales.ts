@@ -1,5 +1,5 @@
 /**
- * Colour scales for magnitudes and signed values (dataviz skill
+ * Color scales for magnitudes and signed values (dataviz skill
  * references/color-formula.md):
  *  - sequential: ONE hue (blue), light→dark; the anchor flips in dark mode so
  *    "near zero" always recedes toward the surface;
@@ -48,13 +48,13 @@ function divergingLuts(mode: ThemeMode) {
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 
-/** Sequential colour for t ∈ [0,1]. */
+/** Sequential color for t ∈ [0,1]. */
 export function sequentialRgb(t: number, mode: ThemeMode): RGB {
   const lut = sequentialLut(mode);
   return lut[Math.round(clamp01(Number.isFinite(t) ? t : 0) * (N - 1))];
 }
 
-/** Diverging colour for v ∈ [−maxAbs, +maxAbs] (negative = blue, positive = red, 0 = gray). */
+/** Diverging color for v ∈ [−maxAbs, +maxAbs] (negative = blue, positive = red, 0 = gray). */
 export function divergingRgb(v: number, maxAbs: number, mode: ThemeMode): RGB {
   const { neg, pos } = divergingLuts(mode);
   if (!Number.isFinite(v) || maxAbs <= 0) return neg[0];
@@ -64,12 +64,12 @@ export function divergingRgb(v: number, maxAbs: number, mode: ThemeMode): RGB {
 
 export const rgbCss = ([r, g, b]: RGB) => `rgb(${r} ${g} ${b})`;
 
-/** CSS colour for t ∈ [0,1] on the sequential scale. */
+/** CSS color for t ∈ [0,1] on the sequential scale. */
 export function sequentialCss(t: number, mode: ThemeMode): string {
   return rgbCss(sequentialRgb(t, mode));
 }
 
-/** CSS colour for a signed value on the diverging scale. */
+/** CSS color for a signed value on the diverging scale. */
 export function divergingCss(v: number, maxAbs: number, mode: ThemeMode): string {
   return rgbCss(divergingRgb(v, maxAbs, mode));
 }

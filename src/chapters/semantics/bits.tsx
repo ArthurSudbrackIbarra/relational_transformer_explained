@@ -34,8 +34,8 @@ export function RoleGlyph({ role, dtype, size = 'sm' }: { role: PhraseRole; dtyp
 }
 
 /**
- * Database identity: shape + name. Coloured (slot 1-4) only in the figure that colours by database
- * (the PCA map); `neutral` draws the shape in ink, for figures where colour already means table.
+ * Database identity: shape + name. Colored (slot 1-4) only in the figure that colors by database
+ * (the PCA map); `neutral` draws the shape in ink, for figures where color already means table.
  */
 export function DbTag({ db, className, showName = true, neutral = false }: { db: DbName; className?: string; showName?: boolean; neutral?: boolean }) {
   const slot = DB_SLOT[db];
@@ -157,7 +157,7 @@ export function Wordpieces({ tokens, className, animateKey }: { tokens: string[]
   );
 }
 
-/** A labelled number tile used in figure read-outs. */
+/** A labeled number tile used in figure read-outs. */
 export function Readout({ label, children, hint, className }: { label: ReactNode; children: ReactNode; hint?: ReactNode; className?: string }) {
   return (
     <div className={cx('min-w-0 rounded-lg bg-surface-2 px-3 py-2', className)}>

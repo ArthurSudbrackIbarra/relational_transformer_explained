@@ -355,7 +355,7 @@ export function DevGallery() {
             highlightRows={[40]}
           />
         </Figure>
-        <Figure wide title="Labelled heatmap (fake weights on the toy context)">
+        <Figure wide title="Labeled heatmap (fake weights on the toy context)">
           <Heatmap
             data={smallAttn}
             rows={TOY_L}
@@ -367,7 +367,7 @@ export function DevGallery() {
             colSlots={TOY_TOKENS.map((t) => TOY_SLOTS[t.tableName] ?? 0)}
             blocked={masks.full.map((v) => (v ? 0 : 1))}
             selected={{ row: 1, col: 6 }}
-            title="Labelled fake attention"
+            title="Labeled fake attention"
             rowName="query"
             colName="key"
           />

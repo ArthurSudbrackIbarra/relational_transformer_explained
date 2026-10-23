@@ -131,7 +131,7 @@ export function WhoCanISee({ live }: { live: LiveMasks }) {
   }, [graph, layer, litRows, qTok]);
 
   // With no allowed key, nothing may light up: mute every row except the query's own (no fallback to
-  // the graph neighbours, which would wrongly suggest they are keys).
+  // the graph neighbors, which would wrongly suggest they are keys).
   const muted = useMemo(() => (litRows.size > 0 ? undefined : graph.nodes.map((n) => n.id).filter((id) => id !== qTok?.nodeIdx)), [litRows, graph, qTok]);
 
   const rings = useMemo(() => {

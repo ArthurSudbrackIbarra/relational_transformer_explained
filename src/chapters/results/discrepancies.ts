@@ -111,7 +111,7 @@ export const DISCREPANCIES: Discrepancy[] = [
     n: 7,
     topic: 'Width bound w',
     area: 'sampling',
-    paper: 'Applies to all P→F neighbours.',
+    paper: 'Applies to all P→F neighbors.',
     paperRefs: [P('p.15 Alg. 1')],
     code: 'Only DB children are subsampled to w; task-table children are never subsampled.',
     codeRefs: [C('rustler/src/fly.rs:426-452')],

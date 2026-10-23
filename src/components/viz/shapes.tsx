@@ -1,6 +1,6 @@
 /**
  * Node shapes for composite encoding (hue × shape). The ShopDB table slots
- * fail the dataviz all-pairs colour check (see index.css), so wherever table
+ * fail the dataviz all-pairs color check (see index.css), so wherever table
  * identity is shown as a free-floating mark (EntityGraph, legends), the slot
  * also picks a shape. Fixed mapping by slot, never cycled.
  */
@@ -34,7 +34,7 @@ function polygon(n: number, r: number, rot: number): string {
 }
 
 /**
- * SVG path for a shape centred at (0,0) with "radius" r. Areas are roughly
+ * SVG path for a shape centered at (0,0) with "radius" r. Areas are roughly
  * equalised so no table looks heavier than another.
  */
 export function shapePath(shape: ShapeName, r: number): string {

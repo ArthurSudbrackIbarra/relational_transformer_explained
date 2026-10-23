@@ -3,7 +3,7 @@
  *
  * RT never runs its text encoder at train or inference time: every string (table names,
  * "<col> of <table>" column phrases, string cell values) is embedded once offline with
- * all-MiniLM-L12-v2 (mean pooling + L2 normalisation, 384-d) and looked up by index
+ * all-MiniLM-L12-v2 (mean pooling + L2 normalization, 384-d) and looked up by index
  * (`get_text_emb`, fly.rs:525-529). We mirror that with a precomputed table produced by
  * python/embed.py:
  *
@@ -12,7 +12,7 @@
  *                                              (a plain array, or {strings, dim?, ...})
  *
  * `get()` of a string that was not embedded THROWS: the simulation must never fabricate
- * an embedding (BUILD_PLAN §0 "never invent behaviour").
+ * an embedding (BUILD_PLAN §0 "never invent behavior").
  */
 import { float32View, loadPublicBinary, loadPublicJson } from './model/io';
 

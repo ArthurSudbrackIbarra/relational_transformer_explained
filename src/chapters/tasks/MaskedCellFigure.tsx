@@ -309,7 +309,7 @@ export function MaskedCellFigure({
           <p className="mt-auto border-t border-grid px-4 py-2.5 text-[15.5px] leading-snug text-ink-2">
             <span className="font-mono text-ink">reviews.rating</span> of row {review}: the answer sits in the database already. The
             model sees the rest of the row, minus the leakage column{leak.length === 1 ? '' : 's'} that would give the answer away
-            (section 4), and the row’s neighbourhood.
+            (section 4), and the row’s neighborhood.
           </p>
         </div>
 

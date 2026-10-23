@@ -4,7 +4,7 @@
  * skipped iff child_ts > seed_ts, so equal timestamps pass).
  *
  * Bars = number of task rows per timestamp (engine task table). Nothing here samples a context:
- * the colours say only whether a row passes the time filter, not whether it is in the context.
+ * the colors say only whether a row passes the time filter, not whether it is in the context.
  */
 import { useId, useMemo, useState } from 'react';
 import { ChartFrame, DataTable, Select, formatPct } from '@/components';
@@ -74,7 +74,7 @@ export function SplitsTimeline({ db, task, defaultSeedT }: { db: RawDatabase; ta
   return (
     <ChartFrame
       title={`${task.name}: one table, three splits`}
-      subtitle="Bars count the task rows at each prediction timestamp. Colour shows which of them a seed at t may see under the time filter (fly.rs:421-424); whether they then land in the context is up to the search (Chapter 6)."
+      subtitle="Bars count the task rows at each prediction timestamp. Color shows which of them a seed at t may see under the time filter (fly.rs:421-424); whether they then land in the context is up to the search (Chapter 6)."
       table={table}
     >
       <div className="mb-3 flex flex-wrap items-end gap-x-4 gap-y-2">
@@ -172,7 +172,7 @@ export function SplitsTimeline({ db, task, defaultSeedT }: { db: RawDatabase; ta
           {sums.map((s) => {
             const cx = x(new Date(s.t));
             const v = visOf(s.t);
-            const labelled = s.split !== 'Train' || s.t === seedT;
+            const labeled = s.split !== 'Train' || s.t === seedT;
             return (
               <g key={s.t} onPointerEnter={() => setHover(s)} onPointerLeave={() => setHover(null)}>
                 <rect x={cx - Math.max(barW, 14) / 2} y={M.top} width={Math.max(barW, 14)} height={M.plotH} fill="transparent" />
@@ -187,7 +187,7 @@ export function SplitsTimeline({ db, task, defaultSeedT }: { db: RawDatabase; ta
                     transition: 'fill 200ms',
                   }}
                 />
-                {labelled && (
+                {labeled && (
                   <text x={cx} y={y(s.rows) - 5} textAnchor="middle" className="fill-[var(--ink-2)] text-[13px]" style={{ fontVariantNumeric: 'tabular-nums' }}>
                     {s.rows}
                   </text>

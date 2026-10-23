@@ -1,5 +1,5 @@
 /**
- * JS mirror of the colour tokens in src/styles/index.css (BUILD_PLAN §5,
+ * JS mirror of the color tokens in src/styles/index.css (BUILD_PLAN §5,
  * dataviz skill references/palette.md). Canvas code (Heatmap, MaskMatrix)
  * cannot read `var(--…)`, so it picks the hex for the resolved theme here.
  *
@@ -89,7 +89,7 @@ const BASE_TOKENS: Record<ThemeMode, ModeTokens> = {
 
 /**
  * Reading mode (<html data-reading="on">, index.css) swaps only the neutrals for paper tones;
- * data colours (categorical, sequential, diverging) keep their meaning.
+ * data colors (categorical, sequential, diverging) keep their meaning.
  */
 const READING_NEUTRALS: Record<ThemeMode, Partial<ModeTokens>> = {
   light: { page: '#f2e9d5', surface: '#f8f1e1', surface2: '#ece1c8', ink: '#2a2118', ink2: '#574838', muted: '#7d6c57', grid: '#e0d2b4', axis: '#c2b08d' },

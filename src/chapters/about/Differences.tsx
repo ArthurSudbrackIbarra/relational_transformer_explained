@@ -84,7 +84,7 @@ export function DifferenceCards() {
         }
       >
         The sampler is the same algorithm at any (L, w); the cross-check below runs it at four settings, the paper’s included{' '}
-        <Cite kind="spec" ref="§4.1" />. Our databases are small, so a short context already reaches the seed’s neighbourhood.
+        <Cite kind="spec" ref="§4.1" />. Our databases are small, so a short context already reaches the seed’s neighborhood.
       </DiffCard>
       <DiffCard
         title="Data"

@@ -1,6 +1,6 @@
 /**
- * Centre-bottom: what the model sees for the current seed. The task rows (with their editable label
- * cells) are listed in full; the rest of the context is summarised per table and can be expanded.
+ * Center-bottom: what the model sees for the current seed. The task rows (with their editable label
+ * cells) are listed in full; the rest of the context is summarized per table and can be expanded.
  * Everything is read from the sampled context (fly.rs mirror) and the ablation of ablate.ts.
  */
 import { ChevronRight, Pencil } from 'lucide-react';
@@ -240,7 +240,7 @@ function LabelTable() {
   );
 }
 
-/** One DB table of the context, summarised; expands to its rows' cells. */
+/** One DB table of the context, summarized; expands to its rows' cells. */
 function TableGroup({ table, nodes, tokens }: { table: string; nodes: number[]; tokens: Token[] }) {
   const { pdb } = usePlayLive();
   const slots = useTableSlots();
