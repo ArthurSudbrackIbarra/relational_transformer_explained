@@ -108,7 +108,7 @@ function LogBars({ categories, values, L }: { categories: string[]; values: numb
       <div ref={ref} className="relative w-full">
         <svg width={width} height={plotH + M.top + M.bottom} role="img" aria-label={`Cells within k hops of the seed row, log scale: ${categories.map((c, i) => `${c} ${fmt(values[i])}`).join(', ')}; L = ${L}.`} className="block">
           <g transform={`translate(${M.left},${M.top})`}>
-            {ticks.map((t) => (
+            {ticks.filter((_, i) => plotW >= 300 || i % 2 === 0 || i === decades).map((t) => (
               <g key={t} transform={`translate(${x(t)},0)`}>
                 <line y2={plotH} style={{ stroke: t === 1 ? 'var(--axis)' : 'var(--grid)' }} />
                 <text y={plotH + 20} textAnchor="middle" className="tabular" style={{ fill: 'var(--muted)', fontSize: T.tick }}>

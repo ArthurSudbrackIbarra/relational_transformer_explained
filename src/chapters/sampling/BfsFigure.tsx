@@ -54,7 +54,7 @@ export const SamplerControls = memo(function SamplerControls({ compact = false }
   const shown = options.length > MAX ? [...options.slice(0, MAX), ...options.filter((o) => o.value === ex.seedNode && options.indexOf(o) >= MAX)] : options;
   return (
     <div className="grid gap-3">
-      <div className={cx('grid gap-x-4 gap-y-3', compact ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-[auto_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_110px]')}>
+      <div className={cx('grid gap-x-4 gap-y-3', compact ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:items-end lg:grid-cols-[auto_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_110px]')}>
         {!compact && (
           <div className="flex flex-col gap-1">
             <span className="text-[14.5px] font-medium text-ink-2">Seed split</span>
@@ -100,7 +100,7 @@ export const SamplerControls = memo(function SamplerControls({ compact = false }
         <Slider label="Context length L" value={Math.min(ex.L, 256)} min={16} max={256} step={8} onChange={(v) => ex.set({ L: v })} format={() => ex.L} hint="Paper: 1024" />
         <Slider label="BFS width w" value={Math.min(ex.w, 64)} min={1} max={64} onChange={(v) => ex.set({ w: v })} format={() => ex.w} hint="Paper scripts: 256" />
         {!compact && (
-          <NumberField label="RNG seed" value={ex.rngSeed} min={0} max={9999} onChange={(v) => ex.set({ rngSeed: Math.max(0, Math.min(9999, Math.round(v))) })} hint="seed term of fly.rs" />
+          <NumberField label="RNG seed" value={ex.rngSeed} min={0} max={9999} onChange={(v) => ex.set({ rngSeed: Math.max(0, Math.min(9999, Math.round(v))) })} hint="fly.rs seed" />
         )}
       </div>
       {ex.isLocal && (
@@ -348,11 +348,11 @@ export function BfsFigure() {
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-12">
           {/* frontier state: a scrollable strip above the graph on narrow screens, the right column on wide ones */}
           <div className="order-1 min-w-0 lg:order-none lg:col-span-6 lg:col-start-7 lg:row-start-2">
-            <div className="scroll-quiet -mx-1 flex gap-3 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-2 lg:overflow-visible lg:px-0" aria-label="Frontier state">
-              <div className="w-[250px] shrink-0 lg:w-auto">
+            <div className="grid gap-3 sm:grid-cols-2" aria-label="Frontier state">
+              <div className="min-w-0">
                 <StackPanel {...common} />
               </div>
-              <div className="w-[300px] shrink-0 lg:w-auto">
+              <div className="min-w-0">
                 <BucketsPanel {...common} />
               </div>
             </div>
@@ -403,8 +403,8 @@ export function BfsFigure() {
             onHover={setHover}
             cut={cut}
             tokenCol={tokenCol}
-            maxHeight={420}
-            className="md:grid-cols-2"
+            maxHeight={520}
+            className="min-[1700px]:grid-cols-2"
           />
         </div>
 

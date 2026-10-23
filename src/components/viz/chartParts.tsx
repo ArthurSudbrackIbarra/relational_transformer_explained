@@ -61,7 +61,7 @@ export function ChartFrame({
         <div className="mb-2 flex items-start justify-between gap-3">
           <div className="min-w-0">
             {title && <div className="text-[17px] font-semibold text-ink">{title}</div>}
-            {subtitle && <div className="mt-0.5 text-[15px] text-ink-2">{subtitle}</div>}
+            {subtitle && <div className="mt-0.5 hidden text-[15px] text-ink-2 sm:block">{subtitle}</div>}
           </div>
           {table && (
             <button
@@ -79,6 +79,8 @@ export function ChartFrame({
           )}
         </div>
       )}
+      {/* phones: the subtitle takes the full width under the title row instead of a column beside the Table button */}
+      {subtitle && (title || table) && <div className="-mt-1 mb-2 text-[15px] text-ink-2 sm:hidden">{subtitle}</div>}
       {legend && !showTable && <div className="mb-2">{legend}</div>}
       {showTable ? <div className="scroll-quiet max-h-[420px] overflow-auto">{table}</div> : children}
     </div>

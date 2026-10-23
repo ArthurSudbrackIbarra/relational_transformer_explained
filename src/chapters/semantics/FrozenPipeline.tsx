@@ -327,7 +327,23 @@ export function LearnedProjection({ phrase, store, assets, catalog }: { phrase: 
           {res.rows.length > 0 && (
             <div className="mt-5 rounded-lg border border-border px-4 py-3">
               <div className="mb-2 text-[15.5px] font-semibold text-ink">Does the learned map keep the encoder’s similarities?</div>
-              <div className="scroll-quiet overflow-x-auto">
+              <div className="grid gap-2.5 sm:hidden">
+                {res.rows.map((r) => (
+                  <div key={r.text} className="rounded-md border border-grid/70 px-3 py-2">
+                    <Phrase text={r.text} />
+                    <div className="text-[14px] text-muted">{r.why}</div>
+                    <div className="mt-1 flex flex-wrap gap-x-4 text-[15px] text-ink-2">
+                      <span>
+                        cos, frozen e <span className="num text-ink">{f3(r.before)}</span>
+                      </span>
+                      <span>
+                        cos, column term <span className="num font-semibold text-ink">{f3(r.after)}</span>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="scroll-quiet hidden overflow-x-auto sm:block">
                 <table className="w-full border-collapse text-[15px]">
                   <caption className="sr-only">Cosine of the frozen vectors and of the column terms, for three partner phrases</caption>
                   <thead>

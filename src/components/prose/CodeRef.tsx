@@ -128,7 +128,7 @@ export function CodeRef({
                 {file}
                 <span className="whitespace-nowrap">:{lineLabel}</span>
               </span>
-              <span className="min-w-0 truncate text-muted">{repo}</span>
+              <span className="hidden min-w-0 truncate text-muted sm:inline">{repo}</span>
             </span>
           </span>
           <ChevronDown aria-hidden="true" size={16} className={cx('mt-[3px] shrink-0 text-muted transition-transform', open && 'rotate-180')} />

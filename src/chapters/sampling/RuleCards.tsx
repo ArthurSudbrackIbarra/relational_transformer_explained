@@ -116,7 +116,7 @@ export function RuleCards() {
   const mpParents = mp ? mp.ie.parents.map((p) => name(p.node)) : [];
 
   return (
-    <div className="wide my-8 grid min-w-0 gap-4 md:grid-cols-2">
+    <div className="wide my-8 grid min-w-0 items-start gap-4 md:grid-cols-2">
       <Card
         n={1}
         icon={<Layers size={17} />}

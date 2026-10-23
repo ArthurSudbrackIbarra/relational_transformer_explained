@@ -58,7 +58,7 @@ export function Callout({ variant = 'note', title, children, paper, code, verdic
       </div>
       {split ? (
         <>
-          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <div className="mt-2 grid items-start gap-3 sm:grid-cols-2">
             <div className="rounded-lg bg-surface-2 px-3 py-2.5">
               <div className="eyebrow mb-1">Paper says</div>
               <div className="text-[18px] leading-[1.55] text-ink">{paper}</div>

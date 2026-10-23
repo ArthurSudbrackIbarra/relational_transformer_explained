@@ -247,13 +247,13 @@ function SiteFooter() {
   return (
     <footer className="border-t border-grid">
       <ContentColumn className="page-grid py-7">
-        <p className="!m-0 text-[14.5px] leading-[1.6] text-muted">
-          <span className="font-semibold text-ink-2">Author’s note.</span> I built this site with Claude to help me study the
+        <p className="!m-0 text-[14.5px] leading-[1.6] text-ink-2">
+          <span className="font-semibold text-ink">Author’s note.</span> I built this site with Claude to help me study the
           Relational Transformer, and I made it public because it could help other people too. To be clear, Claude created
           everything here, so there may be errors or inaccuracies.
           <span className="mt-2 block">
             Arthur Sudbrack Ibarra ·{' '}
-            <a href={SITE_REPO} target="_blank" rel="noreferrer noopener" className="underline decoration-axis underline-offset-[3px] hover:text-ink-2">
+            <a href={SITE_REPO} target="_blank" rel="noreferrer noopener" className="underline decoration-axis underline-offset-[3px] hover:text-ink">
               Source of this site
             </a>
           </span>

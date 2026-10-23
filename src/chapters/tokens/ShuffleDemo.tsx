@@ -265,36 +265,40 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
           <div className="mb-1 text-[15.5px] text-ink-2">
             <LayerLabel layer="feat" /> mask, sampler order
           </div>
-          <MaskMatrix
-            mask={baseMasks.feat}
-            S={S}
-            slots={tokenSlots}
-            maxCellSize={3}
-            showLegend={false}
-            showReadout={false}
-            highlightRows={hlBase}
-            highlightCols={hlBase}
-            onHover={(c) => setHover(c ? c.q : null)}
-            title="feature mask, sampler order"
-          />
+          <div className="flex justify-center">
+            <MaskMatrix
+              mask={baseMasks.feat}
+              S={S}
+              slots={tokenSlots}
+              maxCellSize={3}
+              showLegend={false}
+              showReadout={false}
+              highlightRows={hlBase}
+              highlightCols={hlBase}
+              onHover={(c) => setHover(c ? c.q : null)}
+              title="feature mask, sampler order"
+            />
+          </div>
         </div>
         <div className="min-w-0">
           <div className="mb-1 text-[15.5px] text-ink-2">
             <LayerLabel layer="feat" /> mask, {current ? 'shuffled order' : 'shuffled order (press Shuffle)'}
           </div>
-          <MaskMatrix
-            mask={current ? current.masks.feat : baseMasks.feat}
-            S={S}
-            slots={current ? shuffledSlots : tokenSlots}
-            maxCellSize={3}
-            showLegend={false}
-            showReadout={false}
-            highlightRows={current ? hlShuf : hlBase}
-            highlightCols={current ? hlShuf : hlBase}
-            onHover={(c) => setHover(c ? (current ? current.perm[c.q] : c.q) : null)}
-            title="feature mask, shuffled order"
-            className={cx(!current && 'opacity-40')}
-          />
+          <div className="flex justify-center">
+            <MaskMatrix
+              mask={current ? current.masks.feat : baseMasks.feat}
+              S={S}
+              slots={current ? shuffledSlots : tokenSlots}
+              maxCellSize={3}
+              showLegend={false}
+              showReadout={false}
+              highlightRows={current ? hlShuf : hlBase}
+              highlightCols={current ? hlShuf : hlBase}
+              onHover={(c) => setHover(c ? (current ? current.perm[c.q] : c.q) : null)}
+              title="feature mask, shuffled order"
+              className={cx(!current && 'opacity-40')}
+            />
+          </div>
         </div>
       </div>
       <p className="mt-3 text-[15px] leading-snug text-ink-2">

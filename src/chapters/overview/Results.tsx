@@ -201,15 +201,15 @@ export function MiniResults() {
         This site’s miniature on ShopDB, zero-shot (test split, %)
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[620px] border-collapse text-[15px]" aria-labelledby="mini-results-title">
+        <table className="w-full border-collapse text-[15px] sm:min-w-[620px]" aria-labelledby="mini-results-title">
           <thead>
             <tr className="border-y border-grid bg-surface-2 text-left text-ink-2">
-              <th className="px-4 py-2 font-medium">task</th>
-              <th className="px-3 py-2 font-medium">metric</th>
-              <th className="px-3 py-2 text-right font-medium">test rows</th>
-              <th className="px-3 py-2 text-right font-semibold text-ink">mini RT, zero-shot</th>
-              <th className="px-3 py-2 text-right font-medium">EntityMean</th>
-              <th className="px-4 py-2 text-right font-medium">untrained RT</th>
+              <th className="px-3 py-2 font-medium sm:px-4">task</th>
+              <th className="hidden px-2 py-2 font-medium sm:table-cell sm:px-3">metric</th>
+              <th className="hidden px-2 py-2 text-right font-medium sm:table-cell sm:px-3">test rows</th>
+              <th className="px-2 py-2 text-right sm:px-3 font-semibold text-ink">mini RT<span className="hidden sm:inline">, zero-shot</span></th>
+              <th className="px-2 py-2 text-right sm:px-3 font-medium">Entity&shy;Mean</th>
+              <th className="px-3 py-2 sm:px-4 text-right font-medium">untrained<span className="hidden sm:inline"> RT</span></th>
             </tr>
           </thead>
           <tbody>
@@ -220,12 +220,17 @@ export function MiniResults() {
               const n = getSeeds(pdb, task, 'Test').length;
               return (
                 <tr key={id} className="border-b border-grid/70 last:border-0">
-                  <td className="px-4 py-2 font-mono text-ink">{task.name}</td>
-                  <td className="px-3 py-2 text-ink-2">{z.metric === 'auroc' ? 'AUROC' : 'R²'}</td>
-                  <td className="num px-3 py-2 text-right">{int(n)}</td>
-                  <td className="num px-3 py-2 text-right font-semibold text-ink">{pct(z.pretrainBest.test)}</td>
-                  <td className="num px-3 py-2 text-right">{pct(z.entityMean?.test)}</td>
-                  <td className="num px-4 py-2 text-right">{pct(z.untrainedInit.test)}</td>
+                  <td className="px-3 py-2 font-mono text-ink sm:px-4">
+                    {task.name}
+                    <span className="block font-sans text-[14px] text-ink-2 sm:hidden">
+                      {z.metric === 'auroc' ? 'AUROC' : 'R²'} · {int(n)} test rows
+                    </span>
+                  </td>
+                  <td className="hidden px-2 py-2 text-ink-2 sm:table-cell sm:px-3">{z.metric === 'auroc' ? 'AUROC' : 'R²'}</td>
+                  <td className="num hidden px-2 py-2 text-right sm:table-cell sm:px-3">{int(n)}</td>
+                  <td className="num px-2 py-2 text-right sm:px-3 font-semibold text-ink">{pct(z.pretrainBest.test)}</td>
+                  <td className="num px-2 py-2 text-right sm:px-3">{pct(z.entityMean?.test)}</td>
+                  <td className="num px-3 py-2 sm:px-4 text-right">{pct(z.untrainedInit.test)}</td>
                 </tr>
               );
             })}

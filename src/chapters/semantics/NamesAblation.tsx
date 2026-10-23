@@ -292,8 +292,8 @@ function OverlapGrid({ labels, value, title, note }: { labels: string[]; value: 
             <tr>
               <th />
               {labels.map((l) => (
-                <th key={l} scope="col" className="px-1 pb-1 text-center font-mono font-normal text-ink-2">
-                  {l}
+                <th key={l} scope="col" title={l} className="px-0 pb-1 text-center font-mono font-normal text-ink-2 sm:px-1">
+                  <span className="inline-block align-bottom max-sm:rotate-180 max-sm:[writing-mode:vertical-rl]">{l}</span>
                 </th>
               ))}
             </tr>
@@ -315,10 +315,11 @@ function OverlapGrid({ labels, value, title, note }: { labels: string[]; value: 
                       key={c}
                       onPointerEnter={() => setHover({ i, j })}
                       title={note ? note(i, j) : undefined}
-                      className={cx('num h-9 min-w-[46px] rounded px-1 text-center', hover && hover.i === i && hover.j === j && 'outline-2 outline-ink')}
+                      className={cx('num h-9 min-w-[38px] rounded px-0 text-center sm:min-w-[46px] sm:px-1', hover && hover.i === i && hover.j === j && 'outline-2 outline-ink')}
                       style={{ background: bg, color: dark ? '#fff' : diag ? 'var(--muted)' : 'var(--ink)' }}
                     >
-                      {v.toFixed(3)}
+                      <span className="max-sm:hidden">{v.toFixed(3)}</span>
+                      <span className="sm:hidden">{diag ? '1' : v.toFixed(3).replace(/^0(?=\.)/, '')}</span>
                     </td>
                   );
                 })}
