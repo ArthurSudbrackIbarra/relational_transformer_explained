@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "search-index": "node scripts/search-index.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client';
 import 'katex/dist/katex.min.css';
 import './styles/index.css';
 import App from './App';
+import './search/expose';
 import { useSim } from './state/store';
 import { applyReading, applyTheme } from './styles/theme';
 

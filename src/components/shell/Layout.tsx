@@ -1,6 +1,6 @@
 /**
  * App shell (BUILD_PLAN §5): sticky top bar (title, simulation indicator,
- * reading mode and theme toggles, paper & code links), left chapter sidebar
+ * site search, theme and reading mode toggles, paper & code links), left chapter sidebar
  * ≥ 1024px that folds into a rail of chapter numbers and becomes a drawer
  * below, the content column (prose ~70ch, figures up to 1200px), and a footer
  * with the author's note. The landing page hides the fixed sidebar (the drawer
@@ -11,6 +11,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { getChapter } from '@/chapters/registry';
+import { useSearchLanding } from '@/search/landing';
+import { SiteSearch } from '@/search/SiteSearch';
 import { IconButton } from '../ui/controls';
 import { cx } from '../ui/cx';
 import { useSim } from '@/state/store';
@@ -29,7 +31,7 @@ function currentSlug(pathname: string): string | undefined {
 function TopBar({ onMenu, menuOpen, showMenuAlways }: { onMenu: () => void; menuOpen: boolean; showMenuAlways: boolean }) {
   return (
     <header className="sticky top-0 z-40 h-[var(--topbar-h)] border-b border-border bg-[color-mix(in_srgb,var(--page)_86%,transparent)] backdrop-blur-md">
-      <div className="flex h-full items-center gap-1.5 px-2.5 sm:gap-2 sm:px-4">
+      <div className="flex h-full items-center gap-1.5 px-2 sm:gap-2 sm:px-4">
         <IconButton
           label={menuOpen ? 'Close chapter menu' : 'Open chapter menu'}
           onClick={onMenu}
@@ -39,15 +41,17 @@ function TopBar({ onMenu, menuOpen, showMenuAlways }: { onMenu: () => void; menu
         >
           {menuOpen ? <X size={18} /> : <Menu size={18} />}
         </IconButton>
-        <Link to="/" data-plain className="flex min-w-0 items-center gap-2 rounded-md pr-1 text-ink sm:gap-2.5">
+        <Link to="/" data-plain className="flex min-w-0 items-center gap-1.5 rounded-md pr-0.5 text-ink sm:gap-2.5 sm:pr-1 lg:shrink-0">
           <Logo />
           <span className="truncate text-[16.5px] font-semibold tracking-[-0.01em] sm:text-[17.5px]">
             <span className="hidden sm:inline">{SITE_TITLE}</span>
             <span className="sm:hidden">RT Explained</span>
           </span>
         </Link>
-        <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-1.5">
-          <SimIndicator className="shrink-0 lg:max-w-[440px]" />
+        <div className="ml-auto flex min-w-0 items-center gap-0.5 sm:gap-1.5">
+          {/* below lg the title gives way; from lg the title stays whole and the chip's text truncates */}
+          <SimIndicator className="shrink-0 lg:max-w-[440px] lg:shrink" />
+          <SiteSearch />
           <ThemeToggle />
           <ReadingToggle />
           <a
@@ -175,6 +179,7 @@ export function Layout({ children }: LayoutProps) {
   // close the drawer on navigation
   useEffect(() => setDrawer(false), [pathname]);
   useScrollCues(pathname);
+  useSearchLanding();
 
   const withSidebar = !isLanding;
 

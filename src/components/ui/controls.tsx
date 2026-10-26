@@ -328,10 +328,10 @@ export function Switch({ checked, onChange, label, className, disabled }: Switch
 // Kbd
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Keyboard key hint. */
+/** Keyboard key hint (the text font: a key is not code). */
 export function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded border border-border-strong bg-surface-2 px-1.5 font-mono text-[14px] text-ink-2">
+    <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded border border-border-strong bg-surface-2 px-1.5 font-sans text-[14px] text-ink-2">
       {children}
     </kbd>
   );

@@ -3,15 +3,15 @@
  * (/#/qa/<id>). Answers use the chapters' building blocks (Section, Figure,
  * Callout, Cite, CodeRef), so they read like a short chapter.
  */
-import { ArrowLeft, ArrowRight, MessageCircleQuestion } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowLeft, ArrowRight, Info, MessageCircleQuestion } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getChapter, prefetchChapter } from '@/chapters/registry';
 import { ChapterPage } from '@/components/shell/Chapter';
 import { SITE_TITLE } from '@/components/prose/sources';
 import { cx } from '@/components/ui/cx';
 import { NotFound } from '@/pages/NotFound';
-import { getQA, QA_ENTRIES } from './registry';
+import { getQA, QA_ENTRIES, questionsOf } from './registry';
 import type { QAEntry } from './types';
 
 function formatDate(iso: string): string {
@@ -41,6 +41,24 @@ function ChapterChips({ slugs }: { slugs: string[] }) {
   );
 }
 
+/** The author's first-person note on why these questions are public (kept out of the search index). */
+function AuthorNote({ compact, children }: { compact?: boolean; children: ReactNode }) {
+  return (
+    <div
+      data-search="skip"
+      className={cx(
+        'flex gap-3 rounded-xl border border-border bg-surface text-ink-2',
+        compact ? 'mt-5 px-4 py-3 text-[15.5px] leading-[1.6]' : 'mt-7 px-5 py-4 text-[17px] leading-[1.6]',
+      )}
+    >
+      <Info aria-hidden="true" size={compact ? 17 : 19} className="mt-[0.2em] shrink-0 text-accent-text" />
+      <p className="!m-0">
+        <span className="font-semibold text-ink">Author’s note.</span> {children}
+      </p>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // List
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,7 +70,7 @@ export function QAIndex() {
   }, []);
   const q = query.trim().toLowerCase();
   const shown = q
-    ? QA_ENTRIES.filter((e) => `${e.title} ${e.question} ${e.short}`.toLowerCase().includes(q))
+    ? QA_ENTRIES.filter((e) => `${e.title} ${questionsOf(e).join(' ')} ${e.short}`.toLowerCase().includes(q))
     : QA_ENTRIES;
   return (
     <ChapterPage>
@@ -64,9 +82,13 @@ export function QAIndex() {
           Questions &amp; answers
         </h1>
         <p className="mt-4 text-[21px] leading-[1.55] text-pretty text-ink-2 sm:text-[22px]">
-          Questions that came up while studying the Relational Transformer. Claude answered each one and checked it against the paper
-          and the official code at the paper-era commit, and every claim carries a citation, as in the chapters.
+          Claude answered each question and checked the answer against the paper and the official code at the paper-era commit. Every
+          claim carries a citation, as in the chapters.
         </p>
+        <AuthorNote>
+          These are questions I asked myself while studying the Relational Transformer. I decided to make the answers public too, in
+          case other people have the same questions.
+        </AuthorNote>
       </header>
       <div className="page-grid">
         {QA_ENTRIES.length > 4 && (
@@ -139,6 +161,7 @@ export function QAPage() {
   const prev = QA_ENTRIES[i - 1];
   const next = QA_ENTRIES[i + 1];
   const { Answer } = entry;
+  const questions = questionsOf(entry);
   return (
     <ChapterPage>
       <header className="page-grid mb-12">
@@ -152,21 +175,36 @@ export function QAPage() {
           <span>Question {entry.number}</span>
         </div>
         <h1 className="mt-3 text-[34px] leading-[1.12] font-semibold tracking-[-0.022em] text-balance text-ink sm:text-[40px]">{entry.title}</h1>
-        <figure className="mt-6 rounded-xl border border-border bg-surface px-5 py-4">
+        <figure data-search="keep" className="mt-6 rounded-xl border border-border bg-surface px-5 py-4">
           <figcaption className="eyebrow mb-2 flex flex-wrap items-baseline justify-between gap-2">
-            <span>The question</span>
+            <span>{questions.length > 1 ? 'The questions' : 'The question'}</span>
             <span className="text-[14px] font-normal tracking-normal normal-case">Asked {formatDate(entry.asked)}</span>
           </figcaption>
-          <blockquote className="!m-0 border-l-2 border-accent !py-0 pl-4 text-[18px] leading-[1.65] text-ink italic">{entry.question}</blockquote>
+          {questions.length > 1 ? (
+            <ol className="!m-0 grid gap-3 !p-0" style={{ listStyle: 'none' }}>
+              {questions.map((text, i) => (
+                <li key={i} className="!m-0 flex gap-3 !p-0">
+                  <span className="w-5 shrink-0 pt-[0.15em] text-right text-[16px] font-semibold text-accent-text tabular-nums">{i + 1}</span>
+                  <blockquote className="!m-0 min-w-0 flex-1 border-l-2 border-accent !py-0 pl-4 text-[18px] leading-[1.65] text-ink italic">{text}</blockquote>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <blockquote className="!m-0 border-l-2 border-accent !py-0 pl-4 text-[18px] leading-[1.65] text-ink italic">{questions[0]}</blockquote>
+          )}
         </figure>
         <div className="mt-5 rounded-xl border border-accent/40 bg-accent-soft px-5 py-4">
           <div className="eyebrow mb-1.5 !text-accent-text">Short answer</div>
           <p className="!m-0 text-[18.5px] leading-[1.6] text-ink">{entry.short}</p>
         </div>
-        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-muted">
+        <div data-search="skip" className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-muted">
           <span>Related chapters</span>
           <ChapterChips slugs={entry.chapters} />
         </div>
+        <AuthorNote compact>
+          I asked {questions.length > 1 ? 'these questions' : 'this question'} while studying the Relational Transformer and made the
+          answer public in case other people have the same {questions.length > 1 ? 'questions' : 'question'}.
+        </AuthorNote>
       </header>
 
       <Answer />

@@ -10,8 +10,11 @@ export interface QAMeta {
   id: string;
   /** Short headline for the page title and the list, phrased as a question. */
   title: string;
-  /** The question as the reader asked it (lightly cleaned: typos, not meaning). */
-  question: string;
+  /**
+   * The question as the reader asked it (lightly cleaned: typos, not meaning). A list when one
+   * prompt asked several closely related questions that one answer covers (one Section each).
+   */
+  question: string | string[];
   /** Plain-text short answer, 1-3 sentences; the page shows it above the full answer. */
   short: string;
   /** ISO date the question was asked (YYYY-MM-DD). */

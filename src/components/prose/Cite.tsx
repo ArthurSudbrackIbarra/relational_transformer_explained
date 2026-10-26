@@ -105,6 +105,7 @@ export function Cite({ kind, ref, title, note, label: chip, className }: CitePro
           ref={p.ref}
           role="button"
           tabIndex={0}
+          data-cite
           className={cx(
             'tap-pad mx-[0.15em] inline-flex -translate-y-[0.2em] cursor-help items-center rounded-[5px] border border-border bg-surface-2 px-[0.38em] align-baseline text-[length:max(13.5px,0.74em)] leading-[1.4] font-medium whitespace-nowrap text-ink-2 tabular-nums transition-colors hover:border-accent hover:text-accent-text',
             kind === 'code' && 'font-mono',

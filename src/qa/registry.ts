@@ -18,3 +18,8 @@ export const QA_ENTRIES: QAEntry[] = Object.entries(modules)
 export function getQA(id: string | undefined): QAEntry | undefined {
   return QA_ENTRIES.find((q) => q.id === id);
 }
+
+/** The entry's questions as a list (one item unless the prompt asked several related ones). */
+export function questionsOf(entry: QAMeta): string[] {
+  return typeof entry.question === 'string' ? [entry.question] : entry.question;
+}

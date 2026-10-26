@@ -1,18 +1,44 @@
 ---
 name: rlquestion
-description: Answer a question about the Relational Transformer and publish it on the site's Questions & answers page (/#/qa). Use when the user runs /rlquestion <question> or asks to add a question to the site's Q&A. The answer is researched and verified against the paper-era official code (snap-stanford/relational-transformer @2a899c8) and the paper, written as a new src/qa/entries/NNN-<id>.tsx file in the site's chapter style, checked, committed and pushed.
-argument-hint: <your question about the Relational Transformer>
+description: Answer one or more questions about the Relational Transformer and publish them on the site's Questions & answers page (/#/qa). Use when the user runs /rlquestion <questions> or asks to add questions to the site's Q&A. A prompt with several questions is split into separate questions, grouped into one entry when they are closely related and into separate entries otherwise. Each answer is researched and verified against the paper-era official code (snap-stanford/relational-transformer @2a899c8) and the paper, written as a new src/qa/entries/NNN-<id>.tsx file in the site's chapter style, checked, committed and pushed.
+argument-hint: <one or more questions about the Relational Transformer>
 ---
 
-# /rlquestion: add a verified question and answer to the site
+# /rlquestion: add verified questions and answers to the site
 
-The question is: **$ARGUMENTS**
+The prompt is: **$ARGUMENTS**
 
 If that is empty, ask the user for the question and stop.
 
-Your job: answer this question **truthfully**, verified against the real RT code and paper. Write the answer as a new
-Q&A entry in this repository, in the same style as the chapters. Check that it builds and renders, then commit and push it.
-Finally, give the user the short answer in chat.
+Your job: answer every question in the prompt **truthfully**, verified against the real RT code and paper. Write the answers as
+Q&A entries in this repository, in the same style as the chapters. Check that they build and render, refresh the search index,
+then commit and push. Finally, give the user the short answers in chat.
+
+## 0. Split the prompt into questions, then group them
+
+The prompt may hold one question or several, written as one paragraph, a list, or a chain of sentences ("When are X created?
+And how does Y know Z?"). First list every distinct question:
+
+- One question = one thing the user wants to know. Split a sentence that asks two things into two questions. Keep a sentence
+  that only gives context (an assumption, an example) attached to the question it explains.
+- Keep the user's wording. Fix typos only; never add, merge or reinterpret what is asked.
+- Before answering, read the existing entries (`ls src/qa/entries`; their `meta` holds the questions). If an existing entry
+  already answers a question fully, do not write a duplicate: report its page instead. If the new question is a follow-up,
+  answer it in a new entry and link the earlier one.
+
+Then decide how many entries to write. Decide yourself; do not ask the user.
+
+- **Same entry** when the questions are about the same mechanism and one answer naturally covers them: they share most of
+  their sources, and answering one without the others would leave the reader with half the picture. Example: "When are task
+  tables created?", "How are their rows filled before inference?" and "How does that work zero-shot?" are one entry.
+- **Separate entries** when the questions are about different things (different mechanisms, usually different chapters), or
+  when each stands on its own and someone looking for one would not expect the others. Example: "How are task tables built?"
+  and "Why does RT use RMSNorm?" are two entries.
+- Rule of thumb: if one headline can name the shared topic honestly, use one entry; if the headline would need "and" to join
+  unrelated subjects, split. Never merge to save work, and never split one question across entries.
+
+Research and write each entry on its own (steps 1-3). Then run the checks once over all of them (step 4), publish them in one
+commit (step 5) and report (step 6).
 
 ## 1. Ground truth: what counts as "true"
 
@@ -54,7 +80,8 @@ curl -sL -o <scratch>/rt.pdf https://arxiv.org/pdf/2510.06377v3 && pdftotext -la
 
 Create `src/qa/entries/NNN-<id>.tsx`:
 
-- `NNN` is the next number: `ls src/qa/entries`, take the highest and add 1, zero-padded to 3 digits.
+- `NNN` is the next number: `ls src/qa/entries`, take the highest and add 1, zero-padded to 3 digits. With several entries,
+  number them consecutively in the order the questions were asked.
 - `<id>` is a short kebab-case slug of the topic. It must equal `meta.id`.
 
 The registry (`src/qa/registry.ts`) picks the file up automatically. The page (`src/qa/QAPages.tsx`) renders the title,
@@ -74,7 +101,9 @@ export const meta: QAMeta = {
   id: '<id>',
   title: '<short headline, phrased as a question>',
   question: '<the question as asked; fix typos only, never the meaning>',
-  short: '<1-3 plain sentences that answer it directly>',
+  // an entry that groups related questions lists them, in the order asked:
+  // question: ['<first question>', '<second question>'],
+  short: '<1-3 plain sentences that answer it directly (up to 4 for a group)>',
   asked: 'YYYY-MM-DD', // today
   chapters: ['<slug>', '<slug>'], // from src/chapters/registry.ts
   checked: ['relational-transformer @2a899c8: <files>', 'Paper (arXiv 2510.06377v3): <pages>', 'research/RT_TECHNICAL_SPEC.md <sections>'],
@@ -99,6 +128,9 @@ Rules for the content:
 
 - **Structure**: 2-6 `<Section>`s. Each one answers one sub-question, and its heading says the point in a sentence.
   The first section addresses the core of the question. `short` must stand alone, since the list page shows it.
+- **Grouped questions**: the page lists them numbered under "The questions". Give each question at least one Section of its
+  own, in the same order, whose heading answers that question; shared background can sit in a Section before them. The
+  `title` names the shared topic, and `short` answers every question in the group.
 - **Citations**: every factual sentence ends with a `<Cite>`. Use `kind="code"` with `file:start-end` at 2a899c8,
   `kind="paper"` with `"p.N §X"` or `"p.N Table K"`, `kind="spec"` with `"§N.M"`, and `kind="url"` for anything else.
 - **Code excerpts**: never type code by hand. Generate each one with
@@ -124,12 +156,15 @@ Run these with `export PATH=$HOME/.nvm/versions/node/v24.15.0/bin:$PATH` if `npm
 
 ```bash
 npm run typecheck && npm test && npm run build
+npm run search-index                             # re-reads every page from dist/ into public/search-index.json (~1 min)
 npx vite preview --port 5311 --strictPort        # run in the background
-node scripts/shoot.mjs --port 5311 --routes qa,qa/<id> --out <scratch>/qa-shots --themes light,dark --widths 1440,390
+node scripts/shoot.mjs --port 5311 --routes qa,qa/<id>,qa/<id2> --out <scratch>/qa-shots --themes light,dark --widths 1440,390
 ```
 
-`shoot.mjs` must print `ok` for every shot: no console errors, no horizontal overflow. Look at the screenshots
-(Read the PNGs, cropping long ones) and fix anything broken or cramped.
+`search-index` must print `ok` for every page, including each new `/qa/<id>`. The site search reads that file, so a new
+answer is not searchable until it is regenerated. `shoot.mjs` must print `ok` for every shot: no console errors, no horizontal
+overflow. Look at the screenshots (Read the PNGs, cropping long ones) and fix anything broken or cramped. If you change an
+entry after this, rebuild and run `npm run search-index` again.
 
 Then do a final citation pass. For each `<Cite kind="code">`, open those exact lines in the checkout and confirm they show what
 your sentence says. For each paper cite, confirm the page. Fix or remove anything that does not hold.
@@ -137,10 +172,12 @@ your sentence says. For each paper cite, confirm the page. Fix or remove anythin
 ## 5. Publish
 
 ```bash
-git add src/qa/entries/NNN-<id>.tsx   # plus any new shared code you added
+git add src/qa/entries/NNN-<id>.tsx public/search-index.json   # every new entry, plus any new shared code you added
 git commit -m "Q&A: <title>" -m "Co-Authored-By: <the attribution line from the system reminder>"
 git push origin main
 ```
+
+One commit for the whole prompt. With several entries, the subject is `Q&A: <n> new questions` and the body lists the titles.
 
 The user has authorized commits and pushes to this repository's `origin/main`. The GitHub Pages workflow deploys on push.
 
@@ -148,8 +185,9 @@ The user has authorized commits and pushes to this repository's `origin/main`. T
 
 Reply in chat with:
 
-- the short answer;
-- the page path `/#/qa/<id>`;
+- how you split and grouped the prompt, in a line or two, when it held more than one question;
+- for each entry: the short answer and the page path `/#/qa/<id>`;
+- any question an existing entry already answered, with that entry's path;
 - any caveat (an inference you flagged, or a point the code and paper leave open).
 
 Keep it brief: the full answer lives on the site.

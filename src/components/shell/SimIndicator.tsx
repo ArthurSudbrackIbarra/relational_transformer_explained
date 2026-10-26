@@ -147,7 +147,7 @@ export function SimIndicator({ className }: { className?: string }) {
           {...t}
           ref={t.ref}
           className={cx(
-            'group inline-flex h-9 min-w-0 items-center gap-2 rounded-lg border px-2.5 text-[15px] transition-colors',
+            'group inline-flex h-9 min-w-0 items-center gap-2 rounded-lg border px-2 text-[15px] transition-colors sm:px-2.5',
             open ? 'border-accent bg-accent-soft' : 'border-border bg-surface hover:bg-surface-2',
             className,
           )}
@@ -172,7 +172,7 @@ export function SimIndicator({ className }: { className?: string }) {
             <span className="num text-ink-2">L {p.L}</span>
             <span className="num text-ink-2">w {p.w}</span>
           </span>
-          <span className="font-medium text-ink lg:hidden">Sim</span>
+          <span className="hidden font-medium text-ink sm:inline lg:hidden">Sim</span>
           {(changed || ablated) && (
             <span
               aria-label={ablated ? 'ablation active' : 'non-default settings'}

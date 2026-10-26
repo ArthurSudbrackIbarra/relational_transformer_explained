@@ -1,4 +1,4 @@
-# Build the site, run the test suite, and deploy dist/ to GitHub Pages.
+# Build the site, run the test suite, index the pages for search, and deploy dist/ to GitHub Pages.
 # One-time setup: repository Settings → Pages → Build and deployment → Source: "GitHub Actions".
 name: Deploy to GitHub Pages
 
@@ -31,13 +31,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
         env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1' # Playwright is only used for local visual QA
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1' # the search-index step installs Chromium itself
 
       - name: Test (engine, sampler, model parity)
         run: npm test
 
       - name: Build
         run: npm run build
+
+      # The search index holds the rendered text of every page; rebuild it from this build so it
+      # never lags the content. If this step fails, the committed public/search-index.json ships.
+      - name: Search index
+        continue-on-error: true
+        run: |
+          npx playwright install --with-deps chromium
+          node scripts/search-index.mjs --out dist/search-index.json
 
       - uses: actions/upload-pages-artifact@v3
         with:

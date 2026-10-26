@@ -155,16 +155,15 @@ export function ChapterRail({ currentSlug, qaCurrent, action }: { currentSlug?: 
                   aria-label={`${c.number}. ${c.short}${completed[c.slug] ? ' (completed)' : ''}`}
                   title={`${c.number}. ${c.short}${completed[c.slug] ? ' (completed)' : ''}`}
                   className={cx(
-                    'relative flex h-9 w-9 tabular-nums items-center justify-center rounded-lg text-[15px] transition-colors',
+                    'flex h-9 w-12 items-center justify-center gap-1.5 rounded-lg text-[15px] tabular-nums transition-colors',
                     current ? 'bg-accent-soft font-semibold text-accent-text' : 'text-ink-2 hover:bg-surface-2 hover:text-ink',
                   )}
                 >
-                  {c.number}
-                  {completed[c.slug] && (
-                    <span aria-hidden="true" className="absolute right-0.5 bottom-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-accent text-accent-ink">
-                      <Check size={8} strokeWidth={3.5} />
-                    </span>
-                  )}
+                  {/* fixed columns: numbers right-aligned, ticks beside them on the same line */}
+                  <span className="w-5 text-right">{c.number}</span>
+                  <span aria-hidden="true" className={cx('flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full', completed[c.slug] && 'bg-accent text-accent-ink')}>
+                    {completed[c.slug] && <Check size={9} strokeWidth={3.5} />}
+                  </span>
                 </NavLink>
               </li>
             );

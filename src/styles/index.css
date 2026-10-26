@@ -208,6 +208,11 @@
   --code-punct: #6d6b65;
   --code-line-hl: rgba(98, 80, 214, 0.08);
 
+  /* site search: matched words (results and the page) and the brief glow on the matched block */
+  --search-hit: rgba(250, 196, 0, 0.42);
+  --search-hit-fade: rgba(250, 196, 0, 0.18);
+  --search-glow: rgba(250, 196, 0, 0.13);
+
   --shadow-pop: 0 1px 2px rgba(11, 11, 11, 0.06), 0 8px 28px rgba(11, 11, 11, 0.1);
   --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.04);
 
@@ -262,6 +267,9 @@
     --code-function: #7fb2ef;
     --code-punct: #a3a29a;
     --code-line-hl: rgba(144, 133, 233, 0.12);
+    --search-hit: rgba(250, 196, 0, 0.34);
+    --search-hit-fade: rgba(250, 196, 0, 0.15);
+    --search-glow: rgba(250, 196, 0, 0.09);
     --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 32px rgba(0, 0, 0, 0.5);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
@@ -307,6 +315,9 @@
   --code-function: #7fb2ef;
   --code-punct: #a3a29a;
   --code-line-hl: rgba(144, 133, 233, 0.12);
+  --search-hit: rgba(250, 196, 0, 0.34);
+  --search-hit-fade: rgba(250, 196, 0, 0.15);
+  --search-glow: rgba(250, 196, 0, 0.09);
   --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 32px rgba(0, 0, 0, 0.5);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
@@ -450,6 +461,16 @@
     line-height: 1.55;
     min-height: 100vh;
     overflow-x: hidden;
+  }
+
+  /* words a search result pointed at (src/search/landing.ts). The CSS optimizer warns that it does not
+     know ::highlight(); the rules ship unchanged. */
+  ::highlight(rt-search) {
+    background-color: var(--search-hit);
+    color: var(--ink);
+  }
+  ::highlight(rt-search-fade) {
+    background-color: var(--search-hit-fade);
   }
 
   ::selection {

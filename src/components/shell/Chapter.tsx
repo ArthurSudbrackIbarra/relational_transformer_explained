@@ -30,13 +30,15 @@ import { ContentColumn } from './Layout';
 
 /** Page wrapper: content column + bottom spacing; scrolls to `?section=` on load. */
 export function ChapterPage({ children, className }: { slug?: string; children: ReactNode; className?: string }) {
-  const { search } = useLocation();
+  const { search, state } = useLocation();
   useEffect(() => {
+    // a search result scrolls to the matched words itself (src/search/landing.ts)
+    if ((state as { find?: unknown } | null)?.find) return;
     const id = new URLSearchParams(search).get('section');
     if (!id) return;
     const t = window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
     return () => window.clearTimeout(t);
-  }, [search]);
+  }, [search, state]);
   return (
     <ContentColumn className={cx('pt-10 pb-24 sm:pt-14', className)}>
       <article>{children}</article>
@@ -171,8 +173,13 @@ export interface FigureProps {
 export function Figure({ wide, title, caption, controls, bare, children, className, id }: FigureProps) {
   return (
     <figure id={id} className={cx('my-8 min-w-0', wide && 'wide', className)}>
+      {/* search indexes the title and caption, not the interactive body (src/search/extract.ts) */}
       <div className={cx('min-w-0', !bare && 'card px-4 py-4 sm:px-5 sm:py-5')}>
-        {title && <div className="mb-3 text-[17px] font-semibold text-ink">{title}</div>}
+        {title && (
+          <div data-fig-title className="mb-3 text-[17px] font-semibold text-ink">
+            {title}
+          </div>
+        )}
         {controls && <div className="mb-4 flex flex-wrap items-end gap-x-4 gap-y-3">{controls}</div>}
         {children}
       </div>
