@@ -1,5 +1,5 @@
 /**
- * Chapter 16 "about": How this simulation was built and verified (BUILD_PLAN §4, §6; docs/CHAPTER_BRIEFS.md §16).
+ * Chapter 17 "about": How this simulation was built and verified (BUILD_PLAN §4, §6; docs/CHAPTER_BRIEFS.md §17).
  *
  * Nothing in this chapter is typed in by hand when a file or the engine can say it:
  *  - verification numbers, checkpoints, test counts: public/data/verification.json (python/write_verification.py);

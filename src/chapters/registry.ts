@@ -224,8 +224,24 @@ export const CHAPTERS: ChapterMeta[] = [
     load: () => import('./decoding/index.tsx'),
   },
   {
-    slug: 'training',
+    slug: 'end-to-end',
     number: 13,
+    title: 'One prediction, start to end',
+    short: 'One prediction, start to end',
+    summary: 'The whole forward pass on one seed: task, sampling, tokens, every matrix and weight, and the final prediction.',
+    part: 'model',
+    outline: [
+      'Pick a task and a seed row',
+      'Sample the context, then write the tokens',
+      'Embed every token: text lookups, encoders, norms, the mask vector',
+      'The four masks, then every operation of every block as a matrix',
+      'Final norm, decoders, and the prediction with its label and loss',
+    ],
+    load: () => import('./end-to-end/index.tsx'),
+  },
+  {
+    slug: 'training',
+    number: 14,
     title: 'Pretraining, zero-shot, fine-tuning',
     short: 'Pretraining & fine-tuning',
     summary: 'Leave-one-DB-out pretraining, the OneCycle schedule, zero-shot results and fine-tuning.',
@@ -240,7 +256,7 @@ export const CHAPTERS: ChapterMeta[] = [
   },
   {
     slug: 'playground',
-    number: 14,
+    number: 15,
     title: 'Zero-shot playground and ablations',
     short: 'Playground & ablations',
     summary: 'Run any ShopDB seed live; edit labels, shuffle names, shrink L, switch layers off.',
@@ -255,7 +271,7 @@ export const CHAPTERS: ChapterMeta[] = [
   },
   {
     slug: 'results',
-    number: 15,
+    number: 16,
     title: 'What the paper found',
     short: 'What the paper found',
     summary: 'Interactive versions of the paper’s tables, the drivers of transfer, and limitations.',
@@ -270,7 +286,7 @@ export const CHAPTERS: ChapterMeta[] = [
   },
   {
     slug: 'about',
-    number: 16,
+    number: 17,
     title: 'How this simulation was built and verified',
     short: 'How this was built',
     summary: 'The pipeline, the parity tests against PyTorch and the official model, and what is scaled down.',

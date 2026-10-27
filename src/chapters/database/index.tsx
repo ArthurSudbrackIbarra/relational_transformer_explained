@@ -346,8 +346,8 @@ export default function DatabaseChapter() {
           ))}
           , recorded from {formatDate(db.minTimestamp, 'never')} to {formatDate(db.maxTimestamp, 'never')}.{' '}
           {isShop
-            ? 'It plays the part of a database the model has never seen: the miniature RT on this site was pretrained on three other synthetic databases, and ShopDB was held out (chapter 13).'
-            : 'It is one of the three pretraining databases; ShopDB is the one held out (chapter 13).'}
+            ? 'It plays the part of a database the model has never seen: the miniature RT on this site was pretrained on three other synthetic databases, and ShopDB was held out (chapter 14).'
+            : 'It is one of the three pretraining databases; ShopDB is the one held out (chapter 14).'}
         </p>
         <ScaleNote paper="RelBench, 7 real databases" ours="4 synthetic databases, ShopDB held out">
           Besides the sizes, we replace the data (and compute in float32 instead of bfloat16). Every operation applied to the data is the paper-era

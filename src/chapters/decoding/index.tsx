@@ -329,7 +329,7 @@ export default function DecodingChapter() {
             The paper evaluates a fixed subset of at most 10,240 seeds per split and task, with labels and predictions in bfloat16, whose coarse
             rounding produces tied scores. Under 8-GPU evaluation the last batch of a small split can even count some seeds twice{' '}
             <Cite kind="spec" ref="§8.6" /> <Cite kind="spec" ref="§12" />. Here every seed is evaluated once, in float32, in one process. And the
-            numbers are our mini model’s on synthetic data: the paper’s own results are in chapter 15.
+            numbers are our mini model’s on synthetic data: the paper’s own results are in chapter 16.
           </p>
         </Callout>
         <ScaleNote
@@ -363,6 +363,10 @@ export default function DecodingChapter() {
             <Cite kind="spec" ref="§9.5" />.
           </p>
         </Callout>
+        <p>
+          This was the last piece of the forward pass. <Link to="/end-to-end">The next chapter</Link> puts all of them together on one page, from the
+          task row to this output, with every matrix and weight of a single prediction.
+        </p>
       </Section>
 
       <div className="page-grid">

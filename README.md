@@ -34,7 +34,7 @@ researches a new question against the official repository, adds the entry, verif
 ## Layout
 
 - `src/engine/`: pure-TS simulation engine (data generators, preprocessing, sampler, masks, model forward).
-- `src/chapters/`: the 16 interactive chapters.
+- `src/chapters/`: the 17 interactive chapters.
 - `src/qa/`: the Questions & answers page and its entries.
 - `src/components/`: shared UI and visualization components.
 - `python/`: embeddings (all-MiniLM-L12-v2), training of the mini RT, parity checks. See `python/README.md`.

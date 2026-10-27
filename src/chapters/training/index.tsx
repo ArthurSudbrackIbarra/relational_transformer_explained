@@ -1,5 +1,5 @@
 /**
- * Chapter 13 "training": Pretraining, zero-shot, fine-tuning (BUILD_PLAN §6, docs/CHAPTER_BRIEFS.md §13).
+ * Chapter 14 "training": Pretraining, zero-shot, fine-tuning (BUILD_PLAN §6, docs/CHAPTER_BRIEFS.md §14).
  *
  * Everything about OUR run is read at runtime from public/data/training/*.json (python/train.py) and
  * from the live engine (pretraining item list, contexts, forward passes); paper numbers are the

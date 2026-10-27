@@ -547,7 +547,7 @@ export default function TasksChapter() {
           One more difference concerns time. The paper says it uses “database rows only up to the training cutoff timestamps”{' '}
           <Cite kind="paper" ref="p.6 §4.1" />, but the paper-era code drops no database row by date; the sampler’s filter on child rows
           is the only time guard <Cite kind="code" ref="rustler/src/fly.rs:421-424" /> <Cite kind="spec" ref="§10 #10" />. ShopDB keeps
-          every row, as the code does (<Link to="/training">chapter 13</Link> has the details).
+          every row, as the code does (<Link to="/training">chapter 14</Link> has the details).
         </p>
         <CodeTabs
           tabs={[

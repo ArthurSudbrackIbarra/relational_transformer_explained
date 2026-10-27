@@ -1,6 +1,6 @@
 /**
  * Landing page: hero (title, pitch, animated motif, Start CTA), RT's three
- * ideas, what runs here (scale), and the course map of all 16 chapters.
+ * ideas, what runs here (scale), and the course map of all 17 chapters.
  */
 import { ArrowRight, Check, Columns3, Table2, Type } from 'lucide-react';
 import { useEffect } from 'react';
@@ -93,7 +93,7 @@ export function Landing() {
                 }}
                 className="inline-flex h-11 items-center rounded-xl border border-border-strong bg-surface px-4 text-[17.5px] font-medium text-ink hover:bg-surface-2"
               >
-                See the 16 chapters
+                See the 17 chapters
               </a>
             </div>
             <p className="mt-6 text-[15.5px] leading-relaxed text-muted">
@@ -185,7 +185,7 @@ export function Landing() {
         <div id="course-map" className="mt-20 scroll-mt-[calc(var(--topbar-h)+24px)]">
           <div className="max-w-[var(--prose-max)]">
             <div className="eyebrow">Course map</div>
-            <h2 className="mt-2 text-[28px] leading-tight font-semibold tracking-[-0.018em] text-balance text-ink">Sixteen chapters, one prediction</h2>
+            <h2 className="mt-2 text-[28px] leading-tight font-semibold tracking-[-0.018em] text-balance text-ink">Seventeen chapters, one prediction</h2>
             <p className="mt-3 text-[19px] leading-[1.65] text-ink-2">
               Each chapter opens one stage of the pipeline on the same live context. Read in order, or jump to what you need.
             </p>

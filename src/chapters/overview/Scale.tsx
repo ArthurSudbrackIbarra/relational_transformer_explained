@@ -37,7 +37,7 @@ export function SameAndDifferent() {
   const steps = data?.pretrain?.steps;
   const batch = data?.config?.batch;
   const { data: ver } = useVerification();
-  // the official FlexAttention class vs this site's dense port, same trained weights, real contexts (chapter 16)
+  // the official FlexAttention class vs this site's dense port, same trained weights, real contexts (chapter 17)
   const diff = ver ? maxCheckpointDiff(ver) : undefined;
   return (
     <div className="wide my-6 grid gap-4 md:grid-cols-2">
@@ -85,7 +85,7 @@ export function SameAndDifferent() {
           <Item icon="diff">
             Attention kernel: plain masked attention instead of FlexAttention, the same function
             {diff !== undefined ? ` (the official class and this site’s port differ by at most ${formatNumber(diff, 2)} on a forward pass)` : ''};
-            chapter 16 shows the parity checks
+            chapter 17 shows the parity checks
           </Item>
         </ul>
       </div>

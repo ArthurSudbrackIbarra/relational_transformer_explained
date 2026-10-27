@@ -8,6 +8,7 @@
  */
 import { ArrowRightLeft, Crosshair } from 'lucide-react';
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Button,
   Callout,
@@ -180,7 +181,7 @@ export default function OverviewChapter() {
       choices: [
         {
           text: 'Its weights are first fine-tuned on the new database’s training rows',
-          why: 'That is fine-tuning (chapter 13). Zero-shot means no weight updates.',
+          why: 'That is fine-tuning (chapter 14). Zero-shot means no weight updates.',
         },
         {
           text: 'Only through the context window: the cells, names and links around the seed row',
@@ -324,7 +325,8 @@ export default function OverviewChapter() {
           In one sentence: RT reads a <Term id="context-window">context window</Term> of cells sampled around a <Term id="seed-row">seed row</Term>,
           and predicts the one masked cell of that row <Cite kind="spec" ref="§0" />. The prediction is either a logit, for a yes/no target like{' '}
           <code>churn</code>, or a z-score, for a number <Cite kind="spec" ref="§8.3" />. The model itself is short: once the masks are built, the
-          path from cells to the final vectors is the 22 lines below.
+          path from cells to the final vectors is the 22 lines below. <Link to="/end-to-end">Chapter 13</Link> runs this same pass again, one operation at
+          a time, with every matrix and weight on screen.
         </p>
         <CodeRef
           title="The forward pass: embedding, blocks, final norm"

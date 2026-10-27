@@ -1,5 +1,5 @@
 /**
- * Chapter 15 "results": What the paper found (BUILD_PLAN §6, docs/CHAPTER_BRIEFS.md §15).
+ * Chapter 16 "results": What the paper found (BUILD_PLAN §6, docs/CHAPTER_BRIEFS.md §16).
  *
  * Every published number comes from ./data.ts, a transcription of the paper's tables checked against
  * the PDF text. Numbers derived from them (ratios, counts, differences) are computed at render time.
@@ -234,7 +234,7 @@ export default function ResultsChapter() {
         </p>
         <Callout variant="warning" title="The paper retrains; the playground does not">
           <p>
-            Chapter 14’s playground can switch an attention layer off in the trained mini model at inference time. That shows what a trained model
+            Chapter 15’s playground can switch an attention layer off in the trained mini model at inference time. That shows what a trained model
             does when part of it goes missing, which is a different experiment from Table 5, where each variant is pretrained without that layer{' '}
             <Cite kind="paper" ref="p.9 §5.2" />. <Link to="/playground">Open the playground</Link>.
           </p>
@@ -348,7 +348,7 @@ export default function ResultsChapter() {
         </p>
         <CostQuality />
         <p>
-          The playground lets you shrink L for the live seed and watch the prediction change (<Link to="/playground">chapter 14</Link>).
+          The playground lets you shrink L for the live seed and watch the prediction change (<Link to="/playground">chapter 15</Link>).
         </p>
         <ScaleNote paper="pretrained and evaluated at L = 1024" ours="pretrained and evaluated at L = 128" />
       </Section>

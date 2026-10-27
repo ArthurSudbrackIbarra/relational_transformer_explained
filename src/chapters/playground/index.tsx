@@ -1,5 +1,5 @@
 /**
- * Chapter 14 "playground": Zero-shot playground and ablations (BUILD_PLAN §6, docs/CHAPTER_BRIEFS.md §14).
+ * Chapter 15 "playground": Zero-shot playground and ablations (BUILD_PLAN §6, docs/CHAPTER_BRIEFS.md §15).
  *
  * The seed, context and checkpoint are the course's live state (src/state); every ablation is an
  * inference-time change to the INPUT of the engine's forward pass (ablate.ts), computed in the

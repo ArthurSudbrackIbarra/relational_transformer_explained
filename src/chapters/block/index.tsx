@@ -593,7 +593,7 @@ export default function BlockChapter() {
         </p>
         <Table15 />
         <p>
-          The playground (chapter 14) lets you switch layers off at inference time on the live context. That is a different experiment: the paper’s
+          The playground (chapter 15) lets you switch layers off at inference time on the live context. That is a different experiment: the paper’s
           ablations retrain the model without the layer <Cite kind="spec" ref="§11.4" />.
         </p>
       </Section>

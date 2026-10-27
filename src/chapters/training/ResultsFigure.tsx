@@ -756,7 +756,7 @@ export function ReproducePanel({ results }: { results: Results | null }) {
         TypeScript forward pass, which agrees with PyTorch to{" "}
         {parity !== undefined ? `at most ${sci(parity, 1)}` : "about 10⁻⁶"} at
         every activation of the verified contexts (
-        <Link to="/about">chapter 16</Link>), so the metrics agree to the shown
+        <Link to="/about">chapter 17</Link>), so the metrics agree to the shown
         digits unless two seeds’ predictions are nearly tied.
       </figcaption>
     </figure>

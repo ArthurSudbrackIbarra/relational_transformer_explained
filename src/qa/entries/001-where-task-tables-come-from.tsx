@@ -235,7 +235,7 @@ export default function Answer() {
           entity’s own past labels (its self labels) drops mean zero-shot AUROC from 70.1 to 53.8 <Cite kind="paper" ref="p.9 Table 4" />. On{' '}
           <code>rel-trial/study-outcome</code>, contexts contain no labels at all (0 ± 0 per context){' '}
           <Cite kind="paper" ref="p.23 Table 12" />, and RT’s zero-shot AUROC is 51.8, next to the 50.0 of random guessing{' '}
-          <Cite kind="paper" ref="p.8 Table 1" />. <Link to="/results">Chapter 15</Link> shows the same collapse on this site’s model.
+          <Cite kind="paper" ref="p.8 Table 1" />. <Link to="/results">Chapter 16</Link> shows the same collapse on this site’s model.
         </p>
         <p>
           The code also needs some history before it can run. Validation and test splits copy their normalization statistics from

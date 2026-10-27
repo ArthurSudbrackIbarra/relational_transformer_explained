@@ -241,7 +241,7 @@ export function MiniResults() {
         Checkpoint chosen per task on ShopDB’s validation split, then scored on its test split, as in the paper <Cite kind="spec" ref="§9.1" />. One
         training run and this few test rows make the scores noisy. They show that the miniature runs the paper’s protocol, not that it reproduces the
         paper’s numbers. EntityMean winning a regression task happens in the paper too: it beats RT on item-ltv and post-votes{' '}
-        <Cite kind="paper" ref="p.8 Table 2" />. Chapter 13 has the training curves.
+        <Cite kind="paper" ref="p.8 Table 2" />. Chapter 14 has the training curves.
       </p>
     </div>
   );

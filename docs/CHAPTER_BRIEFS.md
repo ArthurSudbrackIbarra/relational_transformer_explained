@@ -415,7 +415,32 @@ Also a note that our PRNG is not Rust's ChaCha12 (same distribution).
 
 ---
 
-## 13. `training`: Pretraining, zero-shot, fine-tuning
+## 13. `end-to-end`: One prediction, start to end
+
+**Goal.** One page that runs a single prediction from the choice of task to the final number, showing every matrix of the forward pass and the weights that produce it. The earlier chapters each open one step; this one connects them on the live seed.
+
+**Sections and figures** (one per stage, ids in brackets):
+0. *The pass at a glance* [`map`]. Seven stages with what flows between them (shapes) and the learned weights each uses, switchable between this site's sizes and the paper's (`parameterShapes`); live results per stage. The shared *followed token* (the store's `selectedPos`, the masked target by default) is outlined in every matrix.
+1. *Pick a task and a seed row* [`question`]. Database / task / split / seed pickers that write the global store; the seed row column by column: which cells become tokens, PK (nothing), FKs (links), nulls, leakage columns, the masked target and its hidden label; what comes out (logit or z-score) and which checkpoint is loaded.
+2. *Sample the context* [`sample`]. A replay of the sampler's event trace one visited row per step (skipped pops counted in the narration): parents pushed, children filtered by time / other task tables, task rows kept, width bound, cells emitted, the stop at L; the token strip filling up.
+3. *Write the tokens* [`tokens`]. The batch dictionary (`TokenTable`), and the two roads its fields take: ids → masks, values → embedding; three fields unread by model.py.
+4. *Embed every token* [`embed`]. Text lookups (`col_name_values`, `text_values`, including E(text[0]) for non-text cells), the column-name projection as a matrix product, its RMSNorm, the value term per type with the mask vectors, and x₀.
+5. *Build the four masks* [`masks`]. The four S × S masks, hover-linked, with the condition that allows each pair.
+6. *Run the blocks* [`blocks`]. One player over every operation of every block (4 × (4 × 7 + 4) = 128 steps): RMSNorm, Q/K/V, per-head scores, mask, softmax, weighted sum, W_o + residual; SwiGLU W₁/W₃, gate, W₂ + residual. Matrix products use the textbook layout (B above C, A to its left); hover any entry for its dot product.
+7. *Decode and read the answer* [`output`]. norm_out, the three scalar decoders at every position (the text head runs in the official code but is never read), the read-out at the target, σ or de-normalization, the hidden label and the training loss.
+8. *The same pass at the paper's size* [`scale`].
+
+**Correctness.** Every matrix is the engine's capture. Every number written out next to a figure is recomputed from the operands on screen (`src/chapters/end-to-end/math.ts`), and `math.test.ts` checks each re-derivation against the capture on the trained checkpoints for a binary and a regression task, at every block, layer and head.
+
+**Spec.** §0, §2.1-§2.5, §3.3-§3.6, §4.3-§4.11, §5.1-§5.3, §6.1-§6.2, §7.1-§7.3, §8.1-§8.5, §10 #1, #2, #5. **CodeRef.** `PE/rustler/src/fly.rs:404-452`, `fly.rs:462-500`; `PE/rt/model.py:208-224`, `164-191`, `62-86`, `20-47`, `226-229`; `PE/rt/main.py:283-293`.
+
+**Callouts (paper-vs-code).** The embedding's biases and RMSNorms (§10 #2); pre-norm vs Alg. 2 (§10 #1); Alg. 1 vs the sampler (§10 #5, link to chapter 6).
+
+**Quiz.** How many cells does one pass predict? Which fields decide who attends to whom? What runs after column attention? What does the decoder output at the masked cell?
+
+---
+
+## 14. `training`: Pretraining, zero-shot, fine-tuning
 
 **Goal.** How RT is trained, what "zero-shot" means operationally, and our real training run.
 
@@ -453,7 +478,7 @@ Also a note that our PRNG is not Rust's ChaCha12 (same distribution).
 
 ---
 
-## 14. `playground`: Zero-shot playground and ablations
+## 15. `playground`: Zero-shot playground and ablations
 
 **Goal.** Let the learner poke the model and build intuition, mirroring the paper's ablations.
 
@@ -478,7 +503,7 @@ Also a note that our PRNG is not Rust's ChaCha12 (same distribution).
 
 ---
 
-## 15. `results`: What the paper found
+## 16. `results`: What the paper found
 
 **Goal.** A faithful, browsable summary of the paper's empirical findings and its caveats.
 
@@ -497,7 +522,7 @@ Also a note that our PRNG is not Rust's ChaCha12 (same distribution).
 
 ---
 
-## 16. `about`: How this simulation was built and verified
+## 17. `about`: How this simulation was built and verified
 
 **Sections.**
 - *Pipeline*: data generation (deterministic), preprocessing/sampler mirrors, MiniLM embeddings precomputed with sentence-transformers, PyTorch port, CPU training, TS forward.

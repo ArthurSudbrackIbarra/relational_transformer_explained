@@ -326,7 +326,7 @@ function Detail({ id }: { id: StageId }) {
           <p>
             Training mirrors <span className="font-mono text-[16px]">rt/main.py</span>: leave-one-database-out pretraining with AdamW and the OneCycle
             schedule, then checkpoint selection on ShopDB validation per task <Cite kind="spec" ref="§9.1" /> <Cite kind="spec" ref="§9.2" />. It ran in
-            float32 on a CPU. Chapter 13 shows the curves.
+            float32 on a CPU. Chapter 14 shows the curves.
           </p>
           {res?.pretrain && ds ? (
             <>

@@ -119,7 +119,7 @@ All generators are **seeded and deterministic**: same output on every load, in b
 
 Time span 2024-01-01 .. 2025-06-30 for all DBs. Forecast tasks: Δ = 30 days unless noted. `valTimestamp` = 2025-03-01, `testTimestamp` = 2025-04-15. Train timestamps are `val − kΔ` for k=1,2,… while ≥ DB min timestamp + Δ (RelBench style, spec §2.2). Val split = rows at valTimestamp, Test split = rows at testTimestamp. Entities included at time t: those with ≥1 activity row before t (RelBench-like "active" filter). Labels aggregate the window (t, t+Δ].
 
-### 3.1 ShopDB (`shop`): TARGET DB, held out from pretraining (used in chapters 2–12, 14)
+### 3.1 ShopDB (`shop`): TARGET DB, held out from pretraining (used in chapters 2–13, 15)
 
 | table | pk | fks | timeCol | feature columns |
 |---|---|---|---|---|
@@ -279,16 +279,21 @@ Each chapter: `ChapterHeader` → 3–6 `Section`s of prose and interactive figu
    - Binary: logit → σ → probability. Regression: z → de-normalize with Train stats.
    - Loss computation with numbers: BCE on 1{z>0}, Huber δ=1, mean over masked cells.
    - Metrics: AUROC on logits, R² in z-space (§8).
-13. **`training`: Pretraining, zero-shot, fine-tuning.**
+13. **`end-to-end`: One prediction, start to end.** The whole forward pass on one seed, on one page, with every matrix and the weights that make it.
+   - Pick a task and seed (writes the global store); the seed row read as the sampler will (which cells become tokens, which are links, the masked target).
+   - The sampler's trace replayed row by row; the batch dictionary; the input embedding as matrices (text lookups, both encoders, both RMSNorms, the mask vector, x₀); the four masks.
+   - Every operation of every block as a matrix (RMSNorm, Q/K/V, per-head scores, mask, softmax, weighted sum, W_o, residual; SwiGLU W₁/W₃, gate, W₂), hover any entry for its arithmetic; norm_out, the decoders and the read-out with label and loss.
+   - Displayed arithmetic is recomputed from the operands and checked against the engine's capture in `math.test.ts`.
+14. **`training`: Pretraining, zero-shot, fine-tuning.**
    - Masked-token-prediction pretraining with one masked cell per context; leave-one-DB-out with our 4 DBs.
    - Real training curves from our run; the OneCycle LR and β1 schedule (spec §9.2); best-val checkpoint selection per task.
    - Zero-shot results on ShopDB vs the EntityMean baseline; fine-tuning curves pretrained vs untrained (Fig. 3 analogue).
    - Paper hyperparameter table vs mini (§9).
-14. **`playground`: Zero-shot playground and ablations.** Pick any ShopDB seed and run live. Edit in-context labels; remove self labels / other labels; shuffle column names; change L (Fig. 4 analogue); disable attention-layer types at inference.
+15. **`playground`: Zero-shot playground and ablations.** Pick any ShopDB seed and run live. Edit in-context labels; remove self labels / other labels; shuffle column names; change L (Fig. 4 analogue); disable attention-layer types at inference.
    - Clearly label that the paper's layer ablations **retrain** the model; ours are inference-time.
    - Show the prediction and the attention change, side by side with the paper's ablation numbers (§11).
-15. **`results`: What the paper found.** Interactive charts of Tables 1, 2, 4, 5, 10, 13, 15 (from spec §11). The ranked drivers of zero-shot transfer. Limitations (§7 of paper). All paper-vs-code discrepancies (spec §10) as a browsable list. Glossary. References.
-16. **`about`: How this simulation was built and verified.** Pipeline, the parity tests (TS == PyTorch port == official model.py), what is scaled down, sources and licenses.
+16. **`results`: What the paper found.** Interactive charts of Tables 1, 2, 4, 5, 10, 13, 15 (from spec §11). The ranked drivers of zero-shot transfer. Limitations (§7 of paper). All paper-vs-code discrepancies (spec §10) as a browsable list. Glossary. References.
+17. **`about`: How this simulation was built and verified.** Pipeline, the parity tests (TS == PyTorch port == official model.py), what is scaled down, sources and licenses.
 
 ## 7. Global state (`src/state/`)
 
