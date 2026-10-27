@@ -135,8 +135,8 @@ export function SampleStage() {
                   )}
                   {ie!.subsample ? (
                     <li className="!m-0">
-                      {plural(ie!.subsample.candidates.length, 'database child', 'database children')} passed the time filter; a uniform {ie!.subsample.kept.length}{' '}
-                      of them (w = {ie!.subsample.w}) pushed to depth {cur.depth + 1} <Cite kind="code" ref="rustler/src/fly.rs:439-452" />.
+                      {plural(ie!.subsample.candidates.length, 'database child', 'database children')} passed the time filter; {ie!.subsample.kept.length} of
+                      them, drawn uniformly (w = {ie!.subsample.w}), pushed to depth {cur.depth + 1} <Cite kind="code" ref="rustler/src/fly.rs:439-452" />.
                     </li>
                   ) : (
                     ie!.dbKids.length > 0 && (

@@ -9,7 +9,7 @@
  * capture (ForwardResult.embedding) or a batch field rebuilt exactly as fly.rs writes it
  * (live.ts `textFields`); math.test.ts checks every recomputed entry against the capture.
  */
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Cite, Figure, StatusBadge, StepPlayer, TeX, cx, useStepPlayer } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import { SEM_TYPE_NAMES, SemType } from '@/engine/types';
@@ -20,7 +20,7 @@ import type { Cell } from './Matrix';
 import { linearEntry, rowOf, scalarInput } from './math';
 import { NormView } from './NormView';
 import { HoverHint, MathHead, Readout, Sym, tok } from './opParts';
-import { FocusLine, LoadingNote, OpLayout, useVisualWidth } from './shared';
+import { FocusLine, LoadingNote, OpLayout, useViewHover, useVisualWidth } from './shared';
 
 type EmbOp = 'lookup' | 'colProj' | 'colNorm' | 'value' | 'sum';
 const OPS: { id: EmbOp; short: string }[] = [
@@ -36,8 +36,7 @@ export function EmbedStage() {
   const live = useE2E();
   const player = useStepPlayer(OPS.length, { intervalMs: 3200 });
   const op = OPS[player.index].id;
-  const [hover, setHover] = useState<LinkedHover | null>(null);
-  useEffect(() => setHover(null), [player.index, live.ctx]);
+  const [hover, setHover] = useViewHover<LinkedHover>([player.index, live.ctx]);
   const [ref, size] = useElementSize<HTMLDivElement>();
   const width = useVisualWidth(size.width);
   const ready = !!live.fr && !!live.weights && !!live.store;
@@ -475,7 +474,7 @@ function SumOp({ live, width, hover, setHover }: OpProps) {
       math={
         <MathHead
           title="Add the two terms: x₀"
-          tex={[`x_{0,i} = c'_i + \\text{val}_i`, `x_0 \\in \\mathbb{R}^{${int(numReal)}\\times ${d}}`]}
+          tex={[`x_{0,i} = c'_i + \\text{val}_i`, `x_0 \\in \\mathbb{R}^{${int(S)}\\times ${d}}`]}
           cite={
             <>
               <code>x = 0</code>, then each term is added with its gate <Cite kind="code" ref="rt/model.py:208-224" />; padding rows are exactly 0{' '}

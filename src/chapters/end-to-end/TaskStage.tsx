@@ -191,7 +191,8 @@ export function TaskStage() {
           </div>
           {task.kind === 'autocomplete' && (
             <p className="!m-0 text-[15px] leading-snug text-muted">
-              An autocomplete task seeds on every row of its table, so the split does not apply <Cite kind="spec" ref="§2.4" />.
+              An autocomplete task seeds on every row of its table that has a value in the target column, from every period, so the split does
+              not apply <Cite kind="spec" ref="§2.4" />.
             </p>
           )}
         </div>

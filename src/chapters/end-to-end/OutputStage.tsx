@@ -5,12 +5,12 @@
  *   ŷ_t     = x_final W_tᵀ + b_t for t ∈ {number, datetime, boolean} at EVERY position   rt/model.py:238-239
  *   read ŷ at the masked position: boolean → logit (binary task), number → z-score (regression)
  *                                                              rt/main.py:283-288
- *   display: σ(logit), or ẑ·σ_train + μ_train (spec §8.4); loss as in training (rt/model.py:250-265)
+ *   display: σ(logit), or ẑ·σ + μ with the stats the target was z-scored with (spec §8.4); loss as in training (rt/model.py:250-265)
  *
  * The text decoder Linear(d, 384) is in the checkpoint but never read (text is never masked), so the
  * engine skips it (model/forward.ts); ŷ here is the S × 3 matrix of the three scalar heads.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Cite, Figure, StatusBadge, StepPlayer, TeX, cx, useStepPlayer } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import { bceWithLogits, huber } from '@/engine/model/loss';
@@ -21,7 +21,7 @@ import { DotLine, MatMul, fitScale, type LinkedHover } from './MatMul';
 import { linearEntry, rowOf } from './math';
 import { NormView } from './NormView';
 import { HoverHint, MathHead, Readout, tok } from './opParts';
-import { FocusLine, LoadingNote, OpLayout, useVisualWidth } from './shared';
+import { FocusLine, LoadingNote, OpLayout, useViewHover, useVisualWidth } from './shared';
 
 type OutOp = 'norm' | 'decode' | 'answer';
 const OPS: { id: OutOp; short: string }[] = [
@@ -35,8 +35,7 @@ export function OutputStage() {
   const live = useE2E();
   const player = useStepPlayer(OPS.length, { intervalMs: 3200 });
   const op = OPS[player.index].id;
-  const [hover, setHover] = useState<LinkedHover | null>(null);
-  useEffect(() => setHover(null), [player.index, live.ctx]);
+  const [hover, setHover] = useViewHover<LinkedHover>([player.index, live.ctx]);
   const [ref, size] = useElementSize<HTMLDivElement>();
   const width = useVisualWidth(size.width);
   const ready = !!live.fr && !!live.weights;
@@ -208,7 +207,7 @@ function AnswerOp({ live }: { live: E2ELive }) {
             {binary ? (
               <Big title="probability" value={pct(pred.probability!)} note={`σ(${fmtNum(z)}) that ${task.targetCol} is true`} accent />
             ) : (
-              <Big title={`${task.targetCol}, in its units`} value={fmtNum(pred.value!, 2)} note={`${fmtNum(z)} × ${fmtNum(pred.stats!.std, 3)} + ${fmtNum(pred.stats!.mean, 3)}`} accent />
+              <Big title={`${task.targetCol}, in its units`} value={fmtNum(pred.value!, 2)} note={`${fmtNum(z)} × ${fmtNum(pred.stats!.std, 3)} + ${fmtNum(pred.stats!.mean, 3, true)}`} accent />
             )}
             <Big title="hidden label" value={binary ? `${rawLabel} (y = ${label.binary})` : rawLabel} note={binary ? `stored z ${fmtSigned(t.booleanValue)}; y = 1{z > 0}` : `stored z ${fmtSigned(label.z ?? 0)}`} />
           </div>

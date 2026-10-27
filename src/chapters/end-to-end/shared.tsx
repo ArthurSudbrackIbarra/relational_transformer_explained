@@ -3,7 +3,7 @@
  * token's row is outlined and explained), the loading note, and a media-query hook.
  */
 import { Crosshair, Undo2 } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Button, Select, TableSwatch, cx, tokenValueText } from '@/components';
 import { SEM_TYPE_NAMES } from '@/engine/types';
 import { rowName } from '../attention/utils';
@@ -72,6 +72,19 @@ export function FocusLine({ className }: { className?: string }) {
       )}
     </div>
   );
+}
+
+/**
+ * Hover state that belongs to one view of a figure (`view`: the player step, the head, the context…).
+ * A hover made in another view is dropped in the same render, not in an effect after it: a player
+ * that advances while the mouse rests on an entry (autoplay, keyboard) must never read the new
+ * step's matrices at the old step's indices, which may not exist there.
+ */
+export function useViewHover<T>(view: readonly unknown[]): [T | null, (h: T | null) => void] {
+  const [state, setState] = useState<{ view: readonly unknown[]; h: T } | null>(null);
+  const setHover = useCallback((h: T | null) => setState(h === null ? null : { view, h }), view);
+  const current = state !== null && state.view.length === view.length && state.view.every((v, i) => Object.is(v, view[i]));
+  return [current ? state.h : null, setHover];
 }
 
 /** Visual on the left, the arithmetic on the right (stacked below lg). */

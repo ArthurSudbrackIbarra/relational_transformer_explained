@@ -1,7 +1,7 @@
 /**
  * Questions & answers (route /#/qa). Each entry is one file in ./entries,
  * `NNN-<id>.tsx`, that exports `meta` and default-exports the answer body.
- * The project skill .claude/skills/rlquestion/SKILL.md writes new entries.
+ * The project skill .claude/skills/rtquestion/SKILL.md writes new entries.
  */
 import type { ComponentType } from 'react';
 

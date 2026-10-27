@@ -4,7 +4,6 @@
  * the same (query, key) pair in all four and says which condition allows it (./math.ts `maskReasons`,
  * checked against the masks in math.test.ts).
  */
-import { useState } from 'react';
 import { Cite, Figure, LayerLabel } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import { ATTN_ORDER, type AttnLayer } from '@/engine/types';
@@ -12,7 +11,7 @@ import { int, plural } from './format';
 import { useE2E } from './live';
 import { Matrix, type Cell } from './Matrix';
 import { maskReasons, type MaskReason } from './math';
-import { FocusLine } from './shared';
+import { FocusLine, useViewHover } from './shared';
 
 const REASON: Record<MaskReason, string> = {
   'same-column': 'same column, same table',
@@ -33,7 +32,7 @@ export function MaskStage() {
   const live = useE2E();
   const { masks, ctx, numReal, focus, tokenSlots, tokenLabels, setFocus } = live;
   const S = ctx.tokens.length;
-  const [hover, setHover] = useState<Cell | null>(null);
+  const [hover, setHover] = useViewHover<Cell>([ctx]);
   const [ref, size] = useElementSize<HTMLDivElement>();
   const w = size.width || 640;
   // as many masks per row as fit with cells of at least 0.9 px (4, 2 or 1 per row)

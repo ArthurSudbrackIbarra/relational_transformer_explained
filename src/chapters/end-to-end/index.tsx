@@ -56,7 +56,7 @@ export default function EndToEndChapter() {
 
 function Body() {
   const live = useE2E();
-  const { db, task, ctx, cfg, assets, numReal, nBlocks, d, H, dh, dFF, disabledLayers, setDisabledLayers, labels } = live;
+  const { db, task, ctx, cfg, assets, S, numReal, nBlocks, d, H, dh, dFF, disabledLayers, setDisabledLayers, labels } = live;
   const kind = runKind(live);
   const forecast = task.kind === 'forecast';
   const binary = task.targetType === 'binary';
@@ -103,6 +103,13 @@ function Body() {
           matrix or picking it from the list. Its row is outlined in every matrix and its numbers are written out next to the figure. Matrices show
           one small rectangle per entry: red for positive values, blue for negative, gray near zero, each on its own scale unless a figure says
           otherwise. Hover or focus any entry, or move through a matrix with the arrow keys, to read its value and how it was computed.
+          {numReal < S && (
+            <>
+              {' '}
+              This context has {int(S - numReal)} padding position{S - numReal === 1 ? '' : 's'} after its {int(numReal)} cells. The figures leave them
+              out: they hold no cell, every mask blocks them, and they never change a real token’s numbers.
+            </>
+          )}
         </p>
         {disabledLayers.length > 0 && (
           <Callout variant="warning" title="An inference-time ablation is active">
@@ -158,7 +165,14 @@ function Body() {
           </li>
           <li>
             A child row with a timestamp later than the seed’s is skipped, and at most w = {ctx.params.w} database children of each row are kept, chosen
-            uniformly; task-table children, which carry the labels, are all kept <Cite kind="code" ref="rustler/src/fly.rs:415-452" />.
+            uniformly. Children in the seed’s own task table, which carry the labels, are never subsampled; rows of other task tables are skipped{' '}
+            <Cite kind="code" ref="rustler/src/fly.rs:415-452" />.
+            {!forecast && (
+              <>
+                {' '}
+                An autocomplete seed is a database row, so its context holds no task rows at all <Cite kind="spec" ref="§2.4" />.
+              </>
+            )}
           </li>
           <li>
             Each visited row adds its cells in order, and the sampler stops at exactly L, even in the middle of a row{' '}
@@ -240,7 +254,7 @@ function Body() {
       <Section id="masks" title="Build the four masks" kicker="Stage 5">
         <p>
           Which rows link to which enters the model only here <Cite kind="spec" ref="§0" />. From the ids alone, the forward pass builds four boolean{' '}
-          {int(numReal)} × {int(numReal)} matrices, one per attention layer <Cite kind="code" ref="rt/model.py:164-191" />: <em>column</em> (same column of the same table), <em>feature</em> (the same row
+          {int(S)} × {int(S)} matrices, one per attention layer <Cite kind="code" ref="rt/model.py:164-191" />: <em>column</em> (same column of the same table), <em>feature</em> (the same row
           and its parent rows), <em>neighbor</em> (the child rows) and <em>full</em> (everything) <Cite kind="paper" ref="p.5 §3.2" />. Each is ANDed
           with “neither token is padding”, built once, and shared by every head of every block <Cite kind="code" ref="rt/model.py:89-101" />{' '}
           <Cite kind="code" ref="rt/model.py:204-206" />.
@@ -255,7 +269,7 @@ function Body() {
       {/* ───────────────────────────────────────────────────────────── 6 */}
       <Section id="blocks" title={`Run the ${nBlocks} blocks`} kicker="Stage 6">
         <p>
-          The {int(numReal)} × {d} matrix x₀ now passes through {nBlocks} blocks with separate weights (12 in the paper){' '}
+          The {int(S)} × {d} matrix x₀ now passes through {nBlocks} blocks with separate weights (12 in the paper){' '}
           <Cite kind="paper" ref="p.6 §4.1" />. Inside each block, four attention sublayers run in the order column, feature, neighbor, full, then a
           SwiGLU feed-forward sublayer, each wrapped in a pre-norm residual <Cite kind="code" ref="rt/model.py:82-86" /> <Cite kind="spec" ref="§7.1" />:
         </p>
@@ -385,7 +399,7 @@ function Body() {
               choices: [
                 { text: 'Feature attention', correct: true },
                 { text: 'The SwiGLU feed-forward', why: 'The SwiGLU comes last, after all four attentions.' },
-                { text: 'A RMSNorm of the residual stream itself', why: 'The norms only feed each sublayer; x is not normalized between sublayers.' },
+                { text: 'An RMSNorm of the residual stream itself', why: 'The norms only feed each sublayer; x is not normalized between sublayers.' },
               ],
               explanation: (
                 <>
@@ -402,7 +416,7 @@ function Body() {
                     { text: 'The class label 0 or 1', why: 'The label is read from the token, not predicted as a class.' },
                   ]
                 : [
-                    { text: 'The value in the column’s units', why: 'That needs the Train mean and standard deviation, a display step.' },
+                    { text: 'The value in the column’s units', why: 'That needs the mean and standard deviation the column was z-scored with: a display step.' },
                     { text: 'A z-score in the column’s own scale', correct: true },
                     { text: 'A rank among the seeds', why: 'R² compares z-scores; nothing is ranked.' },
                   ],

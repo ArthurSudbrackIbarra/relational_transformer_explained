@@ -9,7 +9,7 @@
  * (ForwardResult.blocks[b]); the arithmetic shown for an entry is recomputed from the operands
  * on screen by ./math.ts, which math.test.ts checks against the capture.
  */
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Button, Cite, Figure, LAYER_INFO, LayerLabel, Segmented, StatusBadge, StepPlayer, TeX, cx, useStepPlayer } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import { ATTN_ORDER, type AttnCapture, type AttnLayer, type FFNCapture } from '@/engine/types';
@@ -32,7 +32,7 @@ import {
 } from './math';
 import { NormView } from './NormView';
 import { HoverHint, MathHead, Readout, Sym, tok } from './opParts';
-import { FocusLine, LoadingNote, OpLayout, useVisualWidth } from './shared';
+import { FocusLine, LoadingNote, OpLayout, useViewHover, useVisualWidth } from './shared';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Steps
@@ -114,9 +114,8 @@ export function BlockStage() {
   const [head, setHead] = useState(0);
   const [which, setWhich] = useState<'q' | 'k' | 'v'>('q');
   const [upWhich, setUpWhich] = useState<'w1' | 'w3'>('w1');
-  const [hover, setHover] = useState<LinkedHover | null>(null);
-  // a new step or a new context clears the hovered entry
-  useEffect(() => setHover(null), [player.index, head, which, upWhich, live.ctx]);
+  // a new step, head, projection or context drops the hovered entry
+  const [hover, setHover] = useViewHover<LinkedHover>([player.index, head, which, upWhich, live.ctx]);
   const goSub = (block: number, sub: Sub) => {
     setPlaying(false);
     setIndex(steps.findIndex((s) => s.block === block && s.sub === sub));

@@ -1,10 +1,10 @@
 ---
-name: rlquestion
-description: Answer one or more questions about the Relational Transformer and publish them on the site's Questions & answers page (/#/qa). Use when the user runs /rlquestion <questions> or asks to add questions to the site's Q&A. A prompt with several questions is split into separate questions, grouped into one entry when they are closely related and into separate entries otherwise. Each answer is researched and verified against the paper-era official code (snap-stanford/relational-transformer @2a899c8) and the paper, written as a new src/qa/entries/NNN-<id>.tsx file in the site's chapter style, checked, committed and pushed.
+name: rtquestion
+description: Answer one or more questions about the Relational Transformer and publish them on the site's Questions & answers page (/#/qa). Use when the user runs /rtquestion <questions> or asks to add questions to the site's Q&A. A prompt with several questions is split into separate questions, grouped into one entry when they are closely related and into separate entries otherwise. Each answer is researched and verified against the paper-era official code (snap-stanford/relational-transformer @2a899c8) and the paper, written as a new src/qa/entries/NNN-<id>.tsx file in the site's chapter style, checked, committed and pushed.
 argument-hint: <one or more questions about the Relational Transformer>
 ---
 
-# /rlquestion: add verified questions and answers to the site
+# /rtquestion: add verified questions and answers to the site
 
 The prompt is: **$ARGUMENTS**
 

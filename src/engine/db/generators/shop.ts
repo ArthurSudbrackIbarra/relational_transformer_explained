@@ -1,6 +1,6 @@
 /**
  * ShopDB (`shop`): a small e-commerce database. TARGET DB, held out from pretraining
- * (BUILD_PLAN §3.1). It is the running example of chapters 2–12 and 14.
+ * (BUILD_PLAN §3.1). It is the running example of chapters 2–13 and 15.
  *
  *   customers(customer_id; name, country, age, is_premium, signup_date)
  *   products (product_id;  name, category, price)

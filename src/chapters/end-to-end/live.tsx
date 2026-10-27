@@ -137,7 +137,7 @@ export function W(weights: RTWeights, name: string): Float32Array {
 }
 
 /**
- * The two 384-wide batch fields of the context, exactly as fly.rs:476-486 writes them:
+ * The two 384-wide batch fields of the context, exactly as fly.rs:472-486 writes them:
  * `col_name_values` = E("<col> of <table>") and `text_values` = E(text[text_idx]) for every emitted
  * cell (pre.rs stores text index 0 for non-text cells, so they carry the embedding of string 0),
  * and zeros for padding (Vecs::new, fly.rs:65-85).

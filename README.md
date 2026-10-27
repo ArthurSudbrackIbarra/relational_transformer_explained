@@ -28,7 +28,7 @@ npm run build      # static site in dist/
 ## Questions & answers
 
 The site has a Q&A page (`/#/qa`). Each answer is one file in `src/qa/entries/`, written in the chapters' style and
-checked against the paper-era code. In Claude Code, `/rlquestion <question>` (skill in `.claude/skills/rlquestion/`)
+checked against the paper-era code. In Claude Code, `/rtquestion <question>` (skill in `.claude/skills/rtquestion/`)
 researches a new question against the official repository, adds the entry, verifies the build and pushes it.
 
 ## Layout
