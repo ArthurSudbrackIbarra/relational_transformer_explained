@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { divergingRgb, rgbCss, sequentialCss } from '@/components/viz/scales';
 import { TOKENS } from '@/styles/palette';
 import { useReadingMode, useResolvedTheme } from '@/styles/theme';
-import { cx } from '@/components';
+import { ShapeTag, cx, type Shape } from '@/components';
 
 export interface MatrixCanvasProps {
   data: ArrayLike<number>;
@@ -204,7 +204,7 @@ export function KV({ k, v, className }: { k: React.ReactNode; v: React.ReactNode
  * A positive vector (e.g. an RMSNorm gain γ) on the sequential scale over its own range, so its
  * variation is visible (a signed diverging scale would paint every cell the same red).
  */
-export function SeqStrip({ values, label, cellHeight = 14 }: { values: ArrayLike<number>; label: string; cellHeight?: number }) {
+export function SeqStrip({ values, label, cellHeight = 14, shape }: { values: ArrayLike<number>; label: string; cellHeight?: number; shape: Shape | null }) {
   const mode = useResolvedTheme();
   const [hover, setHover] = useState<number | null>(null);
   let lo = Infinity;
@@ -232,7 +232,8 @@ export function SeqStrip({ values, label, cellHeight = 14 }: { values: ArrayLike
         ))}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-x-3 text-[14px] text-muted">
-        <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex flex-wrap items-center gap-1.5">
+          {shape && <ShapeTag rows={1} cols={values.length} shape={shape} className="mr-1.5" />}
           <span className="num">{lo.toFixed(3)}</span>
           <span
             aria-hidden="true"

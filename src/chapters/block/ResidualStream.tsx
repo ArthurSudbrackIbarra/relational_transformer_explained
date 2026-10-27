@@ -5,7 +5,8 @@
  */
 import { Activity } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { LAYER_INFO, ScaleLegend, cx, formatSigned, maxAbs } from '@/components';
+import { LAYER_INFO, ScaleLegend, ShapeTag, cx, formatSigned, maxAbs } from '@/components';
+import { axis } from '../shapes';
 import { useElementSize } from '@/components/viz/useSize';
 import type { AttnLayer } from '@/engine/types';
 import { useResolvedTheme } from '@/styles/theme';
@@ -212,6 +213,17 @@ function StreamMatrix({ stages, sel, setSel }: { stages: Stage[]; sel: number | 
             })}
           </g>
         </svg>
+      </div>
+      <div className="mt-1" style={{ paddingLeft: labelW }}>
+        <ShapeTag
+          rows={stages.length}
+          cols={d}
+          shape={{
+            rows: `one per stage of the followed token’s vector, top to bottom: the input embedding, then x after each of the ${5 * nB} sublayers (${nB} blocks × 5), then after norm_out`,
+            cols: axis.model(d),
+            note: 'The cosine column on the right is not part of the matrix.',
+          }}
+        />
       </div>
       <div className="num mt-1.5 min-h-[2.6em] text-[14.5px] leading-snug text-ink-2" aria-live="polite">
         {hs ? (

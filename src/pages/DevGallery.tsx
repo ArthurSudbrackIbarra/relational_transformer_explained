@@ -337,6 +337,7 @@ export function DevGallery() {
                 highlightRows={[q]}
                 maxCellSize={13}
                 showLegend={l === 'col'}
+                shape={{ rows: 'one per query token of the toy context (padding cropped)', cols: 'one per key token, in the same order as the rows' }}
               />
             ))}
           </div>
@@ -352,6 +353,7 @@ export function DevGallery() {
             rowName="query"
             colName="key"
             title="Fake attention weights"
+            shape={{ rows: 'one per query token (fake data)', cols: 'one per key token (fake data)' }}
             highlightRows={[40]}
           />
         </Figure>
@@ -368,6 +370,7 @@ export function DevGallery() {
             blocked={masks.full.map((v) => (v ? 0 : 1))}
             selected={{ row: 1, col: 6 }}
             title="Labeled fake attention"
+            shape={{ rows: 'one per query token of the toy context (fake weights)', cols: 'one per key token, in the same order as the rows' }}
             rowName="query"
             colName="key"
           />
@@ -376,9 +379,20 @@ export function DevGallery() {
 
       <Section id="vectors" title="VectorStrip">
         <Figure wide>
-          <VectorStrip values={v64} label="x (64-d, fake)" ranges={[0, 1, 2, 3].map((h) => ({ start: h * 16, end: h * 16 + 16 }))} />
+          <VectorStrip
+            values={v64}
+            label="x (64-d, fake)"
+            ranges={[0, 1, 2, 3].map((h) => ({ start: h * 16, end: h * 16 + 16 }))}
+            shape={{ rows: 'a fake vector', cols: 'one per dimension (fake data)' }}
+          />
           <div className="mt-5">
-            <VectorStrip values={v384} label="E(“age of customers”) (384-d, fake)" columns={64} cellHeight={10} />
+            <VectorStrip
+              values={v384}
+              label="E(“age of customers”) (384-d, fake)"
+              columns={64}
+              cellHeight={10}
+              shape={{ rows: 'a fake text embedding', cols: 'one per dimension (fake data)' }}
+            />
           </div>
         </Figure>
       </Section>

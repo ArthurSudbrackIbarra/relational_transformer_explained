@@ -30,6 +30,7 @@ import {
 import { useSim } from '@/state/store';
 import { listDatabases } from '@/engine/db/registry';
 import { tablePrefixes, tokenLabel } from '../attention/utils';
+import type { TokenSpan } from '../shapes';
 
 function useE2EState() {
   const db = useDatabase();
@@ -66,6 +67,8 @@ function useE2EState() {
   const prefixes = useMemo(() => tablePrefixes(db.tables.map((t) => t.schema.name)), [db]);
   const tokenLabels = useMemo(() => ctx.tokens.map((t) => tokenLabel(t, prefixes)), [ctx, prefixes]);
   const tokenSlots = useMemo(() => ctx.tokens.map((t) => (t.isPadding ? 0 : (slots[t.tableName] ?? 0))), [ctx, slots]);
+  // every figure draws the real tokens only (rows [0, numReal)); ShapeTags describe that span
+  const span = useMemo<TokenSpan>(() => ({ shown: ctx.numReal, L: ctx.params.L, real: ctx.numReal }), [ctx]);
 
   return {
     db,
@@ -98,6 +101,7 @@ function useE2EState() {
     prefixes,
     tokenLabels,
     tokenSlots,
+    span,
     disabledLayers: sel.disabledLayers,
     setDisabledLayers: sel.setDisabledLayers,
   };

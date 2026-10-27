@@ -23,6 +23,7 @@ import {
   Figure,
   LAYER_INFO,
   LayerLabel,
+  ShapeTag,
   StatusBadge,
   StepPlayer,
   TableSwatch,
@@ -40,6 +41,7 @@ import { SelectionBar } from './Controls';
 import { provenanceSentence, useProvenance } from './provenance';
 import { headRow, useQueryView, type AttnLive, type QueryView } from './useAttnLive';
 import { int, maxAbsOf, norm2, pctw, rowName, sgn, texNum, topK, valueOf } from './utils';
+import { axis, vec } from '../shapes';
 import { KV, MatrixCanvas, SeqStrip, VStrip } from './viz';
 
 const STAGES = [
@@ -330,7 +332,7 @@ function Eyebrow({ children }: { children: ReactNode }) {
 }
 
 function XVisual({ live, qv, W }: { live: AttnLive; qv: QueryView; W: number }) {
-  const { numReal, d, query } = live;
+  const { numReal, d, query, ctx } = live;
   const XT = useMemo(() => {
     const out = new Float32Array(d * numReal);
     const X = qv.cap.xIn;
@@ -364,19 +366,30 @@ function XVisual({ live, qv, W }: { live: AttnLive; qv: QueryView; W: number }) 
             onHover={setHover}
           />
         </div>
-        <div className="num mt-1 min-h-[1.3em] text-[14px] text-muted">
-          {hover ? (
-            <>
-              token #{hover.c} {live.labels[hover.c]} · dim {hover.r} = <span className="text-ink">{sgn(hover.v, 4)}</span>
-            </>
-          ) : (
-            <>columns = tokens in context order · rows = the {d} dimensions · outlined: the query · color saturates at ±{m.toFixed(2)}</>
-          )}
+        <div className="num mt-1 flex min-h-[1.3em] flex-wrap items-baseline gap-x-2.5 text-[14px] text-muted">
+          <ShapeTag
+            rows={d}
+            cols={numReal}
+            shape={{
+              rows: axis.model(d),
+              cols: axis.tokens({ shown: numReal, L: ctx.params.L, real: numReal }),
+              note: 'The code keeps this as x, one row per token (L × d); it is drawn transposed here, so each token is a column.',
+            }}
+          />
+          <span>
+            {hover ? (
+              <>
+                token #{hover.c} {live.labels[hover.c]} · dim {hover.r} = <span className="text-ink">{sgn(hover.v, 4)}</span>
+              </>
+            ) : (
+              <>columns = tokens in context order · rows = the {d} dimensions · outlined: the query · color saturates at ±{m.toFixed(2)}</>
+            )}
+          </span>
         </div>
       </div>
       <div>
         <Eyebrow>The query’s column: x for token #{query}</Eyebrow>
-        <VectorStrip values={qv.x} columns={d} cellHeight={18} label={`x (token #${query})`} />
+        <VectorStrip values={qv.x} columns={d} cellHeight={18} label={`x (token #${query})`} shape={vec(`the query token #${query}’s x: one column of the matrix above`, axis.model(d))} />
       </div>
     </div>
   );
@@ -393,9 +406,14 @@ function NormVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
   // One color scale for x, x / rms(x) and h, so the rescaling shows as a change of color strength.
   const dom = useMemo(() => maxAbsOf(qv.x, scaled, qv.h), [qv.x, scaled, qv.h]);
   const layerName = LAYER_INFO[live.layer].name.toLowerCase();
-  const rows: { label: string; values: Float32Array; note: ReactNode; gamma?: boolean }[] = [
-    { label: 'x', values: qv.x, note: 'the residual stream' },
-    { label: 'x / rms(x)', values: scaled, note: `root-mean-square ≈ 1, so ‖v‖ ≈ √${d} = ${Math.sqrt(d).toFixed(Number.isInteger(Math.sqrt(d)) ? 0 : 2)}` },
+  const rows: { label: string; values: Float32Array; note: ReactNode; what: string; gamma?: boolean }[] = [
+    { label: 'x', values: qv.x, note: 'the residual stream', what: 'the query token’s x, the residual stream entering this sublayer' },
+    {
+      label: 'x / rms(x)',
+      values: scaled,
+      note: `root-mean-square ≈ 1, so ‖v‖ ≈ √${d} = ${Math.sqrt(d).toFixed(Number.isInteger(Math.sqrt(d)) ? 0 : 2)}`,
+      what: 'x divided by its root mean square',
+    },
     {
       label: `γ of block ${live.block + 1}’s ${layerName} RMSNorm`,
       values: qv.gamma,
@@ -404,9 +422,10 @@ function NormVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
           <span className="font-mono">{`blocks.${live.block}.norms.${live.layer}.weight`}</span> (the code counts blocks from 0)
         </>
       ),
+      what: `γ, the learned gain of block ${live.block + 1}’s ${layerName} RMSNorm, shared by every token`,
       gamma: true,
     },
-    { label: 'h = (x / rms(x)) ⊙ γ', values: qv.h, note: 'what the attention reads' },
+    { label: 'h = (x / rms(x)) ⊙ γ', values: qv.h, note: 'what the attention reads', what: 'h, the normalized vector the attention reads' },
   ];
   return (
     <div className="grid gap-4">
@@ -416,7 +435,11 @@ function NormVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
             <span className="text-ink">{r.label}</span>
             <span className="text-muted">{r.note}</span>
           </div>
-          {r.gamma ? <SeqStrip values={r.values} label="γ, the RMSNorm gain" /> : <VectorStrip values={r.values} columns={d} cellHeight={i === 3 ? 18 : 14} domain={dom} showNorm />}
+          {r.gamma ? (
+            <SeqStrip values={r.values} label="γ, the RMSNorm gain" shape={vec(r.what, `${axis.model(d)}; every dimension has its own gain`)} />
+          ) : (
+            <VectorStrip values={r.values} columns={d} cellHeight={i === 3 ? 18 : 14} domain={dom} showNorm shape={vec(r.what, axis.model(d))} />
+          )}
         </div>
       ))}
       <p className="!mb-0 text-[14.5px] text-muted">
@@ -457,14 +480,28 @@ function QKVVisual({ live, qv, W, inspected }: { live: AttnLive; qv: QueryView; 
               label={`W_q of this sublayer, ${d} by ${d}; the ${dh} rows that produce head ${head + 1}'s query are outlined.`}
               onHover={(c) => setHover(c ? `W_q[${c.r}, ${c.c}] = ${sgn(c.v, 4)}` : null)}
             />
-            <span className="text-[14px] text-ink-2">
-              W<sub>q</sub> ({d}×{d})
+            <span className="inline-flex items-baseline gap-2 text-[14px] text-ink-2">
+              <span>
+                W<sub>q</sub>
+              </span>
+              <ShapeTag
+                rows={d}
+                cols={d}
+                shape={{
+                  rows: `one per dimension of q, the output (d = ${d}); each head owns ${dh} consecutive rows, and head ${head + 1}’s rows ${head * dh}–${(head + 1) * dh - 1} are outlined`,
+                  cols: `one per dimension of h, the input (d = ${d})`,
+                  note: 'Stored the way PyTorch stores every nn.Linear weight, [out, in], so q = W_q h. It is learned in training and the same for every token; each attention sublayer of each block has its own.',
+                }}
+              />
             </span>
           </div>
           <span className="text-[20px] text-muted">·</span>
           <div className="flex flex-col items-center gap-1">
             <VStrip values={qv.h} cellW={14} cellH={cell} maxAbs={mh} label="h, the normalized input" onHover={(i) => setHover(i === null ? null : `h[${i}] = ${sgn(qv.h[i], 4)}`)} />
-            <span className="text-[14px] text-ink-2">h</span>
+            <span className="inline-flex items-baseline gap-2 text-[14px] text-ink-2">
+              <span>h</span>
+              <ShapeTag rows={d} cols={1} shape={{ rows: axis.model(d), cols: 'a single column: h of the query token, drawn upright to line up with the columns of W_q' }} />
+            </span>
           </div>
           <span className="text-[20px] text-muted">=</span>
           <div className="flex flex-col items-center gap-1">
@@ -478,7 +515,14 @@ function QKVVisual({ live, qv, W, inspected }: { live: AttnLive; qv: QueryView; 
               label={`q, the query; head ${head + 1} uses dimensions ${head * dh} to ${(head + 1) * dh - 1}`}
               onHover={(i) => setHover(i === null ? null : `q[${i}] = ${sgn(qv.q[i], 4)} · head ${Math.floor(i / dh) + 1}`)}
             />
-            <span className="text-[14px] text-ink-2">q</span>
+            <span className="inline-flex items-baseline gap-2 text-[14px] text-ink-2">
+              <span>q</span>
+              <ShapeTag
+                rows={d}
+                cols={1}
+                shape={{ rows: `one per dimension of q (d = ${d}): the ${H} heads’ ${dh} dimensions, one block after another`, cols: 'a single column: q of the query token' }}
+              />
+            </span>
           </div>
           <div className="ml-1 hidden flex-col justify-center gap-0 self-stretch text-[13.5px] text-muted sm:flex" style={{ height: d * cell }}>
             {bands.map((b) => (
@@ -495,19 +539,37 @@ function QKVVisual({ live, qv, W, inspected }: { live: AttnLive; qv: QueryView; 
           <Eyebrow>
             q<sup>({head + 1})</sup> of the query #{query}
           </Eyebrow>
-          <VectorStrip values={qv.qh} columns={dh} cellHeight={18} domain={mHead} />
+          <VectorStrip
+            values={qv.qh}
+            columns={dh}
+            cellHeight={18}
+            domain={mHead}
+            shape={vec(`head ${head + 1}’s query for token #${query}: dimensions ${head * dh}–${(head + 1) * dh - 1} of q`, axis.head(dh, d, H))}
+          />
         </div>
         <div>
           <Eyebrow>
             k<sup>({head + 1})</sup> of key #{inspected}
           </Eyebrow>
-          <VectorStrip values={kh} columns={dh} cellHeight={18} domain={mHead} />
+          <VectorStrip
+            values={kh}
+            columns={dh}
+            cellHeight={18}
+            domain={mHead}
+            shape={vec(`head ${head + 1}’s key for token #${inspected}: dimensions ${head * dh}–${(head + 1) * dh - 1} of k`, axis.head(dh, d, H))}
+          />
         </div>
         <div>
           <Eyebrow>
             v<sup>({head + 1})</sup> of key #{inspected}
           </Eyebrow>
-          <VectorStrip values={vh} columns={dh} cellHeight={18} domain={mHead} />
+          <VectorStrip
+            values={vh}
+            columns={dh}
+            cellHeight={18}
+            domain={mHead}
+            shape={vec(`head ${head + 1}’s value for token #${inspected}: dimensions ${head * dh}–${(head + 1) * dh - 1} of v`, axis.head(dh, d, H))}
+          />
         </div>
       </div>
       <p className="!mb-0 text-[14.5px] text-muted">
@@ -683,7 +745,14 @@ function OutVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
                   {i > 0 ? '+ ' : '  '}
                   {pctw(c.p)} × v(#{c.k} {labels[c.k]})
                 </span>
-                <VectorStrip values={c.vec} columns={dh} cellHeight={13} domain={mC} showReadout={false} />
+                <VectorStrip
+                  values={c.vec}
+                  columns={dh}
+                  cellHeight={13}
+                  domain={mC}
+                  showReadout={false}
+                  shape={vec(`token #${c.k}’s head-${head + 1} value, times its attention weight ${pctw(c.p)}`, axis.head(dh, d, H))}
+                />
               </div>
             ))}
             {rest > 0 && (
@@ -693,7 +762,13 @@ function OutVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
             )}
             <div className="grid items-center gap-x-3 gap-y-1 sm:grid-cols-[260px_minmax(0,1fr)]">
               <span className="num text-[14px] font-semibold text-ink">= o({head + 1})</span>
-              <VectorStrip values={qv.headSlice} columns={dh} cellHeight={16} domain={mC} />
+              <VectorStrip
+                values={qv.headSlice}
+                columns={dh}
+                cellHeight={16}
+                domain={mC}
+                shape={vec(`o(${head + 1}), head ${head + 1}’s output for the query: the weighted sum of the values`, axis.head(dh, d, H))}
+              />
             </div>
           </div>
         )}
@@ -704,28 +779,37 @@ function OutVisual({ live, qv }: { live: AttnLive; qv: QueryView }) {
             <span className="text-ink">[o(1); …; o({H})]</span>
             <span className="text-muted">the {H} head outputs, concatenated (head {head + 1} outlined)</span>
           </div>
-          <VectorStrip values={qv.headOut} columns={d} cellHeight={14} ranges={ranges} />
+          <VectorStrip
+            values={qv.headOut}
+            columns={d}
+            cellHeight={14}
+            ranges={ranges}
+            shape={vec(
+              `the ${H} heads’ outputs for the query, side by side`,
+              `one per dimension: head j’s ${dh} outputs fill dimensions ${dh}·(j − 1) to ${dh}·j − 1, so d = ${H} × ${dh} = ${d}`,
+            )}
+          />
         </div>
         <div>
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[14.5px]">
             <span className="text-ink">Δx = W_o · [o(1); …; o({H})]</span>
             <span className="text-muted">the update, on the same scale as x</span>
           </div>
-          <VectorStrip values={qv.out} columns={d} cellHeight={14} domain={mX} />
+          <VectorStrip values={qv.out} columns={d} cellHeight={14} domain={mX} shape={vec('Δx = W_o · [o(1); …], the update this sublayer adds to the query token', axis.model(d))} />
         </div>
         <div>
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[14.5px]">
             <span className="text-ink">x</span>
             <span className="text-muted">the residual stream that entered</span>
           </div>
-          <VectorStrip values={qv.x} columns={d} cellHeight={14} domain={mX} />
+          <VectorStrip values={qv.x} columns={d} cellHeight={14} domain={mX} shape={vec('the query token’s x as it entered this sublayer', axis.model(d))} />
         </div>
         <div>
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[14.5px]">
             <span className="text-ink">x′ = x + Δx</span>
             <span className="text-muted">what the next sublayer receives</span>
           </div>
-          <VectorStrip values={qv.xOut} columns={d} cellHeight={18} domain={mX} />
+          <VectorStrip values={qv.xOut} columns={d} cellHeight={18} domain={mX} shape={vec('x′ = x + Δx, the query token’s vector after this sublayer', axis.model(d))} />
         </div>
       </div>
     </div>

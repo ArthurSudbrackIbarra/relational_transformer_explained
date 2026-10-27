@@ -11,6 +11,7 @@ import { RotateCcw, Shuffle } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Button, Cite, Figure, LayerLabel, MaskMatrix, SCALE_ROWS, ScaleNote, StatusBadge, cx, formatNumber, formatPct, formatSigned } from '@/components';
+import { axis } from '../shapes';
 import { useElementSize } from '@/components/viz/useSize';
 import { sigmoid } from '@/engine/metrics';
 import { getMasks } from '@/engine/pipeline';
@@ -277,6 +278,10 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
               highlightCols={hlBase}
               onHover={(c) => setHover(c ? c.q : null)}
               title="feature mask, sampler order"
+              shape={{
+                rows: axis.queries({ shown: S, L: ctx.params.L, real: ctx.numReal }),
+                cols: axis.keys({ shown: S, L: ctx.params.L, real: ctx.numReal }),
+              }}
             />
           </div>
         </div>
@@ -296,6 +301,11 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
               highlightCols={current ? hlShuf : hlBase}
               onHover={(c) => setHover(c ? (current ? current.perm[c.q] : c.q) : null)}
               title="feature mask, shuffled order"
+              shape={{
+                rows: `one per query token, in the random order of the shuffle: the same ${S} positions as the mask on the left, permuted`,
+                cols: 'one per key token, in the same shuffled order as the rows',
+                note: 'Rebuilding the masks after the shuffle gives P·M·Pᵀ: the same entries, moved along with their tokens.',
+              }}
               className={cx(!current && 'opacity-40')}
             />
           </div>

@@ -8,6 +8,7 @@ import { CircleCheck } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useMemo, useState } from 'react';
 import { VectorStrip, cx } from '@/components';
+import { axis, vec } from '../shapes';
 import type { EmbeddingStore } from '@/engine/embeddings';
 import { Phrase, Readout, Wordpieces } from './bits';
 import { ENCODER, cosine, f3, int, norm, wordpiecesOf, type Catalog } from './data';
@@ -94,7 +95,15 @@ export function VectorExplorer({ store, catalog, value, onChange, compare, onCom
               </div>
               <span className="text-[14.5px] text-ink-2">384 numbers, 48 per row · blue &lt; 0 &lt; red</span>
             </div>
-            <VectorStrip values={e1} columns={48} cellHeight={16} domain={domain} highlightIndex={hoverDim} onHover={(i) => setHoverDim(i)} />
+            <VectorStrip
+              values={e1}
+              columns={48}
+              cellHeight={16}
+              domain={domain}
+              highlightIndex={hoverDim}
+              onHover={(i) => setHoverDim(i)}
+              shape={vec(`E(“${value}”), the stored vector of this string`, axis.text(e1.length))}
+            />
             {stats && (
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <Readout label="Length ‖e‖" hint="unit norm (Normalize)">
@@ -124,12 +133,31 @@ export function VectorExplorer({ store, catalog, value, onChange, compare, onCom
             <Phrase text={compare} plain={!isPhrase(compare)} className="font-normal" />
             <span className="font-normal">)</span>
           </div>
-          <VectorStrip values={e2} columns={48} cellHeight={16} domain={domain} highlightIndex={hoverDim} onHover={(i) => setHoverDim(i)} />
+          <VectorStrip
+            values={e2}
+            columns={48}
+            cellHeight={16}
+            domain={domain}
+            highlightIndex={hoverDim}
+            onHover={(i) => setHoverDim(i)}
+            shape={vec(`E(“${compare}”), the stored vector of the second string`, axis.text(e2.length))}
+          />
           <div className="mt-4 mb-1.5 flex flex-wrap items-baseline justify-between gap-x-4">
             <div className="text-[16px] font-semibold text-ink">Element-wise product e₁ᵢ · e₂ᵢ</div>
             <span className="text-[14.5px] text-ink-2">red where both agree in sign, blue where they disagree</span>
           </div>
-          <VectorStrip values={prod} columns={48} cellHeight={16} highlightIndex={hoverDim} onHover={(i) => setHoverDim(i)} showNorm={false} />
+          <VectorStrip
+            values={prod}
+            columns={48}
+            cellHeight={16}
+            highlightIndex={hoverDim}
+            onHover={(i) => setHoverDim(i)}
+            showNorm={false}
+            shape={vec(
+              'e₁ᵢ · e₂ᵢ, the element-wise product of the two vectors above',
+              `one per dimension of the two MiniLM vectors (${prod.length}); the products sum to their cosine, because both vectors have length 1`,
+            )}
+          />
           <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg bg-surface-2 px-4 py-3 text-[16px]">
             <span className="text-ink-2">
               Σ of the 384 products = <strong className="num text-ink">{f3(sumProd)}</strong>

@@ -10,6 +10,7 @@ import { ArrowDown, ArrowRight, X } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { StatusBadge, StepPlayer, VectorStrip, cx, useStepPlayer } from '@/components';
+import { axis, vec } from '../shapes';
 import type { EmbeddingStore } from '@/engine/embeddings';
 import { MINI_CONFIG, PAPER_CONFIG, linearVec, paramCount, parameterShapes, rmsnormRow, tensor } from '@/engine/model';
 import type { RTConfig } from '@/engine/types';
@@ -308,19 +309,19 @@ export function LearnedProjection({ phrase, store, assets, catalog }: { phrase: 
               <div className="mb-1 text-[15px] text-ink-2">
                 e: 384 frozen numbers · ‖e‖ = <span className="num text-ink">{norm(res.e).toFixed(3)}</span>
               </div>
-              <VectorStrip values={res.e} columns={48} cellHeight={9} showReadout={false} />
+              <VectorStrip values={res.e} columns={48} cellHeight={9} showReadout={false} shape={vec(`e = E(“${phrase}”), the frozen embedding of the column phrase`, axis.text(res.e.length))} />
             </div>
             <div className="min-w-0">
               <div className="mb-1 text-[15px] text-ink-2">
                 W·e + b, W of shape [{res.shape.join(', ')}]
               </div>
-              <VectorStrip values={res.pre} columns={32} cellHeight={16} showNorm={false} />
+              <VectorStrip values={res.pre} columns={32} cellHeight={16} showNorm={false} shape={vec('W·e + b: the phrase projected to the model width by enc_dict["col_name"]', axis.model(res.d))} />
             </div>
             <div className="min-w-0">
               <div className="mb-1 text-[15px] text-ink-2">
                 RMSNorm → column term ({res.d}-d) · RMS <span className="num text-ink">{res.rms.toFixed(2)}</span>
               </div>
-              <VectorStrip values={res.out} columns={32} cellHeight={16} showNorm={false} />
+              <VectorStrip values={res.out} columns={32} cellHeight={16} showNorm={false} shape={vec('the column term: RMSNorm_col(W·e + b)', axis.model(res.d))} />
             </div>
           </div>
 

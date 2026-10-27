@@ -28,6 +28,7 @@ import {
   formatRaw,
   formatSigned,
 } from '@/components';
+import { axis, vec } from '../shapes';
 import { l2norm, scalarValueTerm, tensor } from '@/engine/model';
 import { sigmoid, denormalize } from '@/engine/metrics';
 import { SemType, type ForwardResult, type RTWeights, type Token } from '@/engine/types';
@@ -59,7 +60,16 @@ export function OneMask({ live }: { live: TokensLive }) {
         </>
       }
     >
-      <ArrayStrip name="masks" values={masks} highlight={ctx.targetPos} onHover={setHover} />
+      <ArrayStrip
+        name="masks"
+        values={masks}
+        highlight={ctx.targetPos}
+        onHover={setHover}
+        shape={{
+          rows: 'row 0 of the [batch, L] masks array: this one context (a training batch stacks one row per context)',
+          cols: axis.tokens({ shown: masks.length, L: ctx.params.L, real: ctx.numReal }),
+        }}
+      />
       <div className="mt-3 flex min-h-[28px] flex-wrap items-center gap-x-2 gap-y-1 text-[15.5px] text-ink-2">
         <span className="num text-ink">pos {t.pos}</span>
         {t.isPadding ? (
@@ -390,7 +400,14 @@ function GateFlow({
             <span className="num text-ink-2">‖·‖ = {formatNumber(l2norm(term), 2)}</span>
           </div>
           <motion.div key={optKey} initial={reduce ? false : { opacity: 0.25 }} animate={{ opacity: 1 }} transition={{ duration: 0.45 }}>
-            <VectorStrip values={term} columns={32} cellHeight={11} domain={domain} showReadout={false} />
+            <VectorStrip
+              values={term}
+              columns={32}
+              cellHeight={11}
+              domain={domain}
+              showReadout={false}
+              shape={vec(`RMSNorm_${semKey}(W·v + b) of the stored label: computed, then multiplied by 0`, axis.model(d))}
+            />
           </motion.div>
           <div className="mt-1 text-[14px] text-ink-2">changes with the stored value</div>
         </Box>
@@ -402,7 +419,7 @@ function GateFlow({
         <Arrow />
         <div className="rounded-xl border border-dashed border-axis px-3 py-2 text-center">
           <ZeroVec className="text-[19px] text-ink-2" />
-          <VectorStrip values={zero} columns={16} cellHeight={7} domain={domain} showReadout={false} className="mt-1" />
+          <VectorStrip values={zero} columns={16} cellHeight={7} domain={domain} showReadout={false} className="mt-1" shape={vec('the gated branch: every entry is 0', axis.model(d))} />
           <div className="mt-0.5 text-[14px] text-ink-2">{d} zeros</div>
         </div>
       </div>
@@ -421,7 +438,7 @@ function GateFlow({
             </span>
             <span className="num text-ink-2">‖·‖ = {formatNumber(l2norm(m), 2)}</span>
           </div>
-          <VectorStrip values={m} columns={32} cellHeight={11} domain={domain} showReadout={false} />
+          <VectorStrip values={m} columns={32} cellHeight={11} domain={domain} showReadout={false} shape={vec(`m_${semKey}, the learned mask vector added in place of the value`, axis.model(d))} />
           <div className="mt-1 text-[14px] text-ink-2">the same vector for every masked {semKey} cell</div>
         </Box>
         <Arrow />

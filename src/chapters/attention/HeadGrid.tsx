@@ -9,11 +9,12 @@
  */
 import { useReducedMotion } from 'motion/react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { Button, Heatmap, LayerLabel, LAYER_INFO, Segmented, TableSwatch, cx, divergingCss, sequentialCss, type HeatmapCell } from '@/components';
+import { Button, Heatmap, LayerLabel, LAYER_INFO, Segmented, ShapeTag, TableSwatch, cx, divergingCss, sequentialCss, type HeatmapCell } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import { ATTN_ORDER, type AttnLayer } from '@/engine/types';
 import { TOKENS } from '@/styles/palette';
 import { useReadingMode, useResolvedTheme } from '@/styles/theme';
+import { axis } from '../shapes';
 import { SelectionBar } from './Controls';
 import { int, pctw } from './utils';
 import type { AttnLive } from './useAttnLive';
@@ -222,7 +223,20 @@ export function HeadGrid({ live }: { live: AttnLive }) {
     <div className="wide my-8">
       <div className="card px-4 py-4 sm:px-5 sm:py-5">
         <div className="mb-3 text-[17px] font-semibold text-ink">
-          Attention weights of block {block + 1}: every layer, every head ({int(numReal)} × {int(numReal)} each)
+          Attention weights of block {block + 1}: every layer, every head{' '}
+          <span className="font-normal">
+            (each{' '}
+            <ShapeTag
+              rows={numReal}
+              cols={numReal}
+              shape={{
+                rows: axis.queries({ shown: numReal, L: live.ctx.params.L, real: numReal, order }),
+                cols: axis.keys({ shown: numReal, L: live.ctx.params.L, real: numReal, order }),
+                note: `${ATTN_ORDER.length} layers × ${H} heads = ${ATTN_ORDER.length * H} matrices of this shape in every block; each head of each layer has its own.`,
+              }}
+            />
+            )
+          </span>
         </div>
         <div className="mb-2 flex flex-wrap items-end gap-x-4 gap-y-3">
           <SelectionBar live={live} showLayer={false} showHead={false} showQuery={false} />
@@ -439,6 +453,7 @@ const SmallPanel = memo(function SmallPanel(p: SmallPanelProps) {
               showReadout={false}
               showLegend={false}
               title={`${LAYER_INFO[l].name} attention, head ${h + 1}, block ${p.block + 1}`}
+              shape={null}
               onHover={(c) => p.onHoverCell(l, h, c)}
               onCellClick={(c) => p.onPickCell(l, h, c)}
             />
@@ -538,6 +553,10 @@ function FocusMap({
         rowName="query"
         colName="key"
         title="Focused attention matrix"
+        shape={{
+          rows: axis.queries({ shown: numReal, L: live.ctx.params.L, real: numReal, order: ord ? 'grouped' : 'context' }),
+          cols: axis.keys({ shown: numReal, L: live.ctx.params.L, real: numReal, order: ord ? 'grouped' : 'context' }),
+        }}
         showReadout={false}
         showLegend={false}
         onHover={setHover}

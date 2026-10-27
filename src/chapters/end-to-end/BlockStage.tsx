@@ -15,6 +15,8 @@ import { useElementSize } from '@/components/viz/useSize';
 import { ATTN_ORDER, type AttnCapture, type AttnLayer, type FFNCapture } from '@/engine/types';
 import { fmtNum, int, pct, plural, sub } from './format';
 import { W, useE2E, type E2ELive } from './live';
+import { axis } from '../shapes';
+import { qk, tokD, tokFF, tokHead, weightT } from './dims';
 import { DotLine, MatMul, Panel, fitScale, panelCell, type LinkedHover } from './MatMul';
 import type { Cell } from './Matrix';
 import {
@@ -488,9 +490,9 @@ function QkvOp({ live, step, cap, layer, head, which, hover, setHover, width }: 
     <OpLayout
       visual={
         <MatMul
-          A={{ data: cap.h, rows: S, cols: d, ...tokens, name: <TeX tex="h" />, text: 'h', label: 'h, the normalized input' }}
-          B={{ data: Wm, rows: d, cols: d, transpose: true, bandCols: band, fadeOutside: false, name: <TeX tex={`W_${which}^{\\top}`} />, text: `W${which}ᵀ`, label: `W_${which} transposed` }}
-          C={{ data: out, rows: S, cols: d, ...tokens, bandCols: band, fadeOutside: false, name: <TeX tex={L} />, text: L, label: `${L}, one row per token` }}
+          A={{ data: cap.h, rows: S, cols: d, ...tokens, name: <TeX tex="h" />, text: 'h', label: 'h, the normalized input', dims: tokD(live) }}
+          B={{ data: Wm, rows: d, cols: d, transpose: true, bandCols: band, fadeOutside: false, name: <TeX tex={`W_${which}^{\\top}`} />, text: `W${which}ᵀ`, label: `W_${which} transposed`, dims: weightT(`the d = ${d} dimensions of h`, `the d = ${d} dimensions of ${L}: the ${H} heads’ ${dh} each, side by side`, `${d} × ${d}`) }}
+          C={{ data: out, rows: S, cols: d, ...tokens, bandCols: band, fadeOutside: false, name: <TeX tex={L} />, text: L, label: `${L}, one row per token`, dims: { rows: axis.tokens(live.span), cols: `${axis.model(d)}; the ${H} heads’ ${dh} columns each, side by side (head ${head + 1}’s outlined)` } }}
           cellS={2.5 * s}
           cellK={3 * s}
           cellN={3 * s}
@@ -555,9 +557,9 @@ function ScoresOp({ live, cap, head, hover, setHover, width }: AttnProps) {
     <OpLayout
       visual={
         <MatMul
-          A={{ data: qh, rows: S, cols: dh, ...tokens, name: <TeX tex={`Q_{${h1}}`} />, text: `Q${sub(h1)}`, label: `Q of head ${h1}` }}
-          B={{ data: khT, rows: dh, cols: S, drawCols: numReal, colSlots: live.tokenSlots, tokenCols: true, name: <TeX tex={`K_{${h1}}^{\\top}`} />, text: `K${sub(h1)}ᵀ`, label: `K of head ${h1}, transposed` }}
-          C={{ data: sc, rows: S, cols: S, drawCols: numReal, ...tokens, colSlots: live.tokenSlots, name: <TeX tex={`S_{${h1}}`} />, label: `raw scores of head ${h1}` }}
+          A={{ data: qh, rows: S, cols: dh, ...tokens, name: <TeX tex={`Q_{${h1}}`} />, text: `Q${sub(h1)}`, label: `Q of head ${h1}`, dims: tokHead(live, head, 'Q', 'query') }}
+          B={{ data: khT, rows: dh, cols: S, drawCols: numReal, colSlots: live.tokenSlots, tokenCols: true, name: <TeX tex={`K_{${h1}}^{\\top}`} />, text: `K${sub(h1)}ᵀ`, label: `K of head ${h1}, transposed`, dims: { rows: `${axis.head(dh, d, live.H)}; here head ${h1}, dimensions ${head * dh}–${(head + 1) * dh - 1} of K`, cols: axis.tokens(live.span, 'key'), note: 'Kₕ transposed: in Kₕ every key token is a row; here it is a column, so Qₕ Kₕᵀ pairs every query with every key.' } }}
+          C={{ data: sc, rows: S, cols: S, drawCols: numReal, ...tokens, colSlots: live.tokenSlots, name: <TeX tex={`S_{${h1}}`} />, label: `raw scores of head ${h1}`, dims: qk(live) }}
           cellS={2.5 * s}
           cellK={5 * s}
           cellN={2.5 * s}
@@ -621,7 +623,7 @@ function MaskOp({ live, cap, layer, head, hover, setHover, width }: AttnProps) {
   let allowedN = 0;
   for (let k = 0; k < S; k++) allowedN += mask[focus * S + k];
   const lname = LAYER_INFO[layer].name.toLowerCase();
-  const common = { ...tokens, colSlots: live.tokenSlots, rows: S, cols: S, drawCols: numReal };
+  const common = { ...tokens, colSlots: live.tokenSlots, rows: S, cols: S, drawCols: numReal, dims: qk(live) };
   return (
     <OpLayout
       visual={
@@ -692,7 +694,7 @@ function SoftmaxOp({ live, cap, layer, head, hover, setHover, width }: AttnProps
     .sort((a, b) => row[b] - row[a] || a - b)
     .slice(0, 5);
   const hs = cell ? maskedSoftmaxRow(sc.subarray(cell.r * S, (cell.r + 1) * S), mask.subarray(cell.r * S, (cell.r + 1) * S)) : null;
-  const common = { ...tokens, colSlots: live.tokenSlots, rows: S, cols: S, drawCols: numReal };
+  const common = { ...tokens, colSlots: live.tokenSlots, rows: S, cols: S, drawCols: numReal, dims: qk(live) };
   return (
     <OpLayout
       visual={
@@ -771,9 +773,9 @@ function MixOp({ live, cap, layer, head, hover, setHover, width }: AttnProps) {
     <OpLayout
       visual={
         <MatMul
-          A={{ data: pr, rows: S, cols: S, drawCols: numReal, ...tokens, colSlots: live.tokenSlots, tokenCols: true, scale: 'sequential', domain: [0, pmax], blocked, name: <TeX tex={`P_{${h1}}`} />, text: `P${sub(h1)}`, label: 'attention weights' }}
-          B={{ data: vh, rows: S, cols: dh, drawRows: numReal, rowSlots: live.tokenSlots, labelRows: true, name: <TeX tex={`V_{${h1}}`} />, text: `V${sub(h1)}`, label: `V of head ${h1}` }}
-          C={{ data: oh, rows: S, cols: dh, ...tokens, name: <TeX tex={`O_{${h1}}`} />, label: `output of head ${h1}` }}
+          A={{ data: pr, rows: S, cols: S, drawCols: numReal, ...tokens, colSlots: live.tokenSlots, tokenCols: true, scale: 'sequential', domain: [0, pmax], blocked, name: <TeX tex={`P_{${h1}}`} />, text: `P${sub(h1)}`, label: 'attention weights', dims: qk(live) }}
+          B={{ data: vh, rows: S, cols: dh, drawRows: numReal, rowSlots: live.tokenSlots, labelRows: true, name: <TeX tex={`V_{${h1}}`} />, text: `V${sub(h1)}`, label: `V of head ${h1}`, dims: tokHead(live, head, 'V', 'key') }}
+          C={{ data: oh, rows: S, cols: dh, ...tokens, name: <TeX tex={`O_{${h1}}`} />, label: `output of head ${h1}`, dims: { rows: axis.tokens(live.span, 'query'), cols: `${axis.head(dh, d, H)}; head ${h1}’s output fills dimensions ${head * dh}–${(head + 1) * dh - 1} of the concatenated heads` } }}
           cellS={2.4 * s}
           cellK={2.4 * s}
           cellN={5 * s}
@@ -822,11 +824,11 @@ function ResidualRow({ live, xIn, out, xOut, width, last }: { live: E2ELive; xIn
     <div>
       <div className="mb-2 text-[15.5px] font-semibold text-ink">The residual add, on one shared color scale</div>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-3">
-        <Panel o={{ data: xIn, rows: S, cols: d, ...tokens, domain: dom, name: <TeX tex="x" />, text: 'x', label: 'x entering the sublayer' }} cellW={c} cellH={c} focusRow={focus} onFocusRow={live.setFocus} />
+        <Panel o={{ data: xIn, rows: S, cols: d, ...tokens, domain: dom, name: <TeX tex="x" />, text: 'x', label: 'x entering the sublayer', dims: tokD(live) }} cellW={c} cellH={c} focusRow={focus} onFocusRow={live.setFocus} />
         <Sym>+</Sym>
-        <Panel o={{ data: out, rows: S, cols: d, ...tokens, domain: dom, name: <TeX tex="\Delta" />, text: 'Δ', label: 'the update' }} cellW={c} cellH={c} focusRow={focus} onFocusRow={live.setFocus} />
+        <Panel o={{ data: out, rows: S, cols: d, ...tokens, domain: dom, name: <TeX tex="\Delta" />, text: 'Δ', label: 'the update', dims: tokD(live) }} cellW={c} cellH={c} focusRow={focus} onFocusRow={live.setFocus} />
         <Sym>=</Sym>
-        <Panel o={{ data: xOut, rows: S, cols: d, ...tokens, domain: dom, name: <TeX tex="x'" />, text: 'x′', label: last }} cellW={c} cellH={c} focusRow={focus} onFocusRow={live.setFocus} />
+        <Panel o={{ data: xOut, rows: S, cols: d, ...tokens, domain: dom, name: <TeX tex="x'" />, text: 'x′', label: last, dims: tokD(live) }} cellW={c} cellH={c} focusRow={focus} onFocusRow={live.setFocus} />
       </div>
     </div>
   );
@@ -844,9 +846,9 @@ function OutOp({ live, step, cap, layer, head, hover, setHover, width }: AttnPro
       visual={
         <div className="grid grid-cols-1 gap-6">
           <MatMul
-            A={{ data: cap.headOut, rows: S, cols: d, ...tokens, bandCols: band, fadeOutside: false, name: <TeX tex={`[O_1 \\cdots O_{${H}}]`} />, text: 'concat', label: 'the heads concatenated' }}
-            B={{ data: Wo, rows: d, cols: d, transpose: true, name: <TeX tex="W_o^{\top}" />, text: 'Woᵀ', label: 'W_o transposed' }}
-            C={{ data: cap.out, rows: S, cols: d, ...tokens, name: <TeX tex="\Delta" />, label: 'the update' }}
+            A={{ data: cap.headOut, rows: S, cols: d, ...tokens, bandCols: band, fadeOutside: false, name: <TeX tex={`[O_1 \\cdots O_{${H}}]`} />, text: 'concat', label: 'the heads concatenated', dims: { rows: axis.tokens(live.span), cols: `one per dimension of the ${H} heads’ outputs side by side: head j’s ${dh} fill columns ${dh}·(j − 1) to ${dh}·j − 1, so ${H} × ${dh} = ${d}` } }}
+            B={{ data: Wo, rows: d, cols: d, transpose: true, name: <TeX tex="W_o^{\top}" />, text: 'Woᵀ', label: 'W_o transposed', dims: weightT(`the ${d} dimensions of the concatenated head outputs`, `the model width d = ${d}`, `${d} × ${d}`) }}
+            C={{ data: cap.out, rows: S, cols: d, ...tokens, name: <TeX tex="\Delta" />, label: 'the update', dims: tokD(live) }}
             cellS={2.5 * s}
             cellK={3 * s}
             cellN={3 * s}
@@ -917,9 +919,9 @@ function UpOp({ live, step, cap, upWhich, hover, setHover, width }: FfnProps) {
     <OpLayout
       visual={
         <MatMul
-          A={{ data: cap.h, rows: S, cols: d, ...tokens, name: <TeX tex="h" />, text: 'h', label: 'normalized input' }}
-          B={{ data: Wm, rows: d, cols: dFF, transpose: true, name: <TeX tex={`${wn}^{\\top}`} />, text: upWhich === 'w1' ? 'W₁ᵀ' : 'W₃ᵀ', label: `${wn} transposed` }}
-          C={{ data: out, rows: S, cols: dFF, ...tokens, name: <TeX tex={sym} />, label: `${sym}, one row per token` }}
+          A={{ data: cap.h, rows: S, cols: d, ...tokens, name: <TeX tex="h" />, text: 'h', label: 'normalized input', dims: tokD(live) }}
+          B={{ data: Wm, rows: d, cols: dFF, transpose: true, name: <TeX tex={`${wn}^{\\top}`} />, text: upWhich === 'w1' ? 'W₁ᵀ' : 'W₃ᵀ', label: `${wn} transposed`, dims: weightT(`the d = ${d} dimensions of h`, `the d_ff = ${dFF} hidden units of the SwiGLU (${dFF / d} × d)`, `${dFF} × ${d}`) }}
+          C={{ data: out, rows: S, cols: dFF, ...tokens, name: <TeX tex={sym} />, label: `${sym}, one row per token`, dims: tokFF(live) }}
           cellS={2.5 * s}
           cellK={3 * s}
           cellN={1.5 * s}
@@ -972,9 +974,9 @@ function GateOp({ live, cap, hover, setHover, width }: FfnProps) {
     <OpLayout
       visual={
         <div className="flex flex-wrap items-start gap-x-3 gap-y-4">
-          <Panel o={{ data: cap.a, rows: S, cols: dFF, ...tokens, name: <TeX tex="a" />, label: 'a' }} cellW={c} cellH={2.2} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
-          <Panel o={{ data: cap.b, rows: S, cols: dFF, ...tokens, name: <TeX tex="b" />, label: 'b' }} cellW={c} cellH={2.2} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
-          <Panel o={{ data: cap.gated, rows: S, cols: dFF, ...tokens, name: <TeX tex="g" />, label: 'g, the gated hidden layer' }} cellW={c} cellH={2.2} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
+          <Panel o={{ data: cap.a, rows: S, cols: dFF, ...tokens, name: <TeX tex="a" />, label: 'a', dims: tokFF(live) }} cellW={c} cellH={2.2} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
+          <Panel o={{ data: cap.b, rows: S, cols: dFF, ...tokens, name: <TeX tex="b" />, label: 'b', dims: tokFF(live) }} cellW={c} cellH={2.2} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
+          <Panel o={{ data: cap.gated, rows: S, cols: dFF, ...tokens, name: <TeX tex="g" />, label: 'g, the gated hidden layer', dims: tokFF(live) }} cellW={c} cellH={2.2} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
         </div>
       }
       math={
@@ -1019,9 +1021,9 @@ function DownOp({ live, step, cap, hover, setHover, width }: FfnProps) {
       visual={
         <div className="grid grid-cols-1 gap-6">
           <MatMul
-            A={{ data: cap.gated, rows: S, cols: dFF, ...tokens, name: <TeX tex="g" />, text: 'g', label: 'gated hidden layer' }}
-            B={{ data: W2, rows: dFF, cols: d, transpose: true, name: <TeX tex="W_2^{\top}" />, text: 'W₂ᵀ', label: 'W2 transposed' }}
-            C={{ data: cap.out, rows: S, cols: d, ...tokens, name: <TeX tex="\Delta" />, label: 'the update' }}
+            A={{ data: cap.gated, rows: S, cols: dFF, ...tokens, name: <TeX tex="g" />, text: 'g', label: 'gated hidden layer', dims: tokFF(live) }}
+            B={{ data: W2, rows: dFF, cols: d, transpose: true, name: <TeX tex="W_2^{\top}" />, text: 'W₂ᵀ', label: 'W2 transposed', dims: weightT(`the d_ff = ${dFF} hidden units of g`, `the model width d = ${d}`, `${d} × ${dFF}`) }}
+            C={{ data: cap.out, rows: S, cols: d, ...tokens, name: <TeX tex="\Delta" />, label: 'the update', dims: tokD(live) }}
             cellS={2.5 * s}
             cellK={1.5 * s}
             cellN={3 * s}

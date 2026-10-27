@@ -8,8 +8,10 @@
 import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { TeX } from '@/components';
-import { fmtNum, int } from './format';
+import { fmtNum } from './format';
 import type { E2ELive } from './live';
+import { axis } from '../shapes';
+import { tokD } from './dims';
 import { Panel, fitScale, type LinkedHover } from './MatMul';
 import type { Cell } from './Matrix';
 import { rmsRow, rowOf } from './math';
@@ -66,10 +68,10 @@ export function NormView({ live, x, y, gamma, xTex, gammaTex, yTex, width, hover
     <OpLayout
       visual={
         <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
-          <Panel o={{ data: x, rows: S, cols: d, ...tokens, name: <TeX tex={xTex} />, label: 'input rows' }} cellW={c} cellH={ch} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
+          <Panel o={{ data: x, rows: S, cols: d, ...tokens, name: <TeX tex={xTex} />, label: 'input rows', dims: tokD(live) }} cellW={c} cellH={ch} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
           <Sym>÷</Sym>
           <Panel
-            o={{ data: denom, rows: S, cols: 1, ...tokens, scale: 'sequential', name: <>rms</>, text: 'rms', label: 'per-row divisor', shape: `${int(numReal)} × 1` }}
+            o={{ data: denom, rows: S, cols: 1, ...tokens, scale: 'sequential', name: <>rms</>, text: 'rms', label: 'per-row divisor', dims: { rows: axis.tokens(live.span), cols: 'a single column: each row’s root mean square, √(mean of its squares + ε)' } }}
             cellW={16}
             cellH={ch}
             focusRow={focus}
@@ -79,13 +81,13 @@ export function NormView({ live, x, y, gamma, xTex, gammaTex, yTex, width, hover
           <Sym>=</Sym>
           <div className="grid grid-cols-1 gap-1.5">
             <Panel
-              o={{ data: gamma, rows: 1, cols: d, scale: 'sequential', domain: gRange, name: <>⊙ <TeX tex={gammaTex} /></>, text: 'γ', label: 'RMSNorm gain, one per column', shape: `1 × ${d}` }}
+              o={{ data: gamma, rows: 1, cols: d, scale: 'sequential', domain: gRange, name: <>⊙ <TeX tex={gammaTex} /></>, text: 'γ', label: 'RMSNorm gain, one per column', dims: { rows: 'a single row: the learned gain γ of this RMSNorm, one scale per dimension, shared by every token', cols: axis.model(d) } }}
               cellW={c}
               cellH={14}
               markCol={cell?.c ?? null}
               className="pl-[6px]"
             />
-            <Panel o={{ data: y, rows: S, cols: d, ...tokens, name: <TeX tex={yTex} />, label: 'normalized rows' }} cellW={c} cellH={ch} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
+            <Panel o={{ data: y, rows: S, cols: d, ...tokens, name: <TeX tex={yTex} />, label: 'normalized rows', dims: tokD(live) }} cellW={c} cellH={ch} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
           </div>
         </div>
       }

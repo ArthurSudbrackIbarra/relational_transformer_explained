@@ -4,7 +4,8 @@
  * into the loss. Values are the engine's `ForwardResult.yhat` (model.py:239).
  */
 import { useMemo, useState } from 'react';
-import { divergingCss, Figure, Segmented, SemBadge } from '@/components';
+import { divergingCss, Figure, Segmented, SemBadge, ShapeTag } from '@/components';
+import { axis } from '../shapes';
 import { useResolvedTheme } from '@/styles/theme';
 import { useElementSize } from '@/components/viz/useSize';
 import { SemType } from '@/engine/types';
@@ -228,6 +229,24 @@ export function AllPositions({ lane, pos, setPos }: { lane: Lane; pos: number; s
                   ))}
                 </svg>
               </div>
+            </div>
+            <div className="mt-1" style={{ paddingLeft: labelW }}>
+              <ShapeTag
+                rows={rows.length + extraRow}
+                cols={S}
+                shape={
+                  mode === 'outputs'
+                    ? {
+                        rows: 'one per scalar decoder: number, datetime, boolean (the text head’s 384 outputs per position are left out)',
+                        cols: axis.tokens({ shown: S, L: ctx.params.L, real: ctx.numReal }),
+                        note: 'Every head outputs one number at every position; here the three are stacked as rows.',
+                      }
+                    : {
+                        rows: 'one per data type i (number, text, datetime, boolean), marking where sem_types == i and, in accent, where (sem_types == i) & masks lets that output into the loss; the last row is masks itself',
+                        cols: axis.tokens({ shown: S, L: ctx.params.L, real: ctx.numReal }),
+                      }
+                }
+              />
             </div>
             {scrolls && <div className="mt-1 text-[14px] text-ink-2">Scroll the grid sideways to see all {int(S)} positions.</div>}
             <div className="mt-2 min-h-[48px] rounded-lg bg-surface-2 px-3 py-2 text-[15px] leading-snug text-ink-2" aria-live="polite">

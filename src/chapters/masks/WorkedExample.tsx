@@ -9,7 +9,7 @@ import { buildMasks, maskToAscii } from '@/engine/masks';
 import type { AttnLayer, Token } from '@/engine/types';
 import { FitMask } from './FitMask';
 import { LAYER_ORDER } from './maskUtils';
-import { SPEC_PRINTED, TOY_L, TOY_REAL, TOY_SLOTS, TOY_TOKENS, toyRowName } from './toy';
+import { SPEC_PRINTED, TOY_L, TOY_REAL, TOY_SHAPE, TOY_SLOTS, TOY_TOKENS, toyRowName } from './toy';
 
 const LABELS = TOY_TOKENS.map((t) => (t.isPadding ? `PAD #${t.pos}` : `${toyRowName(t)}·${t.colName}`));
 const SLOTS = TOY_TOKENS.map((t) => (t.isPadding ? 0 : TOY_SLOTS[t.tableName] ?? 0));
@@ -180,6 +180,7 @@ export function WorkedExample() {
             slots: SLOTS,
             onCellClick: (c) => player.setIndex(c.q),
             title: `${layer} mask of the toy context`,
+            shape: TOY_SHAPE,
           }}
         />
       </div>

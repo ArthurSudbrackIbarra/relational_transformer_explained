@@ -7,6 +7,7 @@ import { Ban, ChevronDown, Crosshair, Eye, Layers, Lock, ScanSearch, type Lucide
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Cite, SemBadge, TableSwatch, VectorStrip, cx, formatSigned, truncate } from '@/components';
+import { axis, vec as vecShape } from '../shapes';
 import type { EmbeddingStore } from '@/engine/embeddings';
 import { SEM_TYPE_NAMES, SemType, type PreprocessedDB, type Token } from '@/engine/types';
 import { nodeLabel } from './live';
@@ -318,7 +319,16 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
                 </>
               )}
             </div>
-            {vec && active && <VectorStrip values={vec} columns={96} cellHeight={6} showNorm={false} className="mt-1.5" />}
+            {vec && active && (
+              <VectorStrip
+                values={vec}
+                columns={96}
+                cellHeight={6}
+                showNorm={false}
+                className="mt-1.5"
+                shape={vecShape(`E(“${text[idx]}”), this token’s text_values row (text index ${idx})`, axis.text(vec.length))}
+              />
+            )}
           </div>
         );
       }
@@ -380,7 +390,14 @@ export function FieldList({ token: t, pdb, store, slots, present, onPick }: Fiel
               <span className="ml-1.5 text-[14px] text-ink-2">384 numbers</span>
             </div>
             {vec ? (
-              <VectorStrip values={vec} columns={96} cellHeight={6} showNorm={false} className="mt-1.5" />
+              <VectorStrip
+                values={vec}
+                columns={96}
+                cellHeight={6}
+                showNorm={false}
+                className="mt-1.5"
+                shape={vecShape(`E(“${phrase}”), this token’s col_name_values row`, axis.text(vec.length))}
+              />
             ) : (
               <div className="mt-1 text-[14px] text-ink-2">loading embeddings…</div>
             )}

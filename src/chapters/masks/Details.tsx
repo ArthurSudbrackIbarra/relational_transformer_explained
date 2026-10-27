@@ -11,13 +11,14 @@
 import { FlipHorizontal2 } from 'lucide-react';
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react';
 import { useMemo, useRef, useState } from 'react';
-import { Button, Cite, Figure, LayerLabel, MaskMatrix, ScaleNote, Segmented, StatusBadge, formatNumber } from '@/components';
+import { Button, Cite, Figure, LayerLabel, MaskMatrix, ScaleNote, Segmented, ShapeTag, StatusBadge, formatNumber } from '@/components';
+import { axis, span } from '../shapes';
 import { buildMasks } from '@/engine/masks';
 import { useForward } from '@/state/hooks';
 import { FitMask } from './FitMask';
 import { TableKey } from './FourMasks';
 import { countRow, diffCount, int, masksWithoutPad, parentPart, sameColumnOtherTable, transpose } from './maskUtils';
-import { TOY_L, TOY_REAL, TOY_SLOTS, TOY_TOKENS, toyRowName } from './toy';
+import { TOY_L, TOY_REAL, TOY_SHAPE, TOY_SLOTS, TOY_TOKENS, toyRowName } from './toy';
 import type { LiveMasks } from './useLiveMasks';
 
 const TOY_LABELS = TOY_TOKENS.map((t) => (t.isPadding ? `PAD #${t.pos}` : `${toyRowName(t)}·${t.colName}`));
@@ -80,7 +81,7 @@ export function PaddingDemo() {
           ticks={4}
           maxCell={15}
           header={<div className="mb-2 text-[16px] font-medium text-ink">With &amp; pad (the code)</div>}
-          matrix={{ mask: withPad[layer], S: TOY_L, labels: TOY_LABELS, slots: TOY_TOKEN_SLOTS, title: `${layer} mask with the padding AND`, showLegend: false }}
+          matrix={{ mask: withPad[layer], S: TOY_L, labels: TOY_LABELS, slots: TOY_TOKEN_SLOTS, title: `${layer} mask with the padding AND`, showLegend: false, shape: TOY_SHAPE }}
         />
         <FitMask
           n={TOY_L}
@@ -100,7 +101,7 @@ export function PaddingDemo() {
               </span>
             </div>
           }
-          matrix={{ mask: noPad[layer], S: TOY_L, labels: TOY_LABELS, slots: TOY_TOKEN_SLOTS, title: `${layer} mask without the padding AND`, showLegend: false }}
+          matrix={{ mask: noPad[layer], S: TOY_L, labels: TOY_LABELS, slots: TOY_TOKEN_SLOTS, title: `${layer} mask without the padding AND`, showLegend: false, shape: TOY_SHAPE }}
         />
       </div>
       <div className="mt-3">
@@ -126,6 +127,7 @@ export function TransposeFlip({ live }: { live: LiveMasks }) {
   const parent = useMemo(() => parentPart(ctx.tokens), [ctx]);
   const diff = useMemo(() => diffCount(transpose(parent, S), masks.nbr), [parent, masks, S]);
   const n = Math.min(FLIP_N, ctx.numReal);
+  const spanN = { shown: n, L: ctx.params.L, real: ctx.numReal };
   const cell = 6;
   const side = 7 + n * cell; // identity strip (5 + 2 px) + n cells
   const angle = useMotionValue(0);
@@ -186,10 +188,25 @@ export function TransposeFlip({ live }: { live: LiveMasks }) {
                 title="feature mask, parent part"
                 showLegend={false}
                 showReadout={false}
+                shape={null}
               />
             </motion.div>
           </div>
           </AxisTitles>
+          <div className="mt-1 pl-[22px]">
+            <ShapeTag
+              rows={n}
+              cols={n}
+              shape={
+                flipped
+                  ? {
+                      rows: `one per key token, the one being looked at (transposed, so the keys now run down the rows): ${span(spanN)}`,
+                      cols: `one per query token, in the same order: ${span(spanN)}`,
+                    }
+                  : { rows: axis.queries(spanN), cols: axis.keys(spanN) }
+              }
+            />
+          </div>
         </div>
         <div className="min-w-0">
           <div className="mb-2 text-[15.5px] font-medium text-ink">
@@ -197,9 +214,12 @@ export function TransposeFlip({ live }: { live: LiveMasks }) {
           </div>
           <AxisTitles side={side}>
             <div style={{ width: side }}>
-              <MaskMatrix mask={masks.nbr} S={S} crop={n} slots={tokenSlots} cellSize={cell} title="neighbor mask" showLegend={false} showReadout={false} />
+              <MaskMatrix mask={masks.nbr} S={S} crop={n} slots={tokenSlots} cellSize={cell} title="neighbor mask" showLegend={false} showReadout={false} shape={null} />
             </div>
           </AxisTitles>
+          <div className="mt-1 pl-[22px]">
+            <ShapeTag rows={n} cols={n} shape={{ rows: axis.queries(spanN), cols: axis.keys(spanN) }} />
+          </div>
         </div>
       </div>
       <div className="mt-4 flex justify-center">

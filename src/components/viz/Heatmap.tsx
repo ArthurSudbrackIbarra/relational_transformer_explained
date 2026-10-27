@@ -10,13 +10,15 @@
  * Color (dataviz): sequential = one blue hue, near-zero recedes to the
  * surface; diverging = blue↔red with gray midpoint; binary = one sequential
  * step vs the surface. A scale legend is always drawn; values are reachable
- * without hover through the readout line and keyboard focus.
+ * without hover through the readout line and keyboard focus. Every panel carries a ShapeTag
+ * (rows × columns as drawn, with what they are) under its bottom-left corner.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { catHex, TOKENS } from '@/styles/palette';
 import { useReadingMode, useResolvedTheme } from '@/styles/theme';
 import { cx } from '../ui/cx';
 import { formatNumber, formatSigned } from './format';
+import { ShapeTag, type Shape } from './ShapeTag';
 import { divergingRgb, maxAbs as maxAbsOf, rgbCss, sequentialRgb, type RGB } from './scales';
 import { toSet, useElementSize } from './useSize';
 
@@ -88,6 +90,8 @@ export interface HeatmapProps {
   legendExtra?: ReactNode;
   /** Fill of blocked cells as '#rrggbb' (default: the theme's surface-2). */
   blockedFill?: string;
+  /** What a row and a column are, for each panel's ShapeTag; null only in component demos. */
+  shape: Shape | null;
 }
 
 const STRIP = 5; // identity strip thickness
@@ -144,6 +148,7 @@ export function Heatmap(props: HeatmapProps) {
     className,
     legendExtra,
     blockedFill,
+    shape,
   } = props;
 
   const mode = useResolvedTheme();
@@ -270,6 +275,7 @@ export function Heatmap(props: HeatmapProps) {
             labelH={colLabelHeight}
             rowSlots={rowSlots}
             colSlots={colSlots}
+            shape={shape}
             mode={mode}
             draw={(ctx) => {
               const img = ctx.createImageData(C, R);
@@ -379,6 +385,7 @@ interface PanelProps {
   labelH: number;
   rowSlots?: number[];
   colSlots?: number[];
+  shape: Shape | null;
   mode: 'light' | 'dark';
   draw: (ctx: CanvasRenderingContext2D) => ImageData;
   drawKey: string;
@@ -562,6 +569,14 @@ function HeatmapPanel(p: PanelProps) {
             onBlur={p.onBlur}
           />
         </div>
+        {p.shape && (
+          <>
+            <div />
+            <div className="mt-1">
+              <ShapeTag rows={R} cols={C} shape={p.shape} />
+            </div>
+          </>
+        )}
       </div>
     </figure>
   );

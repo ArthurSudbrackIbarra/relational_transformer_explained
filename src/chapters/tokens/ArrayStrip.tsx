@@ -3,7 +3,7 @@
  * literal array, one cell per position. Wraps onto several lines on narrow screens.
  */
 import { useMemo, useState } from 'react';
-import { cx } from '@/components';
+import { ShapeTag, cx, type Shape } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 
 export interface ArrayStripProps {
@@ -18,10 +18,12 @@ export interface ArrayStripProps {
   onHover?: (pos: number | null) => void;
   /** Extra text after the counts. */
   note?: string;
+  /** What the row and the columns of this array are, for its ShapeTag. */
+  shape: Shape | null;
   className?: string;
 }
 
-export function ArrayStrip({ name, values, highlight = null, minCell = 9, cellH = 20, onHover, note, className }: ArrayStripProps) {
+export function ArrayStrip({ name, values, highlight = null, minCell = 9, cellH = 20, onHover, note, shape, className }: ArrayStripProps) {
   const [ref, size] = useElementSize<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
   const n = values.length;
@@ -129,6 +131,15 @@ export function ArrayStrip({ name, values, highlight = null, minCell = 9, cellH 
           )}
         </svg>
       </div>
+      {shape && (
+        <div className="mt-1">
+          <ShapeTag
+            rows={1}
+            cols={n}
+            shape={lines > 1 ? { ...shape, note: <>{shape.note} Drawn as {lines} lines of up to {perLine} cells to fit: read left to right, then top to bottom.</> } : shape}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -11,7 +11,7 @@
  * stored [out, in] can be shown as Wᵀ ([in, out]) without copying it.
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from 'react';
-import { cx } from '@/components';
+import { ShapeTag, cx, type Shape } from '@/components';
 import { divergingRgb, maxAbs as maxAbsOf, sequentialRgb, type RGB } from '@/components/viz/scales';
 import { catHex, TOKENS } from '@/styles/palette';
 import { useReadingMode, useResolvedTheme } from '@/styles/theme';
@@ -57,6 +57,8 @@ export interface MatrixProps {
   onPick?: (cell: Cell) => void;
   /** Accessible name. */
   label: string;
+  /** What the drawn rows and columns are: a ShapeTag under the bottom-left corner. */
+  shape?: Shape | null;
   className?: string;
 }
 
@@ -268,8 +270,8 @@ export function Matrix(p: MatrixProps) {
   };
 
   if (R === 0 || C === 0) return null;
-  return (
-    <div className={cx('relative shrink-0', p.className)} style={{ width: Wd, height: Ht }}>
+  const box = (
+    <div className={cx('relative shrink-0', !p.shape && p.className)} style={{ width: Wd, height: Ht }}>
       <canvas ref={base} aria-hidden="true" style={{ width: Wd, height: Ht, display: 'block' }} />
       <canvas
         ref={overlay}
@@ -290,6 +292,13 @@ export function Matrix(p: MatrixProps) {
           if (!hover) p.onHover?.(null);
         }}
       />
+    </div>
+  );
+  if (!p.shape) return box;
+  return (
+    <div className={cx('flex shrink-0 flex-col items-start gap-1', p.className)}>
+      {box}
+      <ShapeTag rows={R} cols={C} shape={p.shape} />
     </div>
   );
 }

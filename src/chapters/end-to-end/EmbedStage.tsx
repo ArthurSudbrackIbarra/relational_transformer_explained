@@ -15,6 +15,8 @@ import { useElementSize } from '@/components/viz/useSize';
 import { SEM_TYPE_NAMES, SemType } from '@/engine/types';
 import { fmtNum, int, plural } from './format';
 import { W, textFields, useE2E, type E2ELive } from './live';
+import { axis } from '../shapes';
+import { tokD, tokText, weightT } from './dims';
 import { DotLine, MatMul, Panel, fitScale, type LinkedHover } from './MatMul';
 import type { Cell } from './Matrix';
 import { linearEntry, rowOf, scalarInput } from './math';
@@ -154,7 +156,7 @@ function LookupOp({ live, width, hover, setHover }: OpProps) {
       visual={
         <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
           <Panel
-            o={{ data: f.colName, rows: S, cols: dText, ...tokens, name: <code>col_name_values</code>, label: 'column-phrase embeddings' }}
+            o={{ data: f.colName, rows: S, cols: dText, ...tokens, name: <code>col_name_values</code>, label: 'column-phrase embeddings', dims: tokText(live, 'Each row is the frozen MiniLM vector of the token’s column phrase “<col> of <table>”, copied from a precomputed table.') }}
             cellW={cw}
             cellH={2.5}
             focusRow={focus}
@@ -164,7 +166,7 @@ function LookupOp({ live, width, hover, setHover }: OpProps) {
             markRow={cell?.r ?? null}
           />
           <Panel
-            o={{ data: f.text, rows: S, cols: dText, ...tokens, name: <code>text_values</code>, label: 'text-value embeddings' }}
+            o={{ data: f.text, rows: S, cols: dText, ...tokens, name: <code>text_values</code>, label: 'text-value embeddings', dims: tokText(live, 'A text cell’s row is the MiniLM vector of its string; every other row holds the vector of string 0, which the input gate multiplies by 0.') }}
             cellW={cw}
             cellH={2.5}
             focusRow={focus}
@@ -228,10 +230,10 @@ function ColProjOp({ live, width, hover, setHover }: OpProps) {
     <OpLayout
       visual={
         <MatMul
-          A={{ data: f.colName, rows: S, cols: dText, ...tokens, name: <TeX tex="C" />, text: 'C', label: 'col_name_values' }}
-          B={{ data: Wc, rows: dText, cols: d, transpose: true, name: <TeX tex="W_{\text{col}}^{\top}" />, text: 'W_colᵀ', label: 'W_col transposed' }}
-          C={{ data: fr!.embedding.colPreNorm, rows: S, cols: d, ...tokens, name: <TeX tex="u = C\,W_{\text{col}}^{\top} + b" />, text: 'u', label: 'column-name projection' }}
-          bias={{ data: bc, name: <>+ <TeX tex="b_{\text{col}}" /></>, text: 'b_col', label: 'bias of the column-name encoder' }}
+          A={{ data: f.colName, rows: S, cols: dText, ...tokens, name: <TeX tex="C" />, text: 'C', label: 'col_name_values', dims: tokText(live) }}
+          B={{ data: Wc, rows: dText, cols: d, transpose: true, name: <TeX tex="W_{\text{col}}^{\top}" />, text: 'W_colᵀ', label: 'W_col transposed', dims: weightT(`the ${dText} dimensions of the MiniLM phrase embedding`, `the model width d = ${d}`, `${d} × ${dText}`, 'One matrix serves every column of every table of every database.') }}
+          C={{ data: fr!.embedding.colPreNorm, rows: S, cols: d, ...tokens, name: <TeX tex="u = C\,W_{\text{col}}^{\top} + b" />, text: 'u', label: 'column-name projection', dims: tokD(live) }}
+          bias={{ data: bc, name: <>+ <TeX tex="b_{\text{col}}" /></>, text: 'b_col', label: 'bias of the column-name encoder', dims: { rows: 'the bias b_col, added to every token’s row', cols: axis.model(d) } }}
           cellS={2.5 * s}
           cellK={0.9 * s}
           cellN={3 * s}
@@ -303,7 +305,7 @@ function ValueOp({ live, width, hover, setHover }: OpProps) {
         <div className="grid grid-cols-1 gap-5">
           <div className="flex flex-wrap items-start gap-x-3 gap-y-3">
             <Panel
-              o={{ data: fr!.embedding.valuePreNorm, rows: S, cols: d, ...tokens, blocked: gatedPre, name: <TeX tex="u^{\text{val}}_i = W_t v_i + b_t" />, label: 'value projection, by type' }}
+              o={{ data: fr!.embedding.valuePreNorm, rows: S, cols: d, ...tokens, blocked: gatedPre, name: <TeX tex="u^{\text{val}}_i = W_t v_i + b_t" />, label: 'value projection, by type', dims: tokD(live, 'Each row uses the encoder of its own type; masked and padding rows are never computed (gray).') }}
               cellW={c}
               cellH={2.6}
               focusRow={focus}
@@ -313,7 +315,7 @@ function ValueOp({ live, width, hover, setHover }: OpProps) {
             />
             <Sym>→</Sym>
             <Panel
-              o={{ data: fr!.embedding.valueTerm, rows: S, cols: d, ...tokens, name: <TeX tex="\mathrm{RMSNorm}_t(u^{\text{val}}_i)\ \text{or}\ m_t" />, label: 'value term' }}
+              o={{ data: fr!.embedding.valueTerm, rows: S, cols: d, ...tokens, name: <TeX tex="\mathrm{RMSNorm}_t(u^{\text{val}}_i)\ \text{or}\ m_t" />, label: 'value term', dims: tokD(live, 'The masked target’s row is its type’s mask vector m_t; padding rows are zero.') }}
               cellW={c}
               cellH={2.6}
               focusRow={focus}
@@ -395,7 +397,7 @@ function ValueWeights({ live, width }: { live: E2ELive; width: number }) {
   const { d, dText } = live;
   const strip = Math.max(1.6, Math.min(3, (width - 120) / d));
   const textW = Math.max(0.5, Math.min(1, (width - 120) / dText));
-  const vec = (key: string, text: string, label: string, name: ReactNode, scale?: 'sequential') => {
+  const vec = (key: string, text: string, label: string, name: ReactNode, what: string, scale?: 'sequential') => {
     const data = W(w, key);
     let lo = Infinity;
     let hi = -Infinity;
@@ -405,7 +407,7 @@ function ValueWeights({ live, width }: { live: E2ELive; width: number }) {
     }
     return (
       <Panel
-        o={{ data, rows: 1, cols: d, scale, domain: scale ? [Math.min(0, lo), hi] : undefined, name, text, label, shape: `1 × ${d}` }}
+        o={{ data, rows: 1, cols: d, scale, domain: scale ? [Math.min(0, lo), hi] : undefined, name, text, label, dims: { rows: what, cols: axis.model(d) } }}
         cellW={strip}
         cellH={12}
       />
@@ -421,16 +423,35 @@ function ValueWeights({ live, width }: { live: E2ELive; width: number }) {
             <div className="flex flex-wrap items-start gap-x-5 gap-y-2">
               {k === 'text' ? (
                 <Panel
-                  o={{ data: W(w, `enc_dict.text.weight`), rows: d, cols: dText, name: <TeX tex="W_{\text{text}}" />, text: 'W_text', label: 'text encoder weight' }}
+                  o={{ data: W(w, `enc_dict.text.weight`), rows: d, cols: dText, name: <TeX tex="W_{\text{text}}" />, text: 'W_text', label: 'text encoder weight', dims: { rows: `one per output dimension: the model width d = ${d}`, cols: `one per input dimension: the ${dText} dimensions of the MiniLM value embedding`, note: 'Drawn as PyTorch stores it, [out, in], so the value term is W_text e + b_text. Learned in training, the same for every text token.' } }}
                   cellW={textW}
                   cellH={1.2}
                 />
               ) : (
-                vec(`enc_dict.${k}.weight`, `W_${k}`, `${k} encoder weight, one value per output dimension`, <TeX tex={`W_{\\text{${k}}}`} />)
+                vec(
+                  `enc_dict.${k}.weight`,
+                  `W_${k}`,
+                  `${k} encoder weight, one value per output dimension`,
+                  <TeX tex={`W_{\\text{${k}}}`} />,
+                  `the ${k} encoder’s weight: nn.Linear(1, d) has one input, the token’s scalar value, so its [out, in] = ${d} × 1 weight is drawn as one row`,
+                )
               )}
-              {vec(`enc_dict.${k}.bias`, `b_${k}`, `${k} encoder bias`, <TeX tex={`b_{\\text{${k}}}`} />)}
-              {vec(`norm_dict.${k}.weight`, `γ_${k}`, `${k} RMSNorm gain`, <TeX tex={`\\gamma^{\\text{${k}}}`} />, 'sequential')}
-              {vec(`mask_embs.${k}`, `m_${k}`, `${k} mask vector`, <TeX tex={`m_{\\text{${k}}}`} />)}
+              {vec(`enc_dict.${k}.bias`, `b_${k}`, `${k} encoder bias`, <TeX tex={`b_{\\text{${k}}}`} />, `the ${k} encoder’s bias, added for every ${k} token`)}
+              {vec(
+                `norm_dict.${k}.weight`,
+                `γ_${k}`,
+                `${k} RMSNorm gain`,
+                <TeX tex={`\\gamma^{\\text{${k}}}`} />,
+                `the ${k} RMSNorm’s gain γ: one learned scale per dimension, shared by every ${k} token`,
+                'sequential',
+              )}
+              {vec(
+                `mask_embs.${k}`,
+                `m_${k}`,
+                `${k} mask vector`,
+                <TeX tex={`m_{\\text{${k}}}`} />,
+                k === 'text' ? 'm_text: it exists but is never used, because text cells are never masked' : `m_${k}: added in place of the value when a ${k} cell is masked`,
+              )}
             </div>
           </div>
         ))}
@@ -456,7 +477,7 @@ function SumOp({ live, width, hover, setHover }: OpProps) {
   const cell = hover && hover.which === 'C' ? { r: hover.r, c: hover.c } : null;
   const onH = (k: Cell | null) => setHover(k ? { which: 'C', r: k.r, c: k.c } : null);
   const panel = (data: Float32Array, name: ReactNode, label: string) => (
-    <Panel o={{ data, rows: S, cols: d, ...tokens, domain: dom, name, label }} cellW={c} cellH={c} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
+    <Panel o={{ data, rows: S, cols: d, ...tokens, domain: dom, name, label, dims: tokD(live) }} cellW={c} cellH={c} focusRow={focus} onFocusRow={live.setFocus} hover={cell} onHover={onH} />
   );
   let n = 0;
   for (let j = 0; j < d; j++) n += e.x0[focus * d + j] ** 2;

@@ -5,6 +5,7 @@
 import { Check, X } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Figure, LayerLabel, ScaleLegend, ScaleNote, Segmented, Switch, TableSwatch } from '@/components';
+import { axis } from '../shapes';
 import { useResolvedTheme } from '@/styles/theme';
 import { FitMask } from './FitMask';
 import { countRow, int, LAYER_ORDER, maskStats, pct, rowName } from './maskUtils';
@@ -159,6 +160,10 @@ export function FourMasks({ live }: { live: LiveMasks }) {
                 title: `${l} attention mask`,
                 showLegend: false,
                 showReadout: false,
+                shape: {
+                  rows: axis.queries({ shown: crop, L: ctx.params.L, real: ctx.numReal }),
+                  cols: axis.keys({ shown: crop, L: ctx.params.L, real: ctx.numReal }),
+                },
               }}
             />
           );

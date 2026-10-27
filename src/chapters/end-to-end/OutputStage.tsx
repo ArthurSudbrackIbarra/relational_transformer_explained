@@ -15,8 +15,10 @@ import { Cite, Figure, StatusBadge, StepPlayer, TeX, cx, useStepPlayer } from '@
 import { useElementSize } from '@/components/viz/useSize';
 import { bceWithLogits, huber } from '@/engine/model/loss';
 import { SemType } from '@/engine/types';
-import { fmtNum, fmtSigned, int, pct } from './format';
+import { fmtNum, fmtSigned, pct } from './format';
 import { W, useE2E, type E2ELive } from './live';
+import { axis } from '../shapes';
+import { tokD } from './dims';
 import { DotLine, MatMul, fitScale, type LinkedHover } from './MatMul';
 import { linearEntry, rowOf } from './math';
 import { NormView } from './NormView';
@@ -139,10 +141,10 @@ function DecodeOp({ live, width, hover, setHover }: { live: E2ELive; width: numb
     <OpLayout
       visual={
         <MatMul
-          A={{ data: fr!.xFinal, rows: S, cols: d, ...tokens, name: <TeX tex="z" />, text: 'z', label: 'final normalized vectors' }}
-          B={{ data: Wd, rows: d, cols: 3, transpose: true, name: <TeX tex="[\,w_{\text{num}}\;w_{\text{dt}}\;w_{\text{bool}}\,]" />, text: 'W_decᵀ', label: 'the three scalar decoders', shape: `${d} × 3` }}
-          C={{ data: yhat, rows: S, cols: 3, ...tokens, name: <TeX tex="\hat y" />, text: 'ŷ', label: 'decoder outputs at every position', shape: `${int(numReal)} × 3` }}
-          bias={{ data: bd, name: <>+ <TeX tex="b" /></>, text: 'b', label: 'the three decoder biases' }}
+          A={{ data: fr!.xFinal, rows: S, cols: d, ...tokens, name: <TeX tex="z" />, text: 'z', label: 'final normalized vectors', dims: tokD(live) }}
+          B={{ data: Wd, rows: d, cols: 3, transpose: true, name: <TeX tex="[\,w_{\text{num}}\;w_{\text{dt}}\;w_{\text{bool}}\,]" />, text: 'W_decᵀ', label: 'the three scalar decoders', dims: { rows: `one per dimension of z, the model width d = ${d}`, cols: 'one per scalar decoder: number, datetime, boolean (the text head is left out)', note: `Each decoder is an nn.Linear(d, 1) whose weight is stored as one row of ${d}; the three are stacked and drawn transposed. Learned in training, the same at every position.` } }}
+          C={{ data: yhat, rows: S, cols: 3, ...tokens, name: <TeX tex="\hat y" />, text: 'ŷ', label: 'decoder outputs at every position', dims: { rows: axis.tokens(live.span), cols: 'one per scalar decoder: number, datetime, boolean; the masked cell is read in the column of its own type' } }}
+          bias={{ data: bd, name: <>+ <TeX tex="b" /></>, text: 'b', label: 'the three decoder biases', dims: { rows: 'the three decoder biases', cols: 'one per scalar decoder: number, datetime, boolean' } }}
           cellS={2.5 * s}
           cellK={3 * s}
           cellN={16}

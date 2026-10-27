@@ -43,6 +43,8 @@ export { TokenStrip, tokenValueText, tokenStoredValue } from './viz/TokenStrip';
 export type { TokenStripProps } from './viz/TokenStrip';
 export { TokenTable, ALL_TOKEN_FIELDS, FIELD_USED_BY_MODEL } from './viz/TokenTable';
 export type { TokenTableProps, TokenField } from './viz/TokenTable';
+export { ShapeTag } from './viz/ShapeTag';
+export type { Shape, ShapeTagProps } from './viz/ShapeTag';
 export { VectorStrip } from './viz/VectorStrip';
 export type { VectorStripProps } from './viz/VectorStrip';
 export { Heatmap, ScaleLegend, HEATMAP_GEOMETRY } from './viz/Heatmap';

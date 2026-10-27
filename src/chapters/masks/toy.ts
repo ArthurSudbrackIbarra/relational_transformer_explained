@@ -8,6 +8,7 @@
  * start at 4, so no real column shares id 0 with the padding default (fly.rs:65-85), just as in
  * pre.rs, where index 0 of the string table is a table name, never a column phrase (spec §3.6).
  */
+import type { Shape } from '@/components';
 import { SemType, type Token } from '@/engine/types';
 
 const d = (s: string) => Date.parse(`${s}T00:00:00Z`);
@@ -54,6 +55,12 @@ const ROWS: Row[] = [
 export const TOY_L = 24;
 export const TOY_REAL = ROWS.length; // 19
 export const TOY_TARGET = 1;
+
+/** Rows and columns of a toy-context mask, for its ShapeTag. */
+export const TOY_SHAPE: Shape = {
+  rows: `one per query token of the toy context of this chapter’s worked example (a small ShopDB, L = ${TOY_L}, w = 1), not the live one: ${TOY_REAL} cells, then ${TOY_L - TOY_REAL} padding positions`,
+  cols: 'one per key token, in the same order as the rows',
+};
 
 /** The 24 toy tokens (19 cells + 5 padding with the fly.rs:65-85 defaults). Values are display-only. */
 export const TOY_TOKENS: Token[] = Array.from({ length: TOY_L }, (_, pos): Token => {

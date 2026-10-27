@@ -4,7 +4,7 @@
  * stored 384-d MiniLM vectors. Nothing is precomputed or assumed.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { ScaleLegend, Segmented, Switch, cx } from '@/components';
+import { ScaleLegend, Segmented, ShapeTag, Switch, cx } from '@/components';
 import { sequentialCss } from '@/components/viz/scales';
 import { fitText, textWidth } from '@/components/viz/text';
 import { useElementSize } from '@/components/viz/useSize';
@@ -412,7 +412,17 @@ export function SimilarityMatrix({ store, catalog, home, focus, onFocus }: Simil
       )}
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <div className="min-h-[1.5em] min-w-0 text-[15.5px] text-ink-2" aria-live="polite">
+        <div className="flex min-h-[1.5em] min-w-0 flex-wrap items-baseline gap-x-2.5 text-[15.5px] text-ink-2" aria-live="polite">
+          <ShapeTag
+            rows={R}
+            cols={C}
+            shape={{
+              rows: `one per column phrase “<col> of <table>” of ${DB_SHORT[home]}, the live database, grouped by table${keys ? ', key columns included' : '; key columns, which never become tokens, are left out'}`,
+              cols: `one per column phrase of ${cols === 'all' ? `the other three databases (${others.map((o) => DB_SHORT[o]).join(', ')})` : DB_SHORT[cols]}, grouped by database and table`,
+              note: 'Each entry is the cosine between the two phrases’ frozen MiniLM vectors, computed in your browser.',
+            }}
+          />
+          <span className="min-w-0">
           {shown ? (
             <>
               <Phrase text={rowPhrases[shown.r].text} /> <span className="text-muted">·</span> <Phrase text={colPhrases[shown.c].text} />{' '}
@@ -424,6 +434,7 @@ export function SimilarityMatrix({ store, catalog, home, focus, onFocus }: Simil
           ) : (
             'Hover or focus a cell to read its cosine.'
           )}
+          </span>
         </div>
         <div className="flex flex-wrap items-center gap-4 text-[14.5px] text-ink-2">
           <ScaleLegend scale="sequential" domain={[0, vmax]} mode={mode} />

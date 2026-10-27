@@ -102,7 +102,8 @@ function Body() {
           The figures share one <em>followed token</em>. It starts as the masked target, and you can follow any other token by clicking its row in any
           matrix or picking it from the list. Its row is outlined in every matrix and its numbers are written out next to the figure. Matrices show
           one small rectangle per entry: red for positive values, blue for negative, gray near zero, each on its own scale unless a figure says
-          otherwise. Hover or focus any entry, or move through a matrix with the arrow keys, to read its value and how it was computed.
+          otherwise. Hover or focus any entry, or move through a matrix with the arrow keys, to read its value and how it was computed. The shape
+          under each matrix, rows × columns, says what one row and one column are when you hover it.
           {numReal < S && (
             <>
               {' '}

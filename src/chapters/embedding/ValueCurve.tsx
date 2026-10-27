@@ -11,6 +11,7 @@
 import { scaleLinear } from 'd3';
 import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Cite, Figure, LineChart, Segmented, Select, SemBadge, Slider, SVG_TYPE, StatusBadge, VectorStrip, formatDate, maxAbs } from '@/components';
+import { axis, vec } from '../shapes';
 import { useElementSize } from '@/components/viz/useSize';
 import { embedTokens, tensor, textEmbedder } from '@/engine/model';
 import { SemType, type Token } from '@/engine/types';
@@ -558,7 +559,7 @@ function StripRow({ label, values, domain, strong }: { label: string; values: Fl
   return (
     <div className="min-w-0">
       <div className={strong ? 'mb-1 text-[15.5px] font-semibold text-ink' : 'mb-1 text-[15.5px] text-ink-2'}>{label}</div>
-      <VectorStrip values={values} columns={32} cellHeight={12} domain={domain} />
+      <VectorStrip values={values} columns={32} cellHeight={12} domain={domain} shape={vec(label, axis.model(values.length))} />
     </div>
   );
 }

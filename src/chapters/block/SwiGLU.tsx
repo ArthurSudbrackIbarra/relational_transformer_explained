@@ -6,6 +6,7 @@
 import { scaleLinear } from 'd3';
 import { useMemo, useState } from 'react';
 import { Segmented, Slider, VectorStrip, cx, formatSigned, maxAbs } from '@/components';
+import { axis, vec } from '../shapes';
 import { useElementSize } from '@/components/viz/useSize';
 import type { BlockLive } from './useBlockLive';
 import { TokenCaption, TokenPicker } from './TokenPicker';
@@ -96,12 +97,22 @@ export function SwiGLUFigure({ live, follow, setFollow }: { live: BlockLive; fol
           <div className="text-[16px] font-semibold text-ink">
             The {int(dFF)} hidden units of this token in block {b + 1}
           </div>
-          <VectorStrip values={data.h} label={`h = RMSNorm_ffn(x), the input (${d} dims)`} cellHeight={16} />
-          <HiddenStrip label="W₁h, the SiLU inputs" values={data.a} domain={maxAbs([...data.a, ...data.silu])} unit={unit} onUnit={pickUnit} />
-          <HiddenStrip label="SiLU(W₁h)" values={data.silu} domain={maxAbs([...data.a, ...data.silu])} unit={unit} onUnit={pickUnit} />
-          <HiddenStrip label="W₃h, the gate" values={data.b} unit={unit} onUnit={pickUnit} />
-          <HiddenStrip label="SiLU(W₁h) ⊙ W₃h, what W₂ reads" values={data.gated} unit={unit} onUnit={pickUnit} />
-          <VectorStrip values={data.out} label={`W₂ · (…), the update added to x (${d} dims)`} cellHeight={16} />
+          <VectorStrip
+            values={data.h}
+            label={`h = RMSNorm_ffn(x), the input (${d} dims)`}
+            cellHeight={16}
+            shape={vec(`h = RMSNorm_ffn(x): the followed token’s input to the SwiGLU of block ${b + 1}`, axis.model(d))}
+          />
+          <HiddenStrip d={d} label="W₁h, the SiLU inputs" values={data.a} domain={maxAbs([...data.a, ...data.silu])} unit={unit} onUnit={pickUnit} />
+          <HiddenStrip d={d} label="SiLU(W₁h)" values={data.silu} domain={maxAbs([...data.a, ...data.silu])} unit={unit} onUnit={pickUnit} />
+          <HiddenStrip d={d} label="W₃h, the gate" values={data.b} unit={unit} onUnit={pickUnit} />
+          <HiddenStrip d={d} label="SiLU(W₁h) ⊙ W₃h, what W₂ reads" values={data.gated} unit={unit} onUnit={pickUnit} />
+          <VectorStrip
+            values={data.out}
+            label={`W₂ · (…), the update added to x (${d} dims)`}
+            cellHeight={16}
+            shape={vec('W₂ · (SiLU(W₁h) ⊙ W₃h): the update the SwiGLU adds to the followed token’s x', axis.model(d))}
+          />
           <ul className="!mb-0 grid gap-1 !pl-5 text-[15.5px] leading-snug text-ink-2" style={{ listStyle: 'disc' }}>
             <li>
               {int(data.neg)} of {int(dFF)} units have W₁h &lt; 0. There SiLU stays between {fx(MIN.v, 3)} and 0, so each of them hands W₂ at most{' '}
@@ -123,7 +134,7 @@ export function SwiGLUFigure({ live, follow, setFollow }: { live: BlockLive; fol
   );
 }
 
-function HiddenStrip({ label, values, domain, unit, onUnit }: { label: string; values: Float32Array; domain?: number; unit: number | null; onUnit: (j: number | null) => void }) {
+function HiddenStrip({ label, values, domain, unit, onUnit, d }: { label: string; values: Float32Array; domain?: number; unit: number | null; onUnit: (j: number | null) => void; d: number }) {
   const [hover, setHover] = useState<number | null>(null);
   return (
     <div onClick={() => hover !== null && onUnit(hover)} className="cursor-pointer">
@@ -136,6 +147,7 @@ function HiddenStrip({ label, values, domain, unit, onUnit }: { label: string; v
         highlightIndex={unit}
         onHover={(i) => setHover(i)}
         showNorm={false}
+        shape={vec(`${label}, for the followed token`, axis.ffn(values.length, d))}
       />
     </div>
   );

@@ -23,6 +23,7 @@ import {
   textWidth,
   useStepPlayer,
 } from '@/components';
+import { axis, vec } from '../shapes';
 import { useElementSize } from '@/components/viz/useSize';
 import { PAPER_CONFIG } from '@/engine/model/config';
 import type { AttnLayer } from '@/engine/types';
@@ -435,8 +436,20 @@ function Inspector({ live, block, active, stages, follow }: { live: BlockLive; b
           </dl>
         </div>
         <div className="grid grid-cols-1 min-w-0 gap-3">
-          <VectorStrip values={v.x} label={active < 0 ? `x entering block ${block + 1} (${d} dims)` : `x′ leaving block ${block + 1} (${d} dims)`} domain={m} cellHeight={18} />
-          <VectorStrip values={diff} label="x′ − x: everything this block added" domain={m} cellHeight={18} />
+          <VectorStrip
+            values={v.x}
+            label={active < 0 ? `x entering block ${block + 1} (${d} dims)` : `x′ leaving block ${block + 1} (${d} dims)`}
+            domain={m}
+            cellHeight={18}
+            shape={vec(active < 0 ? `the followed token’s x entering block ${block + 1}` : `the followed token’s x′ leaving block ${block + 1}`, axis.model(d))}
+          />
+          <VectorStrip
+            values={diff}
+            label="x′ − x: everything this block added"
+            domain={m}
+            cellHeight={18}
+            shape={vec(`x′ − x: everything block ${block + 1} added to the followed token`, axis.model(d))}
+          />
         </div>
       </div>
     );
@@ -523,9 +536,17 @@ function Inspector({ live, block, active, stages, follow }: { live: BlockLive; b
         </div>
       </div>
       <div className="grid grid-cols-1 min-w-0 content-start gap-3">
-        <VectorStrip values={prev.x} label="x entering" domain={m} cellHeight={18} />
-        {stage.update && <VectorStrip values={stage.update} label="Δ, the update the sublayer adds" domain={m} cellHeight={18} />}
-        <VectorStrip values={stage.x} label="x + Δ, leaving" domain={m} cellHeight={18} />
+        <VectorStrip values={prev.x} label="x entering" domain={m} cellHeight={18} shape={vec('the followed token’s x entering this sublayer', axis.model(prev.x.length))} />
+        {stage.update && (
+          <VectorStrip
+            values={stage.update}
+            label="Δ, the update the sublayer adds"
+            domain={m}
+            cellHeight={18}
+            shape={vec('Δ, the update this sublayer adds to the followed token', axis.model(stage.update.length))}
+          />
+        )}
+        <VectorStrip values={stage.x} label="x + Δ, leaving" domain={m} cellHeight={18} shape={vec('x + Δ, the followed token’s vector leaving this sublayer', axis.model(stage.x.length))} />
         <Note>All three strips share one color scale (±{fx(m)}), so you can compare them cell by cell.</Note>
       </div>
     </div>

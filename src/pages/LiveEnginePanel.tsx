@@ -25,6 +25,7 @@ import {
   formatRaw,
   type SchemaTableSpec,
 } from '@/components';
+import { axis, vec } from '@/chapters/shapes';
 import { ATTN_ORDER, type AttnLayer } from '@/engine/types';
 import {
   useAssets,
@@ -215,6 +216,10 @@ export function LiveEnginePanel() {
               highlightRows={[query]}
               maxCellSize={6}
               showLegend={l === 'col'}
+              shape={{
+                rows: axis.queries({ shown: ctx.numReal, L: ctx.params.L, real: ctx.numReal }),
+                cols: axis.keys({ shown: ctx.numReal, L: ctx.params.L, real: ctx.numReal }),
+              }}
             />
           ))}
         </div>
@@ -222,7 +227,11 @@ export function LiveEnginePanel() {
 
       <Figure wide title="Forward pass at the target" caption="RMSNorm_out of the residual stream at the masked cell, the input of every decoder head (model.py:229-239).">
         {targetVec ? (
-          <VectorStrip values={targetVec} label={`x_final[${fr!.targetPos}] (${fr!.d}-d)`} />
+          <VectorStrip
+            values={targetVec}
+            label={`x_final[${fr!.targetPos}] (${fr!.d}-d)`}
+            shape={vec(`x_final at the masked target (position ${fr!.targetPos}), the vector every decoder reads`, axis.model(fr!.d))}
+          />
         ) : (
           <p className="text-[16.5px] text-ink-2">{assets.status === 'error' ? `Forward unavailable: ${assets.error}` : 'Running the forward pass…'}</p>
         )}

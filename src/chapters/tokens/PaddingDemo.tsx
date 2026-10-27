@@ -9,6 +9,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Cite, Figure, LayerLabel, StatusBadge, TableSwatch, TokenStrip, cx, formatNumber, formatSigned } from '@/components';
+import { axis } from '../shapes';
 import { buildMasks } from '@/engine/masks';
 import { forwardWithMasks, l2norm, rmsnorm, scalarValueTerm, tensor, textEmbedder } from '@/engine/model';
 import { getForward, getSeeds } from '@/engine/pipeline';
@@ -207,7 +208,14 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
 
         {demoCtx && checks && (
           <>
-            <ArrayStrip name="is_padding" values={checks.isPad} />
+            <ArrayStrip
+              name="is_padding"
+              values={checks.isPad}
+              shape={{
+                rows: 'row 0 of the [batch, L] is_padding array: this one context (a training batch stacks one row per context)',
+                cols: axis.tokens({ shown: checks.isPad.length, L: demoCtx.params.L, real: demoCtx.numReal }),
+              }}
+            />
             <div className="mt-4">
               <TokenStrip tokens={demoCtx.tokens} tableSlots={slots} variant="cells" showPadding="collapsed" label="Tokens of the padded context" />
             </div>

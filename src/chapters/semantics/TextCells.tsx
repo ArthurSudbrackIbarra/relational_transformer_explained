@@ -6,6 +6,7 @@
  */
 import { useMemo, useState } from 'react';
 import { SemBadge, TableSwatch, VectorStrip, cx } from '@/components';
+import { axis, vec as vecShape } from '../shapes';
 import type { EmbeddingStore } from '@/engine/embeddings';
 import type { Token } from '@/engine/types';
 import { getPreprocessed } from '@/state/hooks';
@@ -178,7 +179,22 @@ function Lane({
         <span className="text-ink-2">)</span>
       </div>
       <Wordpieces tokens={tokens} className="mb-3" animateKey={tokens.join('|')} />
-      {vec ? <VectorStrip values={vec} columns={48} cellHeight={11} domain={domain} /> : <p className="text-[15px] text-ink-2">no stored vector</p>}
+      {vec ? (
+        <VectorStrip
+          values={vec}
+          columns={48}
+          cellHeight={11}
+          domain={domain}
+          shape={vecShape(
+            <>
+              E({what}): row {index ?? '?'} of the stored text-embedding table, which the sampler copies into {field}
+            </>,
+            axis.text(vec.length),
+          )}
+        />
+      ) : (
+        <p className="text-[15px] text-ink-2">no stored vector</p>
+      )}
       <p className="mt-2 !mb-0 text-[14.5px] leading-snug text-ink-2">{note}</p>
     </div>
   );

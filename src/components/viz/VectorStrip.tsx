@@ -4,11 +4,13 @@
  * `columns` cells (e.g. 64 per row for a 384-d MiniLM embedding).
  *
  * Optional `ranges` outline contiguous slices (e.g. head j = dims [j·d_head, (j+1)·d_head), spec §6.1).
+ * The readout line starts with the vector's ShapeTag (1 × d) and what its columns are.
  */
 import { useMemo, useState } from 'react';
 import { useResolvedTheme } from '@/styles/theme';
 import { cx } from '../ui/cx';
 import { formatSigned } from './format';
+import { ShapeTag, type Shape } from './ShapeTag';
 import { divergingCss, maxAbs } from './scales';
 import { useElementSize } from './useSize';
 
@@ -31,8 +33,10 @@ export interface VectorStripProps {
   showReadout?: boolean;
   /** Show the norm in the readout line. */
   showNorm?: boolean;
-  /** Show the "hover a cell" hint in the idle readout (default true); false keeps only "{d}-d". */
+  /** Show the "hover a cell" hint in the idle readout (default true). */
   hint?: boolean;
+  /** What the vector and its columns are, for the ShapeTag; null only in component demos. */
+  shape: Shape | null;
   className?: string;
 }
 
@@ -48,6 +52,7 @@ export function VectorStrip({
   showReadout = true,
   showNorm = true,
   hint = true,
+  shape,
   className,
 }: VectorStripProps) {
   const mode = useResolvedTheme();
@@ -84,6 +89,10 @@ export function VectorStrip({
 
   const gap = cw >= 6 ? 1 : 0;
   const shown = hover ?? highlightIndex;
+  const wrapNote = nRows > 1 ? `Drawn as ${nRows} lines of ${cols} cells to fit: read left to right, then top to bottom.` : null;
+  const tag = shape ? (
+    <ShapeTag rows={1} cols={d} shape={wrapNote ? { ...shape, note: shape.note ? <>{shape.note} {wrapNote}</> : wrapNote } : shape} />
+  ) : null;
 
   return (
     <div className={cx('min-w-0', className)}>
@@ -147,16 +156,19 @@ export function VectorStrip({
           )}
         </svg>
       </div>
-      {showReadout && (
-        <div className="num mt-1.5 flex min-h-[1.3em] flex-wrap justify-between gap-x-4 text-[14.5px] text-ink-2" aria-live="polite">
-          <span>
+      {showReadout ? (
+        <div className="num mt-1.5 flex min-h-[1.3em] flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 text-[14.5px] text-ink-2" aria-live="polite">
+          <span className="inline-flex min-w-0 flex-wrap items-baseline gap-x-2.5">
+            {tag}
             {shown !== null && shown < d ? (
-              <>
+              <span>
                 <span className="text-muted">dim </span>
                 <span className="text-ink">{shown}</span>
                 <span className="text-muted"> = </span>
                 <strong className="font-semibold text-ink">{formatSigned(values[shown], 4)}</strong>
-              </>
+              </span>
+            ) : tag ? (
+              hint && <span className="text-muted">hover a cell</span>
             ) : (
               <span className="text-muted">{hint ? `${d}-d · hover a cell` : `${d}-d`}</span>
             )}
@@ -167,6 +179,8 @@ export function VectorStrip({
             </span>
           )}
         </div>
+      ) : (
+        tag && <div className="mt-1">{tag}</div>
       )}
     </div>
   );

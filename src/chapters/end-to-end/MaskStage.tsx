@@ -9,6 +9,7 @@ import { useElementSize } from '@/components/viz/useSize';
 import { ATTN_ORDER, type AttnLayer } from '@/engine/types';
 import { int, plural } from './format';
 import { useE2E } from './live';
+import { axis } from '../shapes';
 import { Matrix, type Cell } from './Matrix';
 import { maskReasons, type MaskReason } from './math';
 import { FocusLine, useViewHover } from './shared';
@@ -82,6 +83,7 @@ export function MaskStage() {
               onHover={setHover}
               onPick={(c) => setFocus(c.r)}
               label={`${l} mask`}
+              shape={{ rows: axis.queries(live.span), cols: axis.keys(live.span) }}
             />
             <div className="mt-1.5 text-[14.5px] text-ink-2">
               followed token: <span className="num text-ink">{plural(count(l), 'key')}</span>

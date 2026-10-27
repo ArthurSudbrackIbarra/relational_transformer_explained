@@ -11,6 +11,7 @@
 import { Check, X } from 'lucide-react';
 import { memo, useMemo, useState, type ReactNode } from 'react';
 import { Cite, Figure, Segmented, SemBadge, StatusBadge, TeX, VectorStrip, cx, maxAbs, semOfDType } from '@/components';
+import { axis, vec } from '../shapes';
 import { SEM_KEYS, embedTokens, scalarValueTerm, tensor, textEmbedder } from '@/engine/model';
 import { SemType, type RawDatabase, type Token } from '@/engine/types';
 import type { EmbeddingStable } from './live';
@@ -107,7 +108,14 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
                     )}
                   </span>
                 </div>
-                <VectorStrip values={data.m[i]} columns={32} cellHeight={11} domain={data.domain} showNorm={false} />
+                <VectorStrip
+                  values={data.m[i]}
+                  columns={32}
+                  cellHeight={11}
+                  domain={data.domain}
+                  showNorm={false}
+                  shape={vec(`m_${SEM_KEYS[s]} (mask_embs.${SEM_KEYS[s]}), the learned vector added in place of a masked ${SEM_KEYS[s]} value`, axis.model(data.d))}
+                />
               </div>
             );
           })}
@@ -181,7 +189,15 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
                     <span className="font-semibold text-ink">a.</span> The code evaluates the {check.key} branch on the stored label{' '}
                     {VALUE_FIELD[tgt.sem]} = {fmtSigned(check.v, 2)}, like at every position <Cite kind="code" ref="rt/model.py:218" />:
                   </div>
-                  <VectorStrip values={check.branch} columns={32} cellHeight={10} domain={data.domain} label={undefined} hint={false} />
+                  <VectorStrip
+                    values={check.branch}
+                    columns={32}
+                    cellHeight={10}
+                    domain={data.domain}
+                    label={undefined}
+                    hint={false}
+                    shape={vec(`RMSNorm_${check.key}(W v + b) on the hidden label: the branch the gate multiplies by 0`, axis.model(data.d))}
+                  />
                   <div className="mt-0.5">
                     <span className="text-[17px]">
                       <TeX tex={String.raw`\mathrm{RMSNorm}_{\mathrm{${check.key}}}(W v + b)`} />

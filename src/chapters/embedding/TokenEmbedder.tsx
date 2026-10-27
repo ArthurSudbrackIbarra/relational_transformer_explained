@@ -29,6 +29,7 @@ import { SEM_KEYS, tensor } from '@/engine/model';
 import { SemType, type Token } from '@/engine/types';
 import { type EmbeddingStable, fmt, fmtSigned, phraseOf, rowRef, SEM_LABEL, useInspected, VALUE_FIELD } from './live';
 import { dot, norm, rmsInfo, slice, tokenScalar } from './math';
+import { axis, vec } from '../shapes';
 import { useElementSize } from '@/components/viz/useSize';
 import { FLASH_EVENT, FOLLOW_ID, JumpLink } from './nav';
 
@@ -394,11 +395,26 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
               >
                 <Stage innerRef={stageRef(0)} n={1} active={step === 0} revealed={revealed(0)} title="Phrase → frozen MiniLM" tex={String.raw`c = E(\text{“}\mathit{col}\text{ of }\mathit{table}\text{”}) \in \mathbb{R}^{384}`}>
                   <div className="mb-1.5 text-[15px] text-ink">“{padding ? '—' : data.phrase}”</div>
-                  <VectorStrip values={data.c} columns={64} cellHeight={7} label={`c (${data.c.length}-d, col_name_values)`} hint={false} />
+                  <VectorStrip
+                    values={data.c}
+                    columns={64}
+                    cellHeight={7}
+                    label={`c (${data.c.length}-d, col_name_values)`}
+                    hint={false}
+                    shape={vec(padding ? 'the padding position’s col_name_values row: all zeros' : `c = E(“${data.phrase}”), this token’s col_name_values row`, axis.text(data.c.length))}
+                  />
                 </Stage>
                 <Arrow on={revealed(1)} />
                 <Stage innerRef={stageRef(1)} n={2} active={step === 1} revealed={revealed(1)} title={`Linear 384 → ${data.d}`} tex={String.raw`W_{\mathrm{col}}\,c + b_{\mathrm{col}}`} foot={dimLine(1)}>
-                  <VectorStrip values={data.colPre} columns={32} cellHeight={13} onHover={(i) => setHoverDim(i)} highlightIndex={hoverDim} hint={false} />
+                  <VectorStrip
+                    values={data.colPre}
+                    columns={32}
+                    cellHeight={13}
+                    onHover={(i) => setHoverDim(i)}
+                    highlightIndex={hoverDim}
+                    hint={false}
+                    shape={vec('W_col c + b_col: the column phrase projected to the model width', axis.model(data.d))}
+                  />
                 </Stage>
                 <Arrow on={revealed(2)} />
                 <Stage
@@ -413,6 +429,7 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
                 >
                   <VectorStrip
                     values={data.colTerm}
+                    shape={vec('the column term: RMSNorm_col of the projection', axis.model(data.d))}
                     columns={32}
                     cellHeight={13}
                     domain={data.postDomain}
@@ -456,6 +473,7 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
                       </div>
                       <VectorStrip
                         values={data.valTerm}
+                        shape={vec(`m_${data.key}, the learned vector that replaces the value of a masked ${data.key} cell`, axis.model(data.d))}
                         columns={32}
                         cellHeight={13}
                         domain={data.postDomain}
@@ -468,7 +486,14 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
                   ) : data.textInput ? (
                     <>
                       <div className="mb-1.5 truncate text-[15px] text-ink">“{data.textString}”</div>
-                      <VectorStrip values={data.textInput} columns={64} cellHeight={7} label="e (384-d, text_values)" hint={false} />
+                      <VectorStrip
+                        values={data.textInput}
+                        columns={64}
+                        cellHeight={7}
+                        label="e (384-d, text_values)"
+                        hint={false}
+                        shape={vec(`e = E(“${data.textString}”), this token’s text_values row`, axis.text(data.textInput.length))}
+                      />
                     </>
                   ) : (
                     <ScalarInput tok={tok} />
@@ -493,7 +518,18 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
                       </span>
                     </SkipNote>
                   ) : (
-                    <VectorStrip values={data.valPre} columns={32} cellHeight={13} onHover={(i) => setHoverDim(i)} highlightIndex={hoverDim} hint={false} />
+                    <VectorStrip
+                      values={data.valPre}
+                      columns={32}
+                      cellHeight={13}
+                      onHover={(i) => setHoverDim(i)}
+                      highlightIndex={hoverDim}
+                      hint={false}
+                      shape={vec(
+                        data.textInput ? 'W_text e + b_text: the text embedding projected to the model width' : `z · w_${data.key} + b_${data.key}: the scalar value projected to the model width`,
+                        axis.model(data.d),
+                      )}
+                    />
                   )}
                 </Stage>
                 <Arrow on={revealed(5)} />
@@ -515,6 +551,7 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
                   ) : (
                     <VectorStrip
                       values={data.valTerm}
+                      shape={vec(`the value term: RMSNorm_${data.key} of the projection`, axis.model(data.d))}
                       columns={32}
                       cellHeight={13}
                       domain={data.postDomain}
@@ -543,13 +580,40 @@ export const TokenEmbedder = memo(function TokenEmbedder({ live }: { live: Embed
             >
               <div className="grid items-center gap-x-3 gap-y-1.5 sm:grid-cols-[120px_minmax(0,1fr)]">
                 <SumLabel icon={null}>column term</SumLabel>
-                <VectorStrip values={data.colTerm} columns={64} cellHeight={12} domain={data.postDomain} showReadout={false} highlightIndex={hoverDim} onHover={(i) => setHoverDim(i)} />
+                <VectorStrip
+                  values={data.colTerm}
+                  columns={64}
+                  cellHeight={12}
+                  domain={data.postDomain}
+                  showReadout={false}
+                  highlightIndex={hoverDim}
+                  onHover={(i) => setHoverDim(i)}
+                  shape={vec('the column term (③)', axis.model(data.d))}
+                />
                 <SumLabel icon={<Plus size={13} aria-hidden="true" />}>{masked ? `m_${data.key}` : 'value term'}</SumLabel>
-                <VectorStrip values={data.valTerm} columns={64} cellHeight={12} domain={data.postDomain} showReadout={false} highlightIndex={hoverDim} onHover={(i) => setHoverDim(i)} />
+                <VectorStrip
+                  values={data.valTerm}
+                  columns={64}
+                  cellHeight={12}
+                  domain={data.postDomain}
+                  showReadout={false}
+                  highlightIndex={hoverDim}
+                  onHover={(i) => setHoverDim(i)}
+                  shape={vec(masked ? `m_${data.key}, the mask vector` : 'the value term (⑥)', axis.model(data.d))}
+                />
                 <SumLabel icon={<Equal size={13} aria-hidden="true" />} strong>
                   x₀
                 </SumLabel>
-                <VectorStrip values={data.x0} columns={64} cellHeight={16} domain={data.postDomain} highlightIndex={hoverDim} onHover={(i) => setHoverDim(i)} hint={false} />
+                <VectorStrip
+                  values={data.x0}
+                  columns={64}
+                  cellHeight={16}
+                  domain={data.postDomain}
+                  highlightIndex={hoverDim}
+                  onHover={(i) => setHoverDim(i)}
+                  hint={false}
+                  shape={vec('x₀ = column term + value term: this token’s row of the matrix X₀ that enters block 1', axis.model(data.d))}
+                />
               </div>
             </Stage>
 

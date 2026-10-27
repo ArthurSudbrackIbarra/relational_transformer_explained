@@ -5,6 +5,7 @@
  */
 import type { AttnLayer } from '@/engine/types';
 import { Heatmap, type HeatmapCell } from './Heatmap';
+import type { Shape } from './ShapeTag';
 import { LayerLabel } from './layers';
 import { cx } from '../ui/cx';
 
@@ -34,6 +35,8 @@ export interface MaskMatrixProps {
   title?: string;
   showLegend?: boolean;
   showReadout?: boolean;
+  /** What the rows (queries) and columns (keys) hold, for the ShapeTag; null only in component demos. */
+  shape: Shape | null;
   className?: string;
 }
 
@@ -58,6 +61,7 @@ export function MaskMatrix({
   title,
   showLegend = true,
   showReadout = true,
+  shape,
   className,
 }: MaskMatrixProps) {
   const n = Math.min(S, crop ?? S);
@@ -94,6 +98,7 @@ export function MaskMatrix({
         onCellClick={onCellClick ? (c) => onCellClick(toCell(c)) : undefined}
         showLegend={showLegend}
         showReadout={showReadout}
+        shape={shape}
       />
     </div>
   );

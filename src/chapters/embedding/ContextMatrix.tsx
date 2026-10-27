@@ -7,7 +7,8 @@
  *    screens) or one row per token, grouped under a header per column phrase (phones).
  */
 import { memo, useMemo, useState } from 'react';
-import { Figure, Heatmap, ScaleLegend, Segmented, StatusBadge, SVG_TYPE, TableSwatch, VectorStrip, fitText, textWidth, type HeatmapCell } from '@/components';
+import { Figure, Heatmap, ScaleLegend, Segmented, ShapeTag, StatusBadge, SVG_TYPE, TableSwatch, VectorStrip, fitText, textWidth, type HeatmapCell } from '@/components';
+import { axis, vec } from '../shapes';
 import { useElementSize } from '@/components/viz/useSize';
 import { useResolvedTheme } from '@/styles/theme';
 import { embedTokens, textEmbedder } from '@/engine/model';
@@ -92,7 +93,17 @@ export const PaddingCheck = memo(function PaddingCheck({ live }: { live: Embeddi
         </dl>
         <div className="min-w-0">
           <div className="mb-1.5 text-[15.5px] text-ink-2">x₀ of this position</div>
-          {res ? <VectorStrip values={res.x0} columns={32} cellHeight={13} label={undefined} /> : <div className="text-[16px] text-ink-2">Loading…</div>}
+          {res ? (
+            <VectorStrip
+              values={res.x0}
+              columns={32}
+              cellHeight={13}
+              label={undefined}
+              shape={vec(realPad !== null ? `x₀ of padding position ${realPad}` : 'x₀ of a padding token built from the sampler’s defaults', axis.model(res.x0.length))}
+            />
+          ) : (
+            <div className="text-[16px] text-ink-2">Loading…</div>
+          )}
           {res && (
             <div className="mt-2">
               {norm(res.x0) === 0 ? (
@@ -343,6 +354,11 @@ export const ContextMatrix = memo(function ContextMatrix({ live }: { live: Embed
                   onCellClick={(c) => setInspected(perm[c.col])}
                   formatValue={fmtV}
                   title={`Input embedding matrix, ${panelName}`}
+                  shape={{
+                    rows: axis.model(d),
+                    cols: axis.tokens({ shown: S, L: ctx.params.L, real: ctx.numReal, order: order === 'column' ? 'grouped' : 'context' }),
+                    note: `Showing the ${panelName}. The code keeps X₀ as L × d, one row per token; here it is drawn transposed, so each token is a column.`,
+                  }}
                 />
               </div>
             </div>
@@ -411,7 +427,18 @@ function NarrowMatrix(p: {
   const { src, d, cell, groups, grouped, perm, ctx, slots } = p;
   return (
     <div className="grid gap-2.5">
-      <div className="text-[14.5px] text-ink-2">tokens ↓ · dimension 0 … {d - 1} →</div>
+      <div className="flex flex-wrap items-baseline gap-x-2.5 text-[14.5px] text-ink-2">
+        <ShapeTag
+          rows={ctx.tokens.length}
+          cols={d}
+          shape={{
+            rows: axis.tokens({ shown: ctx.tokens.length, L: ctx.params.L, real: ctx.numReal, order: grouped ? 'grouped' : 'context' }),
+            cols: axis.model(d),
+            note: grouped ? `The whole X₀ (${p.panelName}); below it is split into one block of rows per column phrase.` : `The whole X₀ (${p.panelName}).`,
+          }}
+        />
+        <span>tokens ↓ · dimension 0 … {d - 1} →</span>
+      </div>
       {groups.map((g) => {
         const rows = perm.slice(g.start, g.end);
         const data = new Float32Array(rows.length * d);
@@ -450,6 +477,7 @@ function NarrowMatrix(p: {
               showReadout={false}
               showLegend={false}
               title={`Input embedding matrix, ${p.panelName}${grouped ? `, ${g.label}` : ''}`}
+              shape={null}
             />
           </div>
         );

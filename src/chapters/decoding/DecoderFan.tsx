@@ -7,6 +7,7 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { useMemo } from 'react';
 import { Figure, SemBadge, Select, StatusBadge, StepPlayer, useStepPlayer, VectorStrip } from '@/components';
+import { axis, vec } from '../shapes';
 import { SemType, type Token } from '@/engine/types';
 import { fmt, fmtS, rowName, type Lane } from './live';
 import { decodeAt, HEADS, type HeadKey } from './math';
@@ -92,7 +93,12 @@ export function DecoderFan({ lane, pos, setPos }: { lane: Lane; pos: number; set
                 <span className="text-[15.5px] font-semibold text-ink">x after block {nBlocks}</span>
                 <span className="num text-[15px] text-ink-2">{tok?.isPadding ? 'padding: x = 0' : `RMS = ${fmt(dec.rms, 3)}`}</span>
               </div>
-              <VectorStrip values={dec.xLast} columns={32} cellHeight={13} />
+              <VectorStrip
+                values={dec.xLast}
+                columns={32}
+                cellHeight={13}
+                shape={vec(tok?.isPadding ? 'x of a padding position after the last block: all zeros' : `x of the inspected token after block ${nBlocks}, the last block`, axis.model(d))}
+              />
             </div>
             <motion.div
               initial={false}
@@ -117,7 +123,7 @@ export function DecoderFan({ lane, pos, setPos }: { lane: Lane; pos: number; set
                 <span className="text-[15.5px] font-semibold text-ink">x̂ = norm_out(x)</span>
                 <span className="num text-[15px] text-ink-2">{d} values</span>
               </div>
-              <VectorStrip values={dec.xHat} columns={32} cellHeight={13} domain={domain} />
+              <VectorStrip values={dec.xHat} columns={32} cellHeight={13} domain={domain} shape={vec('x̂ = norm_out(x), the vector every decoder reads', axis.model(d))} />
             </motion.div>
             {readKey && readKey !== 'text' && step >= 3 && (
               <motion.div
@@ -129,7 +135,12 @@ export function DecoderFan({ lane, pos, setPos }: { lane: Lane; pos: number; set
                 <div className="mb-1.5 text-[15.5px] font-semibold text-ink">
                   The {d} terms w_j · x̂_j of the {readKey} head
                 </div>
-                <VectorStrip values={dec.scalar[readKey].terms} columns={32} cellHeight={13} />
+                <VectorStrip
+                  values={dec.scalar[readKey].terms}
+                  columns={32}
+                  cellHeight={13}
+                  shape={vec(`the ${readKey} head’s terms w_j · x̂_j: their sum plus the bias is the prediction`, axis.model(d))}
+                />
                 <div className="mt-1 text-[15px] text-ink-2">
                   Their sum is w·x̂ = <span className="num text-ink">{fmtS(dec.scalar[readKey].dot)}</span>; adding the bias gives the prediction.
                 </div>
@@ -181,7 +192,16 @@ export function DecoderFan({ lane, pos, setPos }: { lane: Lane; pos: number; set
                     </div>
                     {k === 'text' ? (
                       <div className="mt-2">
-                        <VectorStrip values={dec.text.out} columns={64} cellHeight={7} showReadout={false} />
+                        <VectorStrip
+                          values={dec.text.out}
+                          columns={64}
+                          cellHeight={7}
+                          showReadout={false}
+                          shape={vec(
+                            'ŷ_text = W_text x̂ + b_text, the text head’s output: computed, never read',
+                            `one per output of the text decoder nn.Linear(d, d_text): ${dec.text.dText} numbers, the size of a MiniLM embedding`,
+                          )}
+                        />
                         <div className="mt-1 text-[15px] text-ink-2">
                           {dec.text.dText} outputs, ‖ŷ‖ = <span className="num text-ink">{fmt(dec.text.norm, 2)}</span>. {MEANING.text}; never read,
                           because text cells are never masked.

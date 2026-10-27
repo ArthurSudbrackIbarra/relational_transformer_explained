@@ -9,6 +9,7 @@
 import { motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Cite, NumberField, ScaleNote, Select, SemBadge, StatusBadge, TableView, TeX, VectorStrip, cx, formatRaw } from '@/components';
+import { axis, vec } from '../shapes';
 import { SEM_TYPE_NAMES, SemType, type Cell } from '@/engine/types';
 import { catVar } from '@/styles/palette';
 import { useAssets, useContextWindow } from '@/state/hooks';
@@ -329,12 +330,26 @@ function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: Table
           </div>
           {phraseVec && (
             <div className="mt-2">
-              <VectorStrip values={phraseVec} label={`E(“${phrase}”), 384-d MiniLM`} columns={64} cellHeight={7} showNorm={false} />
+              <VectorStrip
+                values={phraseVec}
+                label={`E(“${phrase}”), 384-d MiniLM`}
+                columns={64}
+                cellHeight={7}
+                showNorm={false}
+                shape={vec(`E(“${phrase}”), the MiniLM vector of the column phrase`, axis.text(phraseVec.length))}
+              />
             </div>
           )}
           {valueVec && (
             <div className="mt-2">
-              <VectorStrip values={valueVec} label={`E(“${textVal}”), the raw string only`} columns={64} cellHeight={7} showNorm={false} />
+              <VectorStrip
+                values={valueVec}
+                label={`E(“${textVal}”), the raw string only`}
+                columns={64}
+                cellHeight={7}
+                showNorm={false}
+                shape={vec(`E(“${textVal}”), the MiniLM vector of the raw string, without the column name`, axis.text(valueVec.length))}
+              />
             </div>
           )}
           {!store && assets.status === 'loading' && <div className="mt-1.5 text-[14.5px] text-muted">Loading the precomputed MiniLM embeddings…</div>}

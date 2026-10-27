@@ -6,6 +6,7 @@
  */
 import { motion } from 'motion/react';
 import { useMemo } from 'react';
+import { ShapeTag } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import type { Split, TaskDef } from '@/engine/types';
 import { usePrefersReducedMotion } from '@/styles/theme';
@@ -174,6 +175,16 @@ export function CoverageGrid({
         />
       </svg>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] text-ink-2" aria-label="Legend">
+        <ShapeTag
+          rows={entityCount}
+          cols={stamps.length}
+          shape={{
+            rows: `one per customer, by customer_id: all ${entityCount} customers of the database`,
+            cols: `one per prediction timestamp, oldest first: ${trainK.length} Train timestamps, then the Val one, then the Test one`,
+            note: 'A cell is drawn only where the task table has a row for that customer at that timestamp.',
+          }}
+          className="mr-1"
+        />
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden="true" className="inline-block h-3 w-3 rounded-[2px]" style={{ background: 'var(--cat-5)' }} />
           churn = true
