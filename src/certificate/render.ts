@@ -5,6 +5,7 @@
  */
 import { encode } from 'uqr';
 import { SITE_TITLE, SITE_URL } from '@/components/prose/sources';
+import { LOGO_TARGET } from '@/components/shell/Logo';
 import { jpegPdf } from './pdf';
 import { formatCertDate, type CertFacts } from './seal';
 
@@ -214,16 +215,20 @@ function drawLogo(ctx: CanvasRenderingContext2D, x: number, y: number, size: num
     ctx.fill();
   }
   square(13.6, 13.6, 8.3, 2.2);
-  ctx.setLineDash([2, 1.6]);
   ctx.strokeStyle = INK.accent;
   ctx.lineWidth = 1.3;
+  ctx.setLineDash([...LOGO_TARGET.dash]);
+  ctx.lineDashOffset = LOGO_TARGET.dashOffset;
   ctx.stroke();
   ctx.setLineDash([]);
-  // smaller than the header mark's 11.5px "?", which overflows its box at this size in some system fonts
-  ctx.font = `800 8.6px ${SANS}`;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke(new Path2D(LOGO_TARGET.question));
+  const { cx, cy, r } = LOGO_TARGET.dot;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
   ctx.fillStyle = INK.accent;
-  ctx.textAlign = 'center';
-  ctx.fillText('?', 17.75, 20.9);
+  ctx.fill();
   ctx.restore();
 }
 
