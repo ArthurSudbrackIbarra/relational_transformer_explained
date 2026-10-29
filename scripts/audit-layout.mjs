@@ -10,6 +10,7 @@
  *
  * Usage:
  *   node scripts/audit-layout.mjs --port 5311 [--routes a,b] [--widths 1440,390] [--modes light,dark,reading] [--out report.json]
+ *     [--state '{"completed":{"overview":true}}']   stored state to load the pages with (merged into rt-sbs:sim)
  *
  * Prints a compact summary; --out also writes the full JSON (selectors + text snippets).
  */
@@ -22,11 +23,13 @@ const args = Object.fromEntries(
     return acc;
   }, []),
 );
-const ALL = 'home,overview,database,tasks,preprocessing,semantics,sampling,tokens,embedding,masks,attention,block,decoding,training,playground,results,about,qa,qa/where-task-tables-come-from';
+const ALL =
+  'home,overview,database,tasks,preprocessing,semantics,sampling,tokens,embedding,masks,attention,block,decoding,end-to-end,training,playground,results,about,qa,qa/where-task-tables-come-from,certificate,certificate/verify';
 const port = Number(args.port ?? 5173);
 const routes = String(args.routes ?? ALL).split(',').filter(Boolean);
 const widths = String(args.widths ?? '1440,390').split(',').map(Number);
 const modes = String(args.modes ?? 'light,dark').split(',');
+const state = args.state ? JSON.parse(args.state) : {};
 
 let browser;
 try {
@@ -42,14 +45,15 @@ for (const mode of modes) {
       viewport: { width, height: width < 600 ? 844 : 900 },
       colorScheme: mode === 'dark' ? 'dark' : 'light',
     });
-    if (mode === 'reading')
-      await ctx.addInitScript(() => {
+    const stored = mode === 'reading' ? { ...state, reading: true } : state;
+    if (Object.keys(stored).length)
+      await ctx.addInitScript((s) => {
         try {
-          localStorage.setItem('rt-sbs:sim', JSON.stringify({ state: { reading: true }, version: 1 }));
+          localStorage.setItem('rt-sbs:sim', JSON.stringify({ state: s, version: 1 }));
         } catch {
           /* storage blocked */
         }
-      });
+      }, stored);
     for (const route of routes) {
       const page = await ctx.newPage();
       const errors = [];

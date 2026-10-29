@@ -31,11 +31,21 @@ The site has a Q&A page (`/#/qa`). Each answer is one file in `src/qa/entries/`,
 checked against the paper-era code. In Claude Code, `/rtquestion <question>` (skill in `.claude/skills/rtquestion/`)
 researches a new question against the official repository, adds the entry, verifies the build and pushes it.
 
+## Certificate
+
+Readers who tick all 17 chapters and pass a 15-question final quiz (12 right answers) get a certificate of completion
+(`/#/certificate`), downloadable as PDF or PNG, with a QR code and an ID that `/#/certificate/verify` checks against the
+printed name. Everything runs in the browser: the ID is a SHA-256 checksum over the name, date, score and chapter count,
+so it catches an edited certificate, but anyone who reads the code could compute one. Both pages say so. The quiz lives
+in `src/certificate/quiz.ts`; never change the ID scheme in `seal.ts`, or every issued certificate stops verifying
+(`certificate.test.ts` pins it).
+
 ## Layout
 
 - `src/engine/`: pure-TS simulation engine (data generators, preprocessing, sampler, masks, model forward).
 - `src/chapters/`: the 17 interactive chapters.
 - `src/qa/`: the Questions & answers page and its entries.
+- `src/certificate/`: the final quiz, the certificate (drawn on a canvas, saved as PDF or PNG) and its verification.
 - `src/components/`: shared UI and visualization components.
 - `python/`: embeddings (all-MiniLM-L12-v2), training of the mini RT, parity checks. See `python/README.md`.
 - `public/data/`: precomputed embeddings, trained weights, training curves.

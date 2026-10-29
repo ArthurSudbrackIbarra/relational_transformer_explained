@@ -15,10 +15,10 @@
  *     );
  *   }
  */
-import { ArrowLeft, ArrowRight, Check, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Award, Check, Link as LinkIcon } from 'lucide-react';
 import { useEffect, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { getChapter, getNeighbors, PARTS, prefetchChapter } from '@/chapters/registry';
+import { CHAPTERS, getChapter, getNeighbors, PARTS, prefetchChapter } from '@/chapters/registry';
 import { useSim } from '@/state/store';
 import { SITE_TITLE } from '../prose/sources';
 import { cx } from '../ui/cx';
@@ -192,36 +192,55 @@ export function Figure({ wide, title, caption, controls, bare, children, classNa
 // ChapterNav
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** End-of-chapter toggle: the reader marks the chapter completed by hand (sidebar ticks follow). */
+/**
+ * End-of-chapter toggle: the reader marks the chapter completed by hand (sidebar ticks follow). Once
+ * every chapter is ticked, a link points to the certificate.
+ */
 function CompleteButton({ slug }: { slug: string }) {
   const meta = getChapter(slug);
   const done = useSim((s) => !!s.completed[slug]);
   const toggle = useSim((s) => s.toggleCompleted);
+  const allDone = useSim((s) => CHAPTERS.every((c) => s.completed[c.slug]));
+  const cert = useSim((s) => (s.certificate ? (s.certificate.name ? 'issued' : 'passed') : null));
   if (!meta) return null;
   return (
-    <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
-      <button
-        type="button"
-        onClick={() => toggle(slug)}
-        aria-pressed={done}
-        className={cx(
-          'inline-flex h-11 items-center gap-2.5 rounded-xl border px-4 text-[16.5px] font-medium transition-colors',
-          done ? 'border-accent bg-accent-soft text-accent-text' : 'border-border-strong bg-surface text-ink hover:border-accent',
-        )}
-      >
-        <span
-          aria-hidden="true"
+    <>
+      <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => toggle(slug)}
+          aria-pressed={done}
           className={cx(
-            'flex h-[20px] w-[20px] items-center justify-center rounded-full border-[1.5px]',
-            done ? 'border-accent bg-accent text-accent-ink' : 'border-axis text-transparent',
+            'inline-flex h-11 items-center gap-2.5 rounded-xl border px-4 text-[16.5px] font-medium transition-colors',
+            done ? 'border-accent bg-accent-soft text-accent-text' : 'border-border-strong bg-surface text-ink hover:border-accent',
           )}
         >
-          <Check size={13} strokeWidth={3} />
-        </span>
-        {done ? `Chapter ${meta.number} completed` : `Mark chapter ${meta.number} as completed`}
-      </button>
-      {done && <span className="text-[15px] text-muted">Click again to undo.</span>}
-    </div>
+          <span
+            aria-hidden="true"
+            className={cx(
+              'flex h-[20px] w-[20px] items-center justify-center rounded-full border-[1.5px]',
+              done ? 'border-accent bg-accent text-accent-ink' : 'border-axis text-transparent',
+            )}
+          >
+            <Check size={13} strokeWidth={3} />
+          </span>
+          {done ? `Chapter ${meta.number} completed` : `Mark chapter ${meta.number} as completed`}
+        </button>
+        {done && <span className="text-[15px] text-muted">Click again to undo.</span>}
+      </div>
+      {allDone && (
+        <p className="!mt-0 !mb-6 text-center text-[17px]">
+          <Link to="/certificate" className="inline-flex items-center gap-1.5">
+            <Award aria-hidden="true" size={17} />
+            {cert === 'issued'
+              ? 'See your certificate'
+              : cert === 'passed'
+                ? 'Finish your certificate'
+                : `All ${CHAPTERS.length} chapters completed: take the final quiz for your certificate`}
+          </Link>
+        </p>
+      )}
+    </>
   );
 }
 

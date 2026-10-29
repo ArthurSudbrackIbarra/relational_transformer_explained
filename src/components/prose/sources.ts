@@ -7,6 +7,8 @@
 export const SITE_TITLE = 'Relational Transformer Explained';
 /** This site's own repository. */
 export const SITE_REPO = 'https://github.com/ArthurSudbrackIbarra/relational_transformer_explained';
+/** Where the site is published (certificate verification links point here). */
+export const SITE_URL = 'https://arthursudbrackibarra.github.io/relational_transformer_explained/';
 
 export const PAPER = {
   title: 'Relational Transformer: Toward Zero-Shot Foundation Models for Relational Data',

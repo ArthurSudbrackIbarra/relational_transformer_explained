@@ -104,6 +104,20 @@ export interface UiState {
   sidebarCollapsed: boolean;
   /** Chapter slugs the reader marked as completed (sidebar ticks). Set by hand, never by opening a chapter. */
   completed: Record<string, true>;
+  /** The reader's certificate (src/certificate): set when the final quiz is passed, issued once it has a name. */
+  certificate: CertificateRecord | null;
+}
+
+/** What a certificate states; its ID is computed from these fields (src/certificate/seal.ts). */
+export interface CertificateRecord {
+  /** Name as printed; empty until the reader issues the certificate. */
+  name: string;
+  /** Day the final quiz was passed, YYYY-MM-DD. */
+  date: string;
+  score: number;
+  total: number;
+  /** Chapters in the course at that time. */
+  chapters: number;
 }
 
 export interface SimActions {
@@ -129,6 +143,7 @@ export interface SimActions {
   /** Mark a chapter completed, or not completed again. */
   toggleCompleted: (slug: string) => void;
   clearCompleted: () => void;
+  setCertificate: (certificate: CertificateRecord | null) => void;
   /** Restore every simulation knob to SIM_DEFAULTS (keeps theme, reading mode, sidebar and completed chapters). */
   resetSimulation: () => void;
 }
@@ -192,6 +207,7 @@ export const useSim = create<SimState>()(
       reading: false,
       sidebarCollapsed: false,
       completed: {},
+      certificate: null,
 
       // Changing anything that alters the context invalidates the selected token.
       setDb: (dbName, taskId) => set({ dbName, taskId, seedNode: null, ...INSPECT_RESET }),
@@ -228,6 +244,7 @@ export const useSim = create<SimState>()(
           return { completed };
         }),
       clearCompleted: () => set({ completed: {} }),
+      setCertificate: (certificate) => set({ certificate }),
       resetSimulation: () =>
         set({ ...SIM_DEFAULTS, selectedPos: null, block: 0, layer: 'col', head: 0, disabledLayers: [] }),
     }),
@@ -253,6 +270,7 @@ export const useSim = create<SimState>()(
         reading: s.reading,
         sidebarCollapsed: s.sidebarCollapsed,
         completed: s.completed,
+        certificate: s.certificate,
       }),
       // Defensive merge: ignore malformed persisted values.
       merge: (persisted, current) => {
@@ -276,6 +294,15 @@ export const useSim = create<SimState>()(
         if (typeof p.sidebarCollapsed === 'boolean') out.sidebarCollapsed = p.sidebarCollapsed;
         // `visited` (auto-ticked on opening a chapter) was replaced by `completed`; old values are dropped
         if (p.completed && typeof p.completed === 'object') out.completed = { ...(p.completed as Record<string, true>) };
+        const c = p.certificate as Partial<CertificateRecord> | null | undefined;
+        if (
+          c &&
+          typeof c.name === 'string' &&
+          typeof c.date === 'string' &&
+          /^\d{4}-\d{2}-\d{2}$/.test(c.date) &&
+          [c.score, c.total, c.chapters].every((n) => Number.isInteger(n))
+        )
+          out.certificate = { name: c.name, date: c.date, score: c.score!, total: c.total!, chapters: c.chapters! };
         // keep db consistent with the task id
         const taskDb = out.taskId.split('/')[0] as DbName;
         if (DB_NAMES.includes(taskDb)) out.dbName = taskDb;

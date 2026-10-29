@@ -19,7 +19,7 @@ import { useSim } from '@/state/store';
 import { CODE, PAPER, SITE_REPO, SITE_TITLE } from '../prose/sources';
 import { Logo } from './Logo';
 import { useScrollCues } from './scrollCues';
-import { ChapterList, ChapterRail, QA_PATH } from './Sidebar';
+import { CERTIFICATE_PATH, ChapterList, ChapterRail, QA_PATH } from './Sidebar';
 import { SimIndicator } from './SimIndicator';
 import { ReadingToggle, ThemeToggle } from './ThemeToggle';
 
@@ -84,7 +84,19 @@ function TopBar({ onMenu, menuOpen, showMenuAlways }: { onMenu: () => void; menu
   );
 }
 
-function Drawer({ open, onClose, slug, qaCurrent }: { open: boolean; onClose: () => void; slug?: string; qaCurrent: boolean }) {
+function Drawer({
+  open,
+  onClose,
+  slug,
+  qaCurrent,
+  certCurrent,
+}: {
+  open: boolean;
+  onClose: () => void;
+  slug?: string;
+  qaCurrent: boolean;
+  certCurrent: boolean;
+}) {
   const panel = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!open) return;
@@ -133,7 +145,7 @@ function Drawer({ open, onClose, slug, qaCurrent }: { open: boolean; onClose: ()
                 <X size={18} />
               </IconButton>
             </div>
-            <ChapterList onNavigate={onClose} currentSlug={slug} qaCurrent={qaCurrent} />
+            <ChapterList onNavigate={onClose} currentSlug={slug} qaCurrent={qaCurrent} certCurrent={certCurrent} />
             <div className="mt-4 flex flex-col gap-1 border-t border-grid px-1 pt-4">
               <a
                 href={PAPER.url}
@@ -172,6 +184,7 @@ export function Layout({ children }: LayoutProps) {
   const slug = currentSlug(pathname);
   const isLanding = pathname === '/' || pathname === '';
   const qaCurrent = pathname === QA_PATH || pathname.startsWith(`${QA_PATH}/`);
+  const certCurrent = pathname === CERTIFICATE_PATH || pathname.startsWith(`${CERTIFICATE_PATH}/`);
   const [drawer, setDrawer] = useState(false);
   const collapsed = useSim((s) => s.sidebarCollapsed);
   const setCollapsed = useSim((s) => s.setSidebarCollapsed);
@@ -196,7 +209,7 @@ export function Layout({ children }: LayoutProps) {
         Skip to content
       </a>
       <TopBar onMenu={() => setDrawer((d) => !d)} menuOpen={drawer} showMenuAlways={!withSidebar} />
-      <Drawer open={drawer} onClose={() => setDrawer(false)} slug={slug} qaCurrent={qaCurrent} />
+      <Drawer open={drawer} onClose={() => setDrawer(false)} slug={slug} qaCurrent={qaCurrent} certCurrent={certCurrent} />
       <div className="flex flex-1">
         {withSidebar && (
           <div
@@ -216,6 +229,7 @@ export function Layout({ children }: LayoutProps) {
                 <ChapterRail
                   currentSlug={slug}
                   qaCurrent={qaCurrent}
+                  certCurrent={certCurrent}
                   action={
                     <IconButton label="Expand the sidebar" onClick={() => setCollapsed(false)} aria-expanded={false}>
                       <PanelLeftOpen size={18} />
@@ -227,6 +241,7 @@ export function Layout({ children }: LayoutProps) {
                   <ChapterList
                     currentSlug={slug}
                     qaCurrent={qaCurrent}
+                    certCurrent={certCurrent}
                     action={
                       <IconButton label="Collapse the sidebar" size="sm" onClick={() => setCollapsed(true)} aria-expanded={true}>
                         <PanelLeftClose size={17} />

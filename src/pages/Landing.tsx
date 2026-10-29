@@ -2,7 +2,7 @@
  * Landing page: hero (title, pitch, animated motif, Start CTA), RT's three
  * ideas, what runs here (scale), and the course map of all 17 chapters.
  */
-import { ArrowRight, Check, Columns3, Table2, Type } from 'lucide-react';
+import { ArrowRight, Award, Check, Columns3, Table2, Type } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { CHAPTERS, PARTS, prefetchChapter } from '@/chapters/registry';
@@ -225,6 +225,13 @@ export function Landing() {
               </div>
             ))}
           </div>
+          <p className="mt-10 flex max-w-[var(--prose-max)] items-start gap-2.5 text-[18px] leading-[1.6] text-ink-2">
+            <Award aria-hidden="true" size={20} className="mt-[0.2em] shrink-0 text-accent-text" />
+            <span>
+              Work through all seventeen chapters, pass a short final quiz, and get a{' '}
+              <Link to="/certificate">certificate of completion</Link> with an ID that anyone can verify.
+            </span>
+          </p>
         </div>
 
       </ContentColumn>

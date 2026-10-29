@@ -4,6 +4,7 @@
  *   /#/                 Landing
  *   /#/<slug>           chapters (lazy, via src/chapters/registry.ts)
  *   /#/qa, /#/qa/<id>   questions & answers (lazy, src/qa)
+ *   /#/certificate      certificate of completion, and /#/certificate/verify (lazy, src/certificate)
  *   /#/dev/components   component gallery (not in the navigation)
  *   anything else       NotFound
  */
@@ -21,6 +22,8 @@ import { applyReading, applyTheme } from '@/styles/theme';
 const DevGallery = lazy(() => import('@/pages/DevGallery').then((m) => ({ default: m.DevGallery })));
 const QAIndex = lazy(() => import('@/qa/QAPages').then((m) => ({ default: m.QAIndex })));
 const QAPage = lazy(() => import('@/qa/QAPages').then((m) => ({ default: m.QAPage })));
+const CertificatePage = lazy(() => import('@/certificate/CertificatePages').then((m) => ({ default: m.CertificatePage })));
+const VerifyPage = lazy(() => import('@/certificate/CertificatePages').then((m) => ({ default: m.VerifyPage })));
 
 function Lazy({ children, resetKey }: { children: ReactNode; resetKey?: string }) {
   return (
@@ -110,6 +113,22 @@ export default function App() {
               }
             />
             <Route path="qa/:qid" element={<QARoute />} />
+            <Route
+              path="certificate"
+              element={
+                <Lazy>
+                  <CertificatePage />
+                </Lazy>
+              }
+            />
+            <Route
+              path="certificate/verify"
+              element={
+                <Lazy>
+                  <VerifyPage />
+                </Lazy>
+              }
+            />
             <Route path=":slug" element={<ChapterRoute />} />
             <Route path="*" element={<NotFound />} />
           </Route>

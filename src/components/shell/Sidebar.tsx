@@ -2,10 +2,10 @@
  * Chapter sidebar: numbered chapter list grouped by part, current chapter
  * highlighted, completion ticks the reader toggles by hand (persisted in the
  * store; opening a chapter does not tick it), progress meter, and the
- * Questions & answers page below the course. Rendered as a fixed column
+ * Questions & answers and certificate pages below the course. Rendered as a fixed column
  * ≥ 1024px (foldable into <ChapterRail>) and inside the drawer below that.
  */
-import { Check, MessageCircleQuestion } from 'lucide-react';
+import { Award, Check, MessageCircleQuestion } from 'lucide-react';
 import type { ChapterMeta } from '@/chapters/registry';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -14,17 +14,21 @@ import { useSim } from '@/state/store';
 import { cx } from '../ui/cx';
 
 export const QA_PATH = '/qa';
+export const CERTIFICATE_PATH = '/certificate';
 
 export function ChapterList({
   onNavigate,
   currentSlug,
   qaCurrent,
+  certCurrent,
   action,
 }: {
   onNavigate?: () => void;
   currentSlug?: string;
   /** The Questions & answers page is open. */
   qaCurrent?: boolean;
+  /** A certificate page is open. */
+  certCurrent?: boolean;
   /** Control shown at the right of the header (the collapse button). */
   action?: ReactNode;
 }) {
@@ -100,6 +104,21 @@ export function ChapterList({
           </span>
           <span className="min-w-0 flex-1">Questions &amp; answers</span>
         </NavLink>
+        <NavLink
+          to={CERTIFICATE_PATH}
+          onClick={onNavigate}
+          aria-current={certCurrent ? 'page' : undefined}
+          className={cx(
+            'relative flex items-center gap-2.5 rounded-lg py-[7px] pr-2.5 pl-3 text-[16.5px] leading-snug transition-colors',
+            certCurrent ? 'bg-accent-soft font-medium text-ink' : 'text-ink-2 hover:bg-surface-2 hover:text-ink',
+          )}
+        >
+          {certCurrent && <span aria-hidden="true" className="absolute top-2 bottom-2 left-0 w-[3px] rounded-full bg-accent" />}
+          <span className="flex w-5 shrink-0 justify-end">
+            <Award aria-hidden="true" size={16} className={certCurrent ? 'text-accent-text' : 'text-muted'} />
+          </span>
+          <span className="min-w-0 flex-1">Certificate</span>
+        </NavLink>
       </div>
     </nav>
   );
@@ -136,7 +155,17 @@ export function CompleteToggle({ chapter: c, className }: { chapter: ChapterMeta
  * The folded sidebar (≥ 1024px): a narrow rail of chapter numbers, so the
  * content gets the width but every chapter stays one click away.
  */
-export function ChapterRail({ currentSlug, qaCurrent, action }: { currentSlug?: string; qaCurrent?: boolean; action?: ReactNode }) {
+export function ChapterRail({
+  currentSlug,
+  qaCurrent,
+  certCurrent,
+  action,
+}: {
+  currentSlug?: string;
+  qaCurrent?: boolean;
+  certCurrent?: boolean;
+  action?: ReactNode;
+}) {
   const completed = useSim((s) => s.completed);
   return (
     <nav aria-label="Chapters" className="flex flex-col items-center gap-1">
@@ -182,6 +211,18 @@ export function ChapterRail({ currentSlug, qaCurrent, action }: { currentSlug?: 
           )}
         >
           <MessageCircleQuestion aria-hidden="true" size={17} />
+        </NavLink>
+        <NavLink
+          to={CERTIFICATE_PATH}
+          aria-current={certCurrent ? 'page' : undefined}
+          aria-label="Certificate"
+          title="Certificate"
+          className={cx(
+            'mt-1 flex h-9 w-9 items-center justify-center rounded-lg transition-colors',
+            certCurrent ? 'bg-accent-soft text-accent-text' : 'text-ink-2 hover:bg-surface-2 hover:text-ink',
+          )}
+        >
+          <Award aria-hidden="true" size={17} />
         </NavLink>
       </div>
     </nav>
