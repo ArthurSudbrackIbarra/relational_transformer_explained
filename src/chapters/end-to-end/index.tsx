@@ -6,7 +6,7 @@
  * the read-out, each as the live matrices of the engine (src/state/hooks.ts → src/engine/pipeline.ts
  * → model/forward.ts, a mirror of rt/model.py:153-267) with the trained weights that produce them.
  * Displayed arithmetic is recomputed by ./math.ts and checked against the capture in math.test.ts.
- * Spec: research/RT_TECHNICAL_SPEC.md §0, §2-§8, §10 #1, #2, #5, #7, #8.
+ * Spec: research/RT_TECHNICAL_SPEC.md §0, §2-§8, §10 #2.
  */
 import { Link } from 'react-router-dom';
 import {
@@ -68,9 +68,9 @@ function Body() {
         slug="end-to-end"
         lede={
           <>
-            Each earlier chapter took one step of the model apart. This one runs a single prediction from the first choice to the last number, on one
-            page: pick the question, watch the sampler gather the context, then follow every matrix of the forward pass, with the weights that make it,
-            to the probability or the value at the end.
+            Each earlier chapter took one step of the model apart. This one runs a single prediction from start to finish on one page. You pick the
+            question, watch the sampler gather the context, and then follow every matrix of the forward pass, together with the weights that produce
+            it, down to the probability or value at the end.
           </>
         }
         learn={[
@@ -92,23 +92,23 @@ function Body() {
       {/* ───────────────────────────────────────────────────────────── 0 */}
       <Section id="map" title="The whole pass on one page">
         <p>
-          A forward pass of RT answers one question: the value of one <Term id="target-cell">masked cell</Term>. Exactly one cell of the context is
-          masked, the seed row’s target cell <Cite kind="code" ref="rustler/src/fly.rs:492-496" /> <Cite kind="spec" ref="§4.10" />. Everything else on
-          this page serves that single number. The map below lists the seven stages with the shapes that flow between them; each section after it
-          opens one stage on the live seed.
+          A forward pass of RT answers one question: what is the value of one <Term id="target-cell">masked cell</Term>? Exactly one cell of the
+          context is masked, the seed row’s target cell <Cite kind="code" ref="rustler/src/fly.rs:492-496" /> <Cite kind="spec" ref="§4.10" />, and
+          everything on this page leads to that one number. The map below lists the seven stages and the shapes that pass between them. Each section
+          after it opens one stage on the live seed.
         </p>
         <PassMap />
         <p>
-          The figures share one <em>followed token</em>. It starts as the masked target, and you can follow any other token by clicking its row in any
-          matrix or picking it from the list. Its row is outlined in every matrix and its numbers are written out next to the figure. Matrices show
-          one small rectangle per entry: red for positive values, blue for negative, gray near zero, each on its own scale unless a figure says
-          otherwise. Hover or focus any entry, or move through a matrix with the arrow keys, to read its value and how it was computed. The shape
-          under each matrix, rows × columns, says what one row and one column are when you hover it.
+          All the figures share one <em>followed token</em>. It starts as the masked target, and you can follow any other token by clicking its row in
+          any matrix or picking it from the list. Its row is outlined in every matrix and its numbers are written out next to the figure. Matrices
+          show one small rectangle per entry: red for positive values, blue for negative, gray near zero, each on its own scale unless a figure says
+          otherwise. Hover or focus any entry, or move through a matrix with the arrow keys, to read its value and how it was computed. Hover the
+          shape under a matrix (rows × columns) to see what one row and one column stand for.
           {numReal < S && (
             <>
               {' '}
               This context has {int(S - numReal)} padding position{S - numReal === 1 ? '' : 's'} after its {int(numReal)} cells. The figures leave them
-              out: they hold no cell, every mask blocks them, and they never change a real token’s numbers.
+              out: every mask blocks them, so they never change a real token’s numbers.
             </>
           )}
         </p>
@@ -130,19 +130,18 @@ function Body() {
         <p>
           A forecasting task lives in a <Term id="task-table">task table</Term> that “stores the forecasting labels, together with foreign keys linking
           to the relevant entities … and a timestamp specifying the prediction horizon” <Cite kind="paper" ref="p.4 §2.2" />. RT attaches it to the
-          database like any other table, and its rows serve as <Term id="seed-row">seed rows</Term> <Cite kind="paper" ref="p.4 §3.1" />. An{' '}
+          database like any other table, and its rows are the <Term id="seed-row">seed rows</Term> <Cite kind="paper" ref="p.4 §3.1" />. An{' '}
           <Term id="autocomplete-task">autocomplete task</Term> seeds on a row of an ordinary table instead and masks one of its columns, after dropping
           the columns that would give the answer away <Cite kind="paper" ref="p.19 App. D" /> <Cite kind="spec" ref="§2.4" />.
         </p>
         <p>
-          The candidate seeds are the rows of the chosen table whose target cell exists: the code walks the table and keeps a row only if it has a cell
-          in the target column <Cite kind="code" ref="rustler/src/fly.rs:287-296" />. For a forecasting task the table is the chosen split of the task
-          table; for autocomplete it is the database table, whatever the split <Cite kind="code" ref="rt/data.py:77-81" />. Pick a task and a seed
-          below, or keep the course’s running example.
+          A row can be a seed only if it has a value in the target column <Cite kind="code" ref="rustler/src/fly.rs:287-296" />. For a forecasting
+          task the seeds come from the chosen split of the task table; for autocomplete they come from the database table, whatever the split{' '}
+          <Cite kind="code" ref="rt/data.py:77-81" />. Pick a task and a seed below, or keep the course’s running example.
         </p>
         <TaskStage />
         <p>
-          The type of the target decides the rest of the pipeline’s end: a boolean target is read from the boolean decoder as a logit, a number target
+          The target’s type decides how the answer comes out at the end: a boolean target is read from the boolean decoder as a logit, a number target
           from the number decoder as a z-score <Cite kind="code" ref="rt/main.py:283-288" />. <Link to="/tasks">Chapter 3</Link> builds the task tables
           and their splits.
         </p>
@@ -152,8 +151,8 @@ function Body() {
       <Section id="sample" title="Sample the context" kicker="Stage 2">
         <p>
           A database does not fit in one context, so the sampler gathers cells around the seed, row by row, until it has L = {ctx.params.L} of them
-          (1024 in the paper) or runs out of rows <Cite kind="paper" ref="p.15 Alg. 1" /> <Cite kind="code" ref="rustler/src/fly.rs:357-511" />. Four
-          rules drive it <Cite kind="spec" ref="§4.4" />:
+          (1024 in the paper) or runs out of rows <Cite kind="paper" ref="p.15 Alg. 1" /> <Cite kind="code" ref="rustler/src/fly.rs:357-511" />. It
+          follows four rules <Cite kind="spec" ref="§4.4" />:
         </p>
         <ul>
           <li>
@@ -194,8 +193,7 @@ function Body() {
               <Term id="in-context-label">in-context labels</Term> of an autocomplete task <Cite kind="spec" ref="§2.4" />.
             </>
           )}{' '}
-          The paper’s Algorithm 1 differs from the released code in a few places, such as picking parents at random instead of from a stack; the site
-          follows the code (<Link to="/sampling">chapter 6</Link>) <Cite kind="spec" ref="§10 #5" />.
+          <Link to="/sampling">Chapter 6</Link> takes the sampler apart one decision at a time.
         </p>
         <CodeRef
           title="Expanding a visited row: parents, the time filter, task rows, the width bound"
@@ -211,14 +209,14 @@ function Body() {
           Each emitted cell becomes one <Term id="cell-token">token</Term>, written into flat arrays position by position: the row’s node id and its up
           to five parent ids, the table and column-phrase ids, the semantic type, the value slots and the flags{' '}
           <Cite kind="code" ref="rustler/src/fly.rs:462-500" /> <Cite kind="spec" ref="§5.1" />. Positions left over after the sampler stops keep the
-          padding defaults <Cite kind="code" ref="rustler/src/fly.rs:65-85" />. The masked target keeps its true label in its value slot; only its{' '}
-          <code>masks</code> and <code>is_targets</code> flags mark it, and the model’s input gate ignores the value{' '}
+          padding defaults <Cite kind="code" ref="rustler/src/fly.rs:65-85" />. The masked target still holds its true label in its value slot. Only
+          its <code>masks</code> and <code>is_targets</code> flags mark it, and the input embedding puts a mask vector in place of that value{' '}
           <Cite kind="code" ref="rustler/src/fly.rs:492-496" /> <Cite kind="spec" ref="§5.3" />.
         </p>
         <TokenStage />
         <CodeRef title="Writing one token’s fields" file="rustler/src/fly.rs" lines="462-500" code={FLY_FIELDS_462_500} highlightLines={[492, 494, 496]} />
         <p>
-          From here on, two kinds of field go two ways. The ids are compared between pairs of tokens to build the masks (stage 5); they are never
+          From here the fields split into two groups. The ids are compared between pairs of tokens to build the masks (stage 5) and are never
           embedded. The values become the input vectors (stage 4). <Link to="/tokens">Chapter 7</Link> goes through the fields one by one.
         </p>
       </Section>
@@ -233,8 +231,8 @@ function Body() {
         <p>
           c<sub>i</sub> is the frozen MiniLM embedding of the phrase “&lt;col&gt; of &lt;table&gt;” and v<sub>i</sub> the token’s value: a z-scored
           number, datetime or boolean <Cite kind="spec" ref="§3.3" />, or the MiniLM embedding of a text value <Cite kind="spec" ref="§3.6" />. Each
-          type t has its own linear encoder and its own RMSNorm. The masked cell gets its type’s learned mask vector m<sub>t</sub> in place of a value,
-          as the paper puts it: “For masked cells, the value embedding … is replaced with a learned mask vector” <Cite kind="paper" ref="p.5 §3.1" />.
+          type t has its own linear encoder and its own RMSNorm. The masked cell gets its type’s learned mask vector m<sub>t</sub> in place of a value:
+          “For masked cells, the value embedding … is replaced with a learned mask vector” <Cite kind="paper" ref="p.5 §3.1" />.
           Padding gets the zero vector. Nothing encodes a token’s position in the context <Cite kind="paper" ref="p.5 §3.1" />.
         </p>
         <EmbedStage />
@@ -254,7 +252,8 @@ function Body() {
       {/* ───────────────────────────────────────────────────────────── 5 */}
       <Section id="masks" title="Build the four masks" kicker="Stage 5">
         <p>
-          Which rows link to which enters the model only here <Cite kind="spec" ref="§0" />. From the ids alone, the forward pass builds four boolean{' '}
+          This is the only place where the links between rows enter the model <Cite kind="spec" ref="§0" />. From the ids alone, the forward pass
+          builds four boolean{' '}
           {int(S)} × {int(S)} matrices, one per attention layer <Cite kind="code" ref="rt/model.py:164-191" />: <em>column</em> (same column of the same table), <em>feature</em> (the same row
           and its parent rows), <em>neighbor</em> (the child rows) and <em>full</em> (everything) <Cite kind="paper" ref="p.5 §3.2" />. Each is ANDed
           with “neither token is padding”, built once, and shared by every head of every block <Cite kind="code" ref="rt/model.py:89-101" />{' '}
@@ -272,28 +271,19 @@ function Body() {
         <p>
           The {int(S)} × {d} matrix x₀ now passes through {nBlocks} blocks with separate weights (12 in the paper){' '}
           <Cite kind="paper" ref="p.6 §4.1" />. Inside each block, four attention sublayers run in the order column, feature, neighbor, full, then a
-          SwiGLU feed-forward sublayer, each wrapped in a pre-norm residual <Cite kind="code" ref="rt/model.py:82-86" /> <Cite kind="spec" ref="§7.1" />:
+          SwiGLU feed-forward sublayer. Each is wrapped in a pre-norm residual: the sublayer reads a normalized copy of x, and its output is added back
+          to x itself <Cite kind="code" ref="rt/model.py:82-86" /> <Cite kind="spec" ref="§7.1" />:
         </p>
         <MathBlock tex={BLOCK_TEX} label={<Cite kind="code" ref="rt/model.py:82-86" />} />
         <p>
-          An attention sublayer projects the normalized rows to queries, keys and values with three {d} × {d} matrices, splits them into {H} heads of{' '}
-          {dh} dimensions, scores every query against every key, masks the forbidden pairs to −∞, takes a softmax per row, averages the values with those
-          weights, and projects the concatenated heads back with W<sub>o</sub> <Cite kind="code" ref="rt/model.py:20-47" /> <Cite kind="spec" ref="§6.1" />.
-          The SwiGLU widens each token to {dFF} twice, gates one copy with the other and projects back <Cite kind="code" ref="rt/model.py:50-59" />. None
-          of these layers has a bias. The player below walks every operation of every block, {nBlocks * 32} steps in all; the sublayer grid jumps
-          straight to one.
+          An attention sublayer projects the normalized rows to queries, keys and values with three {d} × {d} matrices and splits them into {H} heads
+          of {dh} dimensions. Each head scores every query against every key, sets the forbidden pairs to −∞, takes a softmax per row and averages the
+          values with those weights; W<sub>o</sub> then projects the concatenated heads back <Cite kind="code" ref="rt/model.py:20-47" />{' '}
+          <Cite kind="spec" ref="§6.1" />. The SwiGLU widens each token to {dFF} twice, gates one copy with the other and projects back{' '}
+          <Cite kind="code" ref="rt/model.py:50-59" />. None of these layers has a bias. The player below steps through every operation of every
+          block, {nBlocks * 32} steps in all, and the sublayer grid jumps straight to any one of them.
         </p>
         <BlockStage />
-        <Callout
-          variant="paper-vs-code"
-          paper={<>Algorithm 2 writes X ← X + Norm(MHA(X; M)), a norm after the sublayer (p.26).</>}
-          code={<>Pre-norm, x + MHA(RMSNorm(x)), as in LLaMA (model.py:84-85).</>}
-          verdict={
-            <>
-              The site follows the code <Cite kind="spec" ref="§10 #1" />.
-            </>
-          }
-        />
         <CodeRef title="One block: four masked attentions, then the SwiGLU" file="rt/model.py" lines="62-86" code={MODEL_BLOCK_62_86} highlightLines={[83, 84, 85]} />
         <CodeRef title="Masked multi-head attention" file="rt/model.py" lines="20-47" code={MODEL_MASKED_ATTENTION_20_47} />
         <p>
@@ -319,8 +309,8 @@ function Body() {
             </>
           ) : (
             <>
-              For this task the answer is a z-score; multiplied by the column’s standard deviation and shifted by its mean, the statistics it was
-              z-scored with, it is a value in the column’s units <Cite kind="spec" ref="§8.4" />. The paper’s metric, R², is computed on the z-scores{' '}
+              For this task the answer is a z-score. Multiply it by the standard deviation the column was z-scored with and add the mean, and you get a
+              value in the column’s units <Cite kind="spec" ref="§8.4" />. The paper’s metric, R², is computed on the z-scores directly{' '}
               <Cite kind="code" ref="rt/main.py:328-337" />.
             </>
           )}{' '}
@@ -346,21 +336,20 @@ function Body() {
       {/* ───────────────────────────────────────────────────────────── 8 */}
       <Section id="scale" title="The same pass at the paper’s size">
         <p>
-          Every operation on this page is the paper-era code’s; only the sizes differ. At the paper’s scale the context has {PAPER_L} cells gathered
-          with w = {PAPER_W}, the matrices are {PAPER_L} × {PAPER_CONFIG.dModel}, the heads are {PAPER_CONFIG.nHeads} of{' '}
-          {PAPER_CONFIG.dModel / PAPER_CONFIG.nHeads}, the SwiGLU is {PAPER_CONFIG.dFF} wide and there are {PAPER_CONFIG.nBlocks} blocks:{' '}
-          {int(paramCount(PAPER_CONFIG))} weights against this model’s {int(miniParams)} <Cite kind="spec" ref="§7.3" />. The map at the top of the page
-          switches its shapes between the two.
+          At the paper’s scale the context has {PAPER_L} cells gathered with w = {PAPER_W}, the matrices are {PAPER_L} × {PAPER_CONFIG.dModel}, the
+          heads are {PAPER_CONFIG.nHeads} of {PAPER_CONFIG.dModel / PAPER_CONFIG.nHeads}, the SwiGLU is {PAPER_CONFIG.dFF} wide and there are{' '}
+          {PAPER_CONFIG.nBlocks} blocks: {int(paramCount(PAPER_CONFIG))} weights against this model’s {int(miniParams)}{' '}
+          <Cite kind="spec" ref="§7.3" />. The map at the top of the page switches its shapes between the two.
         </p>
         <ScaleNote
           paper={`L = ${PAPER_L}, d = ${PAPER_CONFIG.dModel}, ${PAPER_CONFIG.nHeads} heads, ${PAPER_CONFIG.nBlocks} blocks`}
           ours={`L = ${ctx.params.L}, d = ${d}, ${H} heads, ${nBlocks} blocks`}
         >
-          The paper runs in bfloat16 and this site in float32; the RMSNorm ε is 2⁻⁷ in both <Cite kind="spec" ref="§7.2" />.
+          Every operation on this page is the paper-era code’s; only the sizes change.
         </ScaleNote>
         <p>
-          The numbers here come from the site’s TypeScript forward pass. It matches a PyTorch port, and that port matches the official{' '}
-          <code>model.py</code> class loaded with the same weights; <Link to="/about">chapter 17</Link> shows those checks.
+          The numbers on this page come from the site’s TypeScript forward pass, which is checked against the official <code>model.py</code> run on the
+          same weights (<Link to="/about">chapter 17</Link>).
         </p>
       </Section>
 

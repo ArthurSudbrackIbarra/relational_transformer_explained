@@ -90,15 +90,6 @@ export function SemTypeFigure({ data }: { data: ChapterData }) {
             </div>
           </li>
         ))}
-        <li className="!m-0 grid gap-x-3 gap-y-1 py-3 text-ink-2 md:grid-cols-[150px_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1.4fr)]">
-          <div className="text-[15.5px] font-semibold">any other dtype</div>
-          <div className="font-mono text-[15px]">
-            e.g. Int16, UInt64, Date, List
-            <div className="font-mono text-[14px] text-muted">pre.rs:606-611</div>
-          </div>
-          <div className="font-mono text-[15px]">panic!()</div>
-          <div className="text-[15px]">pre.rs stops on the first non-null value of such a column</div>
-        </li>
       </ul>
     </div>
   );

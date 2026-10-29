@@ -150,9 +150,9 @@ export function BlockStage() {
       }
       caption={
         <>
-          Every matrix is the live forward pass of the mini model on this context, one row per token; the followed token’s row is outlined in
-          accent. Hover or focus any entry to see the numbers it is computed from, and click a token row to follow that token. Signed values are red
-          (positive) and blue (negative) around a gray zero, each matrix on its own scale; attention weights use the blue scale from 0.
+          Every matrix comes from the live forward pass of the mini model on this context, one row per token; the followed token’s row is
+          outlined in accent. Hover or focus any entry to see the numbers it is computed from, and click a token row to follow that token. Signed
+          values are red (positive) and blue (negative) around a gray zero, each matrix on its own scale; attention weights use the blue scale from 0.
         </>
       }
     >
@@ -255,7 +255,8 @@ function SublayerRail({ live, block, sub, onPick }: { live: E2ELive; block: numb
   return (
     <div>
       <div className="mb-1.5 text-[15px] text-ink-2">
-        The {nBlocks * SUBS.length} sublayers in the order they run. Bars: how much each adds to the followed token’s vector (‖Δ‖).
+        The {nBlocks * SUBS.length} sublayers in the order they run. Each bar shows how much that sublayer adds to the followed token’s vector
+        (‖Δ‖).
       </div>
       <ol className="!m-0 grid grid-cols-1 gap-2 !p-0 sm:grid-cols-2 xl:grid-cols-4" style={{ listStyle: 'none' }} aria-label="Blocks and sublayers">
         {Array.from({ length: nBlocks }, (_, b) => (
@@ -459,14 +460,14 @@ function BlockNorm({
       title={<>Normalize every row (RMSNorm)</>}
       cite={
         <>
-          <code>nn.RMSNorm(d)</code>, one of five per block <Cite kind="code" ref="rt/model.py:71-73" />; ε = 2⁻⁷ as in the paper’s environment{' '}
-          <Cite kind="spec" ref="§7.2" />. Pre-norm: <Cite kind="code" ref={sub === 'ffn' ? 'rt/model.py:85' : 'rt/model.py:84'} />.
+          <code>nn.RMSNorm(d)</code>, one of five per block <Cite kind="code" ref="rt/model.py:71-73" />, applied before the sublayer{' '}
+          <Cite kind="code" ref={sub === 'ffn' ? 'rt/model.py:85' : 'rt/model.py:84'} />.
         </>
       }
     >
       <p className="!mb-0">
-        Pre-norm: the normalized copy h feeds the {sub === 'ffn' ? 'feed-forward network' : 'attention'}, while the residual add later uses the
-        un-normalized x. Every sublayer has its own gain γ.
+        This is pre-norm: the normalized copy h feeds the {sub === 'ffn' ? 'feed-forward network' : 'attention'}, while the residual add later uses
+        the un-normalized x. Every sublayer has its own gain γ.
       </p>
     </NormView>
   );
@@ -576,7 +577,7 @@ function ScoresOp({ live, cap, head, hover, setHover, width }: AttnProps) {
           tex={`S_{qk} = Q_{q}\\cdot K_{k} \\,/\\, \\sqrt{${dh}}`}
           cite={
             <>
-              <code>flex_attention</code> with its default scale 1/√E, where E = d<sub>head</sub> = {dh} here and 32 in the paper{' '}
+              <code>flex_attention</code> divides by its default √E, where E = d<sub>head</sub> ({dh} here, 32 in the paper){' '}
               <Cite kind="code" ref="rt/model.py:43" /> <Cite kind="spec" ref="§6.1" />.
             </>
           }
@@ -646,8 +647,7 @@ function MaskOp({ live, cap, layer, head, hover, setHover, width }: AttnProps) {
         >
           <p className="!mb-0">
             The followed token may attend to {plural(allowedN, 'key')} in this layer. Every blocked score becomes −∞, so the softmax gives it weight exactly
-            0. This dense version scores the blocked pairs too and then discards them; the official FlexAttention kernel skips blocks of pairs that are
-            entirely masked, with the same result <Cite kind="spec" ref="§6.1" />.
+            0.
             {layer === 'nbr' &&
               ' A row with no allowed key at all (a cell whose row has no children in the context) gets no weights, and its output is exactly 0.'}
           </p>
@@ -709,15 +709,14 @@ function SoftmaxOp({ live, cap, layer, head, hover, setHover, width }: AttnProps
           tex={[`P_{qk} = \\exp(\\tilde S_{qk} - m_q) \\,/\\, Z_q`, `Z_q = \\textstyle\\sum_{j} \\exp(\\tilde S_{qj} - m_q)`, `m_q = \\max_{j} \\tilde S_{qj}`]}
           cite={
             <>
-              The masked softmax inside <code>flex_attention</code> <Cite kind="code" ref="rt/model.py:43" />; a fully masked row outputs 0, not NaN{' '}
-              <Cite kind="spec" ref="§6.1" />.
+              The masked softmax inside <code>flex_attention</code> <Cite kind="code" ref="rt/model.py:43" />.
             </>
           }
         >
           <p className="!mb-0">
             Each row becomes weights that sum to 1 over its allowed keys{layer === 'nbr' ? '; a row with no allowed key stays all zero' : ''}.
-            Subtracting the row maximum m first changes nothing in the result; it only keeps the exponentials small. The followed token’s largest
-            weights in head {head + 1}:
+            Subtracting the row maximum m first leaves the result unchanged and keeps the exponentials small. The followed token’s largest weights in
+            head {head + 1}:
           </p>
           {top.length ? (
             <ol className="!mt-2 !mb-0 grid grid-cols-1 gap-1 !pl-0" style={{ listStyle: 'none' }}>
@@ -991,8 +990,8 @@ function GateOp({ live, cap, hover, setHover, width }: FfnProps) {
           }
         >
           <p className="!mb-0">
-            Entry by entry, SiLU passes large positive values of a almost unchanged and pushes negative ones toward 0; the result then scales the
-            matching entry of b. This is the only multiplicative gate in the model <Cite kind="spec" ref="§7.1" />.
+            Entry by entry, SiLU passes large positive values of a almost unchanged and pushes negative ones toward 0. The result then multiplies
+            the matching entry of b, so SiLU(a) controls how much of each entry of b gets through.
           </p>
           <Readout>
             {cell ? (

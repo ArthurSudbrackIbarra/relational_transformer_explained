@@ -21,7 +21,7 @@ type Vis = 'earlier' | 'same' | 'later';
 // up to the search and L (Chapter 6).
 const VIS_TEXT: Record<Vis, string> = {
   earlier: 'earlier than the seed: passes the time filter',
-  same: 'same timestamp as the seed: passes the time filter too (fly.rs:422 skips only later rows)',
+  same: 'same timestamp as the seed: passes the time filter too, since only later rows are skipped',
   later: 'later than the seed: skipped by the time filter',
 };
 const VIS_SHORT: Record<Vis, string> = { earlier: 'passes', same: 'passes (same t)', later: 'skipped' };
@@ -74,7 +74,7 @@ export function SplitsTimeline({ db, task, defaultSeedT }: { db: RawDatabase; ta
   return (
     <ChartFrame
       title={`${task.name}: one table, three splits`}
-      subtitle="Bars count the task rows at each prediction timestamp. Color shows which of them a seed at t may see under the time filter (fly.rs:421-424); whether they then land in the context is up to the search (Chapter 6)."
+      subtitle="Bars count the task rows at each prediction timestamp. The color says whether those rows pass the time filter for a seed at t."
       table={table}
     >
       <div className="mb-3 flex flex-wrap items-end gap-x-4 gap-y-2">

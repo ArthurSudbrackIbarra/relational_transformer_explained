@@ -81,7 +81,7 @@ export function RunCommands() {
         source="this site’s commands"
         language="bash"
         code={lines.join('\n')}
-        note={<>Needs Node and npm (the site was built with Node 24). The dev server prints a local URL; open it and pick a chapter.</>}
+        note={<>You need Node and npm (the site was built with Node 24). The dev server prints a local URL: open it and pick a chapter.</>}
       />
       <SiteCode
         title="Rebuild every file in public/data: embeddings, training, verification"
@@ -92,8 +92,8 @@ export function RunCommands() {
         code={readme ? (block?.code ?? '# "Reproduce everything" block not found in python/README.md') : null}
         note={
           <>
-            The steps of the offline half, in order, read from the README. They need the Python environment it describes (PyTorch and
-            sentence-transformers on CPU); the README also lists how long each step took.
+            The offline half, step by step, as the README lists it. The steps need the Python environment the README describes (PyTorch and
+            sentence-transformers on CPU), and the README also says how long each one took.
           </>
         }
       />

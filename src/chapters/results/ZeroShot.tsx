@@ -64,7 +64,7 @@ export function ZeroShotMeans({ metric }: { metric: Metric }) {
   if (metric === 'reg') {
     // Table 16 prints "−" for RelLLM: no regression numbers.
     const yes = groups.find((g) => g.label === 'Yes');
-    yes?.items.unshift({ method: 'relllmYes', value: null, note: 'Table 16 prints “−” for RelLLM: no regression result.' });
+    yes?.items.unshift({ method: 'relllmYes', value: null, note: 'RelLLM has no regression result (Table 16).' });
   }
   return (
     <Figure
@@ -175,7 +175,7 @@ export function ZeroShotTasks({ metric }: { metric: Metric }) {
       ]}
       markMax
       caption={
-        <>{metric === 'clf' ? TABLE1.caption : TABLE2.caption} The best entry of each row is underlined (computed here; the paper uses bold).</>
+        <>{metric === 'clf' ? TABLE1.caption : TABLE2.caption} The best entry in each row is underlined.</>
       }
     />
   );
@@ -212,8 +212,8 @@ export function ZeroShotTasks({ metric }: { metric: Metric }) {
       caption={
         metric === 'clf' ? (
           <>
-            Each row is one RelBench task; the gray bar spans the compared methods. The right column prints {METHODS[preset.focus]?.label}. Off-scale
-            values would show as a chevron at the left edge. Switch to the table for the paper’s full Table 1.
+            Each row is one RelBench task; the gray bar spans the compared methods. The right column prints {METHODS[preset.focus]?.label}. Switch
+            to the table for the paper’s full Table 1.
           </>
         ) : (
           <>
@@ -264,12 +264,12 @@ export function SupervisedRatio() {
   return (
     <Figure
       wide
-      title={<TitleWithBadge title="“93% of fully supervised AUROC”, precisely" kind="paper" badge="p.1-2, Tables 1 and 10" />}
+      title={<TitleWithBadge title="What “93% of fully supervised AUROC” compares" kind="paper" badge="p.1-2, Tables 1 and 10" />}
       caption={
         <>
-          The denominator is the supervised mean AUROC of fine-tuned, pretrained RT, {f1(sup)} <Cite kind="paper" ref="p.21 Table 10" />. Each ratio
-          is computed here from the printed means and matches the percentage the paper states <Cite kind="paper" ref="p.2 §1" />. The abstract’s “93%”
-          is the continued-pretraining number; on unseen databases it is 90.3% <Cite kind="spec" ref="§10 #26" />.
+          Each ratio divides a zero-shot mean from Table 1 by {f1(sup)}, the mean AUROC of pretrained RT after supervised fine-tuning on the full
+          training set <Cite kind="paper" ref="p.21 Table 10" />. The abstract’s “93%” is the continued-pretraining setting. On a database RT has
+          never seen, the ratio is 90.3% <Cite kind="paper" ref="p.2 §1" />.
         </>
       }
     >

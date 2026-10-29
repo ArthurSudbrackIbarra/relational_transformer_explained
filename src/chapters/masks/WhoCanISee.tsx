@@ -522,7 +522,7 @@ function LayerReading({
     case 'full':
       return (
         <p>
-          <strong>Full.</strong> Every non-padding token: {keys} keys. No relational restriction at all.
+          <strong>Full.</strong> The query reads every non-padding token, {keys} keys in all, with no relational restriction.
         </p>
       );
   }

@@ -136,19 +136,12 @@ const REFS: RefItem[] = [
     why: 'The source of RT’s gated SiLU (SwiGLU) feed-forward layer (paper ref. [38]).',
   },
   {
-    key: 'MiniLMv2',
-    authors: 'W. Wang, H. Bao, S. Huang, L. Dong, F. Wei',
-    title: 'MiniLMv2: Multi-Head Self-Attention Relation Distillation for Compressing Pretrained Transformers',
-    venue: 'Findings of ACL-IJCNLP 2021',
-    why: 'Named by the paper as its text encoder (ref. [41]); the code actually loads all-MiniLM-L12-v2 (spec §10 #16).',
-  },
-  {
     key: 'all-MiniLM-L12-v2',
     authors: 'sentence-transformers',
     title: 'all-MiniLM-L12-v2 model card',
     venue: 'Hugging Face',
     url: 'https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2',
-    why: 'The frozen 384-d encoder the code uses for column phrases, table names and text values.',
+    why: 'The frozen 384-dimensional text encoder that embeds column phrases, table names and text values.',
   },
   {
     key: 'Sentence-BERT',

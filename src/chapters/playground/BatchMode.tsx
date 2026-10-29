@@ -19,7 +19,7 @@ import { NO_TOKEN_ABLATION, tokenAblationKey, type TokenAblation } from './ablat
 import { JobProgress } from './bits';
 import { usePlayLive } from './context';
 import { useJob } from './jobs';
-import { HEADLINE, LAYER_ABLATION, paperMetric, paperNum, TABLE4, type ContextAblationRow } from './paper';
+import { LAYER_ABLATION, paperMetric, paperNum, TABLE4, type ContextAblationRow } from './paper';
 import { runAblationTable, runBatch, type BatchResult, type TableResult } from './sweeps';
 import { oid } from './usePlayground';
 
@@ -169,7 +169,7 @@ function AblationTable() {
     {
       id: 'context',
       title: 'Context ablations (Table 4)',
-      how: 'Paper and here: applied to the sampled context at inference (p.22 App. G).',
+      how: 'Here and in the paper: a change to the sampled context at inference.',
     },
     {
       id: 'layers',
@@ -277,10 +277,9 @@ function AblationTable() {
         </table>
       </div>
       <p className="!mb-0 mt-3 text-[14.5px] leading-snug text-muted">
-        Bars share one scale in {m.name} points; blue is lower, red is higher. The paper’s “none” is the arXiv v1 run ({paperNum(TABLE4.none.zsClf)} /{' '}
-        {paperNum(TABLE4.none.zsReg)}), not the headline {paperNum(HEADLINE.zsClf)} / {paperNum(HEADLINE.zsReg)} of Tables 1 and 2 (spec §10 #25).
-        Its means cover {m.tasks} and a {fmtParams(paramCount(PAPER_CONFIG))}-parameter model; ours one task of a toy database and a{' '}
-        {baseAssets.weights ? fmtParams(paramCount(baseAssets.weights.config)) : 'small'}-parameter model. Compare directions, not sizes.
+        Bars share one scale in {m.name} points; blue is lower, red is higher. The paper’s means cover {m.tasks} and a{' '}
+        {fmtParams(paramCount(PAPER_CONFIG))}-parameter model. Ours cover one task of a toy database and a{' '}
+        {baseAssets.weights ? fmtParams(paramCount(baseAssets.weights.config)) : 'small'}-parameter model, so compare directions, not sizes.
         {r ? ` One forward pass took ${r.msPerPass.toFixed(0)} ms in your browser.` : ''}
       </p>
     </div>

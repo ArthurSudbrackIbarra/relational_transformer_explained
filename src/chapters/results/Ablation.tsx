@@ -326,7 +326,7 @@ function Dumbbells({
       ]}
       caption={
         <>
-          {spec.table.caption} Shading (ours, like the paper’s): difference from the {spec.refName} column of the same block. Source: {src.label}.
+          {spec.table.caption} Shading, as in the paper, marks the difference from the {spec.refName} column of the same block. Source: {src.label}.
         </>
       }
     />

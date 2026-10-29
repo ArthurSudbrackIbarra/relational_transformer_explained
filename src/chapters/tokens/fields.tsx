@@ -129,7 +129,7 @@ export const FIELDS: FieldInfo[] = [
     key: 'text_values',
     shape: '[B, S, 384] bf16',
     readers: ['embed'],
-    what: 'MiniLM embedding of a text cell’s string; other types carry the embedding of text[0].',
+    what: 'MiniLM embedding of a text cell’s string. Other types carry a filler embedding that is gated out.',
     readAt: ['rt/model.py:216-220'],
   },
   {
@@ -153,7 +153,7 @@ export const FIELDS: FieldInfo[] = [
     what: 'True only for the seed row’s target cell: its value is hidden and it is where the loss is taken.',
     readAt: ['rt/model.py:216-224', 'rt/model.py:236-241'],
   },
-  { key: 'is_targets', shape: '[B, S] bool', readers: ['eval'], what: 'Same as masks in the paper-era sampler.', readAt: ['rt/main.py:283-288'] },
+  { key: 'is_targets', shape: '[B, S] bool', readers: ['eval'], what: 'Same values as masks. Evaluation reads the prediction and the label here.', readAt: ['rt/main.py:283-288'] },
   {
     key: 'is_padding',
     shape: '[B, S] bool',

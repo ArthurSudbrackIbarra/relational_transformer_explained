@@ -31,13 +31,12 @@ export function MiniZeroShot() {
   return (
     <Figure
       wide
-      title={<TitleWithBadge title="For scale: our miniature on ShopDB" kind="site" badge="results.json" />}
+      title={<TitleWithBadge title="For scale: the miniature on ShopDB" kind="site" badge="results.json" />}
       caption={
         <>
           This site’s {params?.ours ?? ''}-parameter model, pretrained leave-one-database-out on three synthetic databases and evaluated zero-shot on
-          ShopDB, with the checkpoint chosen on ShopDB’s validation split as in the paper <Cite kind="spec" ref="§9.1" />. One task each, test sets of
-          a few dozen seeds: these numbers say the pipeline works, not how RT compares with anything. Chapter <Link to="/training">13</Link> shows how
-          they were obtained.
+          ShopDB <Cite kind="spec" ref="§9.1" />. With one task per metric and test sets of a few dozen seeds, these numbers show that the pipeline
+          works; they say nothing about how RT compares with other methods. <Link to="/training">Chapter 14</Link> shows how they were obtained.
         </>
       }
     >

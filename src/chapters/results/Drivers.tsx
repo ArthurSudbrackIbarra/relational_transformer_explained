@@ -117,8 +117,8 @@ export function Drivers() {
         'feature attention, both in the same table and in parent tables, with the help of Relational Attention to generalize to new entity types',
       plain: (
         <>
-          <LayerLabel layer="feat" /> attention mixes a row’s own cells with its parents’ cells, the only mechanism that groups cells into rows{' '}
-          <Cite kind="paper" ref="p.19 App. E" />.
+          <LayerLabel layer="feat" /> attention mixes a row’s own cells with its parents’ cells. It is the only mechanism that groups cells into
+          rows <Cite kind="paper" ref="p.19 App. E" />.
         </>
       ),
       evidence: [
@@ -134,7 +134,7 @@ export function Drivers() {
         <>
           Every token carries the MiniLM embedding of “&lt;column&gt; of &lt;table&gt;”, and “wrong names lead to consistent degradation”{' '}
           <Cite kind="paper" ref="p.9 §5.1" />. Exact name overlap between RelBench databases is at most {(MAX_JACCARD * 100).toFixed(1)}% (Jaccard),
-          so this is semantic similarity, not shared strings <Cite kind="paper" ref="p.17 App. C.2" />.
+          so what transfers is similar meaning rather than shared strings <Cite kind="paper" ref="p.17 App. C.2" />.
         </>
       ),
       evidence: [
@@ -200,9 +200,8 @@ export function Drivers() {
         ))}
       </ol>
       <p className="mx-auto mt-3 max-w-[var(--prose-max)] text-[16px] leading-snug text-ink-2">
-        Bars share one scale, −30 to +5 points; red is a drop. All five ablations are means over RelBench tasks, from tables that date from the
-        paper’s first version (see “Provenance” below). The order is the authors’ reading of their ablations, not a sort of these numbers: for
-        classification, several of them move the mean by less than a point.
+        Bars share one scale, −30 to +5 points; red is a drop. Each bar is a mean over RelBench tasks. The ranking is the authors’ reading of their
+        ablations and does not follow the size of these bars: for classification, several ablations move the mean by less than a point.
       </p>
     </div>
   );

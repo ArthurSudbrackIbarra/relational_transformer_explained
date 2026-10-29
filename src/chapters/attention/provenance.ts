@@ -69,13 +69,9 @@ export function useProvenance(live: AttnLive): Provenance | null {
 
 const dbList = (p: Provenance, small = false) => `${countWord(p.pretrainTitles.length)} ${small ? 'small ' : ''}synthetic databases (${listWords(p.pretrainTitles)})`;
 
-/** Whether the checkpoint was picked on the current database's validation split (meta.selection names it). */
-const selectedOnDb = (p: Provenance) => !!p.selection && p.selection.startsWith('best ') && p.selection.includes(p.dbTitle);
-
 /**
  * One sentence: what the weights were trained on, and whether the maps are zero-shot. "Zero-shot"
- * means no gradient update on the target DB; as in the paper, the target task's validation split may
- * still pick the checkpoint (spec §9.1, §9.4).
+ * means no gradient update on the target DB (spec §9.1).
  */
 export function provenanceSentence(p: Provenance): string {
   const dbs = dbList(p);
@@ -83,16 +79,11 @@ export function provenanceSentence(p: Provenance): string {
     case 'init':
       return 'These weights are untrained (a random initialization), so the patterns carry no learned meaning.';
     case 'zero-shot':
-      return (
-        `It was pretrained on ${dbs}; ${p.dbTitle} was held out, so no gradient update ever used it and every map here is a zero-shot attention pattern.` +
-        (selectedOnDb(p)
-          ? ` As in the paper, ${p.dbTitle}’s validation split was used only to choose the checkpoint (the training step with the ${p.selection}; spec §9.4).`
-          : '')
-      );
+      return `The mini model was pretrained on ${dbs}. ${p.dbTitle} was held out, so the model never trained on it, and every map here is a zero-shot attention pattern.`;
     case 'seen':
-      return `It was pretrained on ${dbs}, including ${p.dbTitle}, so these patterns are not zero-shot.`;
+      return `The mini model was pretrained on ${dbs}, including ${p.dbTitle}, so these patterns are not zero-shot.`;
     case 'finetuned':
-      return `It was pretrained on ${dbs} and then fine-tuned on ${p.dbTitle}’s ${p.finetuneTask ?? 'task'} Train split, so these are no longer zero-shot patterns.`;
+      return `The mini model was pretrained on ${dbs} and then fine-tuned on ${p.dbTitle}’s ${p.finetuneTask ?? 'task'} Train split, so these are no longer zero-shot patterns.`;
   }
 }
 

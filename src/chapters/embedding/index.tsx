@@ -31,13 +31,7 @@ import { fmt, int, phraseOf, rowRef, useEmbeddingStable, type EmbeddingStable } 
 import { MaskVectors } from './MaskVectors';
 import { meanSquare, slice } from './math';
 import { RmsNormPlane } from './RmsNormPlane';
-import {
-  DATA_SHAPES_143_152,
-  FLY_PADDING_65_85,
-  FLY_WRITE_VALUES_472_490,
-  MODEL_EMBED_208_224,
-  MODEL_ENCODERS_115_146,
-} from './snippets';
+import { FLY_PADDING_65_85, MODEL_EMBED_208_224, MODEL_ENCODERS_115_146 } from './snippets';
 import { JumpLink } from './nav';
 import { TokenEmbedder } from './TokenEmbedder';
 import { ValueCurve } from './ValueCurve';
@@ -82,9 +76,9 @@ export default function EmbeddingChapter() {
           </>
         }
         learn={[
-          'The exact input embedding of the code, and how it differs from the paper’s shorter formula',
+          'The input embedding exactly as the code computes it, and how it relates to the paper’s shorter formula',
           'How a column phrase and a value become two 64-d vectors, with the real numbers of the checkpoint this page runs',
-          'What RMSNorm does, and why its ε matters for short inputs such as the column projection',
+          'What RMSNorm does, and why its ε shortens small inputs such as the column projection',
           'Why every number column shares one encoder, and what the masked target’s vector still knows',
         ]}
       >
@@ -105,7 +99,7 @@ export default function EmbeddingChapter() {
         <p>
           The previous chapter turned every cell into a <Term id="cell-token">cell token</Term>: a column phrase, a{' '}
           <Term id="sem-type">semantic type</Term>, a stored value and a few integer ids <Cite kind="spec" ref="§5.1" />. The ids only steer the
-          attention masks of the next chapter. Everything the transformer learns about a cell’s content enters through one vector per token, the
+          attention masks of the next chapter. Everything the transformer knows about a cell’s content enters through one vector per token, the
           input embedding <TeX tex="x_i \in \mathbb{R}^d" />, with d = {d} here and 256 in the paper <Cite kind="paper" ref="p.6 §4.1" />.
         </p>
         <p>The code builds it as follows <Cite kind="code" ref="rt/model.py:208-224" /> <Cite kind="spec" ref="§5.2" />:</p>
@@ -116,17 +110,17 @@ export default function EmbeddingChapter() {
           <li>
             The <strong>column term</strong> says where the cell lives. <TeX tex="c_i" /> is the frozen MiniLM embedding of its{' '}
             <Term id="column-phrase">column phrase</Term> “&lt;column&gt; of &lt;table&gt;”, for example “{tgt ? phraseOf(tgt) : 'churn of customer-churn'}”{' '}
-            <Cite kind="spec" ref="§3.6" />. One linear layer <TeX tex="W_{\mathrm{col}}" /> serves every column of every table.
+            <Cite kind="spec" ref="§3.6" />. One linear layer <TeX tex="W_{\mathrm{col}}" /> is shared by every column of every table.
           </li>
           <li>
             The <strong>value term</strong> says what the cell holds. <TeX tex="v_i^{(t)}" /> is the value slot of type t: a single z-score for
-            numbers, datetimes and booleans, and the 384-d MiniLM embedding of the string for text <Cite kind="spec" ref="§5.1" />. The sampler fills
-            all four slots of every cell; the gate keeps the one of the cell’s type <Cite kind="code" ref="rustler/src/fly.rs:472-490" />. Each type
-            has its own linear layer <TeX tex="W_t" /> and its own RMSNorm.
+            numbers, datetimes and booleans, and the 384-d MiniLM embedding of the string for text <Cite kind="spec" ref="§5.1" />. Every cell has
+            all four slots filled, and the gate keeps only the slot of the cell’s own type <Cite kind="code" ref="rustler/src/fly.rs:472-490" />. Each
+            type has its own linear layer <TeX tex="W_t" /> and its own RMSNorm.
           </li>
           <li>
             The <Term id="mask-vector">mask vector</Term> <TeX tex="m_t" /> takes the value term’s place for the masked target. It is a trainable
-            parameter, one per type, and is added as it is, with no norm <Cite kind="code" ref="rt/model.py:221-224" />.
+            parameter, one per type, and is added as is, with no RMSNorm <Cite kind="code" ref="rt/model.py:221-224" />.
           </li>
           <li>
             The square brackets are 0/1 gates. For a real token exactly one of the eight value-side gates is 1. For a{' '}
@@ -135,17 +129,16 @@ export default function EmbeddingChapter() {
           </li>
         </ul>
         <p>
-          Here are those gates for all {int(ctx.tokens.length)} positions of the live context. Every real token takes the column term and exactly
-          one of the eight value-side gates: most take a value encoder, and exactly one, the target, takes a mask vector{' '}
-          <Cite kind="spec" ref="§4.10" />.
+          The figure below shows which gate fires at each of the {int(ctx.tokens.length)} positions of the live context. Most real tokens take a
+          value encoder; only one, the target, takes a mask vector <Cite kind="spec" ref="§4.10" />.
         </p>
         <GateGrid live={live} />
         <SymbolTable config={weights?.config ?? MINI_CONFIG} />
         <p>
-          The paper describes the same idea in one line <Cite kind="paper" ref="p.5 §3.1" />. There <TeX tex="\mathbf{r}" /> is the normalized
-          value (for text, its frozen MiniLM embedding <TeX tex="\mathbf{r} = \mathcal{E}^{\text{text}}(v)" />
-          <Cite kind="paper" ref="p.5 §3.1" />) and <TeX tex="\mathcal{E}^{\text{schema}}(c,t)" /> is the text embedding of the phrase built from
-          column c and table t <Cite kind="paper" ref="p.5 §3.1" />. Note that this t is the table, not the type t of the code formula above.
+          The paper writes the same idea in one line, shown below. In it, <TeX tex="\mathbf{r}" /> is the normalized value (for text, its frozen
+          MiniLM embedding <TeX tex="\mathbf{r} = \mathcal{E}^{\text{text}}(v)" />) and <TeX tex="\mathcal{E}^{\text{schema}}(c,t)" /> is the text
+          embedding of the phrase built from column c and table t <Cite kind="paper" ref="p.5 §3.1" />. So in the paper’s formula t is the table,
+          while in the code formula above t is the type.
         </p>
         <MathBlock
           tex={PAPER_FORMULA}
@@ -175,7 +168,7 @@ export default function EmbeddingChapter() {
               <Cite kind="code" ref="rt/model.py:221-224" />.
             </span>
           }
-          verdict="Same structure; the code adds a bias and an RMSNorm to each projected term (the mask vector stays raw). This site computes the code’s version (spec §10 #2)."
+          verdict="Same structure. The code adds a bias and an RMSNorm to each projected term and leaves the mask vector raw. This site computes the code’s version."
         />
         <CodeRef
           title="The encoders, the five input norms and the four mask vectors"
@@ -194,8 +187,7 @@ export default function EmbeddingChapter() {
           note="Lines 213, 219 and 223 are the gates: boolean masks broadcast over the d dimensions with [..., None]."
         />
         <ScaleNote paper="d = 256" ours={`d = ${d}`}>
-          The 384-d MiniLM inputs have the same width and come from the same encoder in both models; only d changes. The paper stores and computes
-          them in bfloat16, this site in float32, with ε fixed at the paper’s 2⁻⁷ <Cite kind="spec" ref="§10 #20" />.
+          The 384-d MiniLM inputs come from the same frozen encoder in both models; only d changes.
         </ScaleNote>
       </Section>
 
@@ -208,39 +200,21 @@ export default function EmbeddingChapter() {
         </p>
         <p>
           Stages ③ and ⑥ are RMSNorms. An RMSNorm divides a vector by its root mean square, plus a small constant ε inside the square root, and
-          multiplies it by a learned gain γ <Cite kind="spec" ref="§7.2" />. <JumpLink to="rmsnorm">Step 3</JumpLink> looks at it closely; for now,
-          the panel next to each norm shows the numbers it uses.
+          multiplies it by a learned gain γ <Cite kind="spec" ref="§7.2" />. <JumpLink to="rmsnorm">Step 3</JumpLink> covers it in detail; for now,
+          the panel beside each norm lists the numbers it uses.
         </p>
         <p>
-          The figure opens on the token you last inspected, the masked target by default. It plays once when it scrolls into view; replay it or try
-          the presets. A few things to notice. Two cells of the same column get the same column term. A text value goes through MiniLM on its own,
-          without its column name <Cite kind="spec" ref="§3.6" />. For the masked target, stages ⑤ and ⑥ do nothing: its mask vector goes straight
-          into the sum.
+          The figure opens on the token you last inspected (the masked target by default) and plays once when it scrolls into view. Replay it, or
+          switch between the presets and compare: two cells of the same column get the same column term, and a text value goes through MiniLM on
+          its own, without its column name <Cite kind="spec" ref="§3.6" />. For the masked target, stages ⑤ and ⑥ are skipped and its mask vector
+          goes straight into the sum.
         </p>
         <TokenEmbedder live={live} />
         <p>
-          The code does not branch on the type. It evaluates all four value branches at every position, then multiplies each by its gate{' '}
-          <Cite kind="code" ref="rt/model.py:216-224" />. Every slot holds something, because the sampler writes all of them{' '}
-          <Cite kind="code" ref="rustler/src/fly.rs:482-490" />. Every slot must also hold a finite number, because the branches are evaluated before
-          the multiplication by the gate, and NaN·0 = NaN <Cite kind="spec" ref="§5.3" />. A non-text cell’s <code>text_values</code> slot, for
-          example, holds the embedding of text index 0, a table name, which the gate then zeroes <Cite kind="spec" ref="§3.6" />. Our engine skips
-          the branches whose gate is 0, which gives the same sum for any finite value <Cite kind="spec" ref="§5.3" />.
+          The code has no if-statement on the type. It runs all four value encoders at every position and multiplies each result by its gate, so
+          only the value term of the cell’s own type reaches the sum, and for the masked target none does{' '}
+          <Cite kind="code" ref="rt/model.py:216-224" />.
         </p>
-        <CodeRef
-          title="The sampler fills every slot of a cell token"
-          file="rustler/src/fly.rs"
-          lines="472-490"
-          code={FLY_WRITE_VALUES_472_490}
-          highlightLines={[472, 482, 485, 486, 488, 490]}
-          note="col_name_values gets the phrase embedding; all three scalar slots and the text slot are written for every cell, whatever its type."
-        />
-        <CodeRef
-          title="Batch shapes: scalars become [B, S, 1], embeddings [B, S, 384]"
-          file="rt/data.py"
-          lines="143-152"
-          code={DATA_SHAPES_143_152}
-          note="The trailing 1 is why a scalar can go through nn.Linear(1, d)."
-        />
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 3 */}
@@ -253,17 +227,17 @@ export default function EmbeddingChapter() {
         <MathBlock tex={RMSNORM_FORMULA} className="relative hidden overflow-hidden text-[18px] sm:block" label={<Cite kind="spec" ref="§7.2" />} />
         <MathBlock tex={RMSNORM_FORMULA_NARROW} className="relative overflow-hidden text-[17.5px] sm:hidden" label={<Cite kind="spec" ref="§7.2" />} />
         <p>
-          There is no mean subtraction and no bias: only a division and a per-dimension gain. With γ = 1, which is how every gain starts{' '}
-          <Cite kind="spec" ref="§7.4" />, the output keeps the input’s direction and has a root mean square close to 1, unless the input is tiny.
+          RMSNorm does not subtract the mean and has no bias. With γ = 1, which is how every gain starts <Cite kind="spec" ref="§7.4" />, the output
+          keeps the input’s direction and has a root mean square close to 1, unless the input is tiny.
         </p>
         <p>
-          The small constant ε keeps the division safe. The code calls <code>nn.RMSNorm(d_model)</code> without an ε. In the paper’s pinned
-          environment (torch 2.6 with bfloat16 tensors) PyTorch then uses the bfloat16 machine epsilon, <TeX tex="2^{-7}" />{' '}
-          <Cite kind="spec" ref="§7.2" />. This site uses the same value.
+          The small constant ε keeps the division safe when the input is close to zero. In RT, ε = 2⁻⁷ ≈ 0.0078 <Cite kind="spec" ref="§7.2" />,
+          which is large enough to matter when the input itself is short. Drag x into the shaded ε zone of the figure below and the output falls
+          short of the circle.
         </p>
         <RmsNormPlane presetRms={medianColumnRms(live)} />
         <p>
-          In d dimensions the same thing happens on a sphere. With γ = 1 the output length is{' '}
+          In d dimensions the circle becomes a sphere. With γ = 1 the output length is{' '}
           <TeX tex="\|y\| = \sqrt{d}\cdot r/\sqrt{r^2 + \varepsilon}" />, where r is the input’s root mean square. When <TeX tex="r^2 \gg \varepsilon" />{' '}
           that is <TeX tex="\sqrt{d}" />, {fmt(Math.sqrt(d), 0)} here and 16 in the paper. When <TeX tex="r^2" /> is comparable to ε, the output
           stays shorter, because RMSNorm can scale a vector up by at most <TeX tex="1/\sqrt{\varepsilon} \approx 11.3" />. And{' '}
@@ -271,13 +245,6 @@ export default function EmbeddingChapter() {
         </p>
         <EpsKnee live={live} />
         <EpsFinding live={live} />
-        <Callout variant="warning" title="Reproducing RT needs the old ε">
-          <p>
-            Newer PyTorch versions use the float32 epsilon, about <TeX tex="1.2\times10^{-7}" />, for bfloat16 inputs <Cite kind="spec" ref="§7.2" />.
-            The dashed curve above shows the effect: every input, the short column projections included, would be scaled up to the full length. A
-            faithful re-implementation therefore sets <TeX tex="\varepsilon = 2^{-7}" /> by hand, as this site does.
-          </p>
-        </Callout>
         <p>
           The gains γ are the only parameters of an RMSNorm. The embedding has five of them, one per projection, each with {d} entries{' '}
           <Cite kind="code" ref="rt/model.py:132-140" />.
@@ -295,34 +262,34 @@ export default function EmbeddingChapter() {
         </p>
         <MathBlock className="relative overflow-hidden" tex={String.raw`\mathrm{RMSNorm}_t\!\left(z\,w_t + b_t\right)`} label={<Cite kind="code" ref="rt/model.py:218" />} />
         <p>
-          As z changes, <TeX tex="z\,w_t + b_t" /> moves along a straight line in <TeX tex="\mathbb{R}^d" />. RMSNorm moves every point of that line
-          onto the sphere of radius √d (nearly, because of ε), and γ stretches the result. All values of one type therefore live on a single
+          As z changes, <TeX tex="z\,w_t + b_t" /> moves along a straight line in <TeX tex="\mathbb{R}^d" />. RMSNorm pushes every point of that
+          line onto the sphere of radius √d (nearly, because of ε), and γ stretches the result. All values of one type therefore lie on a single
           one-dimensional curve <Cite kind="spec" ref="§5.2" />.
         </p>
         <p>
-          The encoder belongs to the type, not to the column. {numberColumnsText(live)} all go through <code>enc_dict["number"]</code>{' '}
-          <Cite kind="code" ref="rt/model.py:216-220" />. Two cells with the same z get exactly the same value
+          Encoders belong to types, and every column of a type shares one. {numberColumnsText(live)} all go through{' '}
+          <code>enc_dict["number"]</code> <Cite kind="code" ref="rt/model.py:216-220" />. Two cells with the same z get exactly the same value
           term, whichever column they come from. What tells them apart in x₀ is the column term <Cite kind="spec" ref="§5.2" />.
         </p>
         <ValueCurve live={live} />
         <p>
-          The flat picture loses nothing. <TeX tex="z\,w_t + b_t" /> always lies in the plane spanned by <TeX tex="w_t" /> and <TeX tex="b_t" />;
-          RMSNorm only slides each point along its own ray, and γ is a linear map. So the whole curve lies in one plane, which is why its first two
-          principal directions capture all of it. As z runs from −∞ to +∞, the direction of <TeX tex="z\,w_t + b_t" /> turns from{' '}
-          <TeX tex="-w_t" /> to <TeX tex="+w_t" />: before γ the curve is half of a circle of radius about √d, and γ stretches it into half of an
-          ellipse. All of this follows from the formula alone.
+          Drawing the curve in two dimensions loses nothing. <TeX tex="z\,w_t + b_t" /> always lies in the plane spanned by <TeX tex="w_t" /> and{' '}
+          <TeX tex="b_t" />; RMSNorm only slides each point along its own ray, and γ is a linear map. So the whole curve lies in one plane, and its
+          first two principal directions capture all of it. As z runs from −∞ to +∞, the direction of <TeX tex="z\,w_t + b_t" /> turns from{' '}
+          <TeX tex="-w_t" /> to <TeX tex="+w_t" />. Before γ the curve is half a circle of radius about √d, and γ stretches it into half an ellipse.
         </p>
         <p>
-          Two more consequences follow. First, a z-score is the only thing the value term sees, and a z-score counts standard deviations of its own
-          column <Cite kind="spec" ref="§3.3" />. So z = 0.5 means “half a standard deviation above the mean {sameZExample(live)[0]}” in one column
-          and “half a standard deviation above the mean {sameZExample(live)[1]}” in another; the column term has to carry the difference. Second, for
-          very large |z| the bias becomes negligible next to <TeX tex="z\,w_t" />, so the curve flattens out toward the two points marked × in the
-          figure, as its cosine chart shows: extreme values of a type all look alike.
+          The value term sees only the z-score, and a z-score counts standard deviations of its own column <Cite kind="spec" ref="§3.3" />. So
+          z = 0.5 means “half a standard deviation above the mean {sameZExample(live)[0]}” in one column and “half a standard deviation above the
+          mean {sameZExample(live)[1]}” in another, and the column term has to carry the difference. For very large |z| the bias becomes negligible
+          next to <TeX tex="z\,w_t" />, so the curve flattens out toward the two points marked × in the figure, as its cosine chart shows. Extreme
+          values of one type all look alike.
         </p>
         <p>
-          Text works differently. Its encoder is <code>nn.Linear(384, d)</code> on the string’s MiniLM vector, so text values do not lie on one curve:
-          each distinct string is its own point <Cite kind="code" ref="rt/model.py:118" />. Like the column term, it starts from a unit-length MiniLM
-          vector <Cite kind="spec" ref="§3.6" />. Step 3’s figure shows where the text values of this context land relative to √ε.
+          Text is different. Its encoder is <code>nn.Linear(384, d)</code> applied to the string’s MiniLM vector, so text values do not share one
+          curve; each distinct string is its own point <Cite kind="code" ref="rt/model.py:118" />. Like the column term, it starts from a
+          unit-length MiniLM vector <Cite kind="spec" ref="§3.6" />, and the figure in Step 3 shows where this context’s text values land relative
+          to √ε.
         </p>
       </Section>
 
@@ -334,13 +301,13 @@ export default function EmbeddingChapter() {
           <Cite kind="code" ref="rt/model.py:141-146" />. It skips both the linear layer and the RMSNorm <Cite kind="code" ref="rt/model.py:221-224" />.
         </p>
         <p>
-          So the masked token still knows a lot. Its column term names the column and the table, its mask vector names the type, and its ids tie it to
-          its row and to the entity it is about <Cite kind="spec" ref="§5.3" />. It does not know its value. The attention layers have to fill that in
-          from the rest of the context.
+          The masked token still knows a lot. Its column term names the column and the table, its mask vector names the type, and its ids tie it to
+          its row and to the entity it is about <Cite kind="spec" ref="§5.3" />. What it lacks is its value, and the attention layers have to infer
+          that from the rest of the context.
         </p>
         <MaskVectors live={live} />
         <p>
-          The label is still in the batch. The sampler writes the true value into the target’s slot like any other cell, and only{' '}
+          The label itself is still in the batch. The sampler writes the true value into the target’s slot like any other cell, and only{' '}
           <code>is_targets</code> and <code>masks</code> mark it <Cite kind="code" ref="rustler/src/fly.rs:482-496" />. The gate <TeX tex="\lnot\mathrm{mask}_i" /> keeps it out of
           x₀; the loss reads it later as the training target <Cite kind="spec" ref="§5.3" />.
         </p>
@@ -349,15 +316,14 @@ export default function EmbeddingChapter() {
       {/* ───────────────────────────────────────────────────────────── 6 */}
       <Section id="padding" title="Padding is the zero vector" kicker="Step 6">
         <p>
-          When the sampler runs out of rows before L tokens, the remaining positions are padding. Every field keeps the default it was created with,
-          and <code>is_padding</code> stays true <Cite kind="code" ref="rustler/src/fly.rs:65-85" /> <Cite kind="spec" ref="§4.11" />. Every term of
+          When the sampler runs out of rows before it reaches L tokens, the remaining positions are padding. Every field keeps the default it was
+          created with, and <code>is_padding</code> stays true <Cite kind="code" ref="rustler/src/fly.rs:65-85" /> <Cite kind="spec" ref="§4.11" />. Every term of
           x₀ is multiplied by <TeX tex="\lnot\mathrm{pad}_i" />, so a padding token’s input is exactly zero{' '}
           <Cite kind="code" ref="rt/model.py:213" /> <Cite kind="code" ref="rt/model.py:219" /> <Cite kind="code" ref="rt/model.py:223" />.
         </p>
         <PaddingCheck live={live} />
         <p>
-          It stays zero all the way through. Every attention mask excludes padding, a fully masked attention row outputs 0, the feed-forward network
-          maps 0 to 0, and <TeX tex="\mathrm{RMSNorm}(\vec 0) = \vec 0" /> <Cite kind="spec" ref="§7.2" />.
+          Every attention mask of the next chapter also excludes padding, so a padding token never affects a real one <Cite kind="spec" ref="§6.2" />.
         </p>
         <CodeRef
           title="Every batch slot starts as padding"
@@ -381,8 +347,8 @@ export default function EmbeddingChapter() {
         </ScaleNote>
         <ContextMatrix live={live} />
         <p>
-          The weights that build this matrix are few. Counted from the engine’s list of the parameters created in{' '}
-          <Cite kind="code" ref="rt/model.py:115-146" />, the input embedding has this many in each model.
+          Few weights build this matrix. The input embedding has this many parameters in each model{' '}
+          <Cite kind="code" ref="rt/model.py:115-146" />:
         </p>
         <EmbeddingParamStats />
         <p>
@@ -523,8 +489,8 @@ function q4Explanation(live: EmbeddingStable): ReactNode {
   return (
     <>
       {base} In the checkpoint this page runs, ε is {Math.round(share * 100)}% of the sum for a typical column projection
-      {share > 0.5 ? ', so the column terms sit in this regime' : share > 0.2 ? ', so the column terms are close to this regime' : ', so the column terms are mostly out of it'}{' '}
-      (Step 3). At initialization they sit in it in both models, ours and the paper’s.
+      {share > 0.5 ? ', so the column terms are in this regime' : share > 0.2 ? ', so the column terms are close to this regime' : ', so the column terms are mostly out of it'}{' '}
+      (Step 3). At initialization they are in it in both models, ours and the paper’s.
     </>
   );
 }

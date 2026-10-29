@@ -108,8 +108,8 @@ export function Table4Grid({ narrow }: { narrow: boolean }) {
         </div>
       ))}
       <p className="!m-0 text-[14.5px] leading-snug text-ink-2">
-        Values copied from the paper. Under each value: its change from “none”, drawn on one scale for the whole table (the longest bar is{' '}
-        {f1(maxAbs)} points), so the names row can be read against the two label ablations.
+        Values from the paper. Under each value is its change from “none”, drawn on one scale for the whole table (the longest bar is{' '}
+        {f1(maxAbs)} points), so you can compare the names row with the two label ablations.
       </p>
     </div>
   );
@@ -155,12 +155,12 @@ export function AblationDumbbells() {
   const step = [5, 10, 20, 25, 50].find((s) => ((plotR - plotL) / span) * s >= 44) ?? 50;
   for (let v = lo; v <= hi + 1e-9; v += step) ticks.push(v);
   const unit = metric === 'clf' ? 'AUROC (%)' : 'R² (%)';
-  const all = [...rows.map((r) => ({ name: `${r.db} · ${r.task}`, a: r.a, b: r.b, d: r.d })), { name: 'Mean (as printed)', a: means[0], b: means[1], d: Math.round((means[1] - means[0]) * 10) / 10 }];
+  const all = [...rows.map((r) => ({ name: `${r.db} · ${r.task}`, a: r.a, b: r.b, d: r.d })), { name: 'Mean', a: means[0], b: means[1], d: Math.round((means[1] - means[0]) * 10) / 10 }];
 
   return (
     <ChartFrame
       title={`Per task: names intact vs shuffled, ${setting === 'zs' ? 'zero-shot' : 'fine-tuned'} ${unit}`}
-      subtitle="Paper Table 11 (p.22), sorted by the change. Shuffling hurts most at the top. A ring around a dot means the two values are equal."
+      subtitle="Paper Table 11 (p.22), sorted by the change, so the tasks where shuffling hurts most come first. A ring around a dot means the two values are equal."
       legend={
         <ul className="!m-0 flex !list-none flex-wrap items-center gap-x-5 gap-y-1 !p-0 text-[15px] text-ink-2">
           <li className="!m-0 inline-flex items-center gap-1.5 !p-0">
@@ -177,7 +177,7 @@ export function AblationDumbbells() {
           </li>
         </ul>
       }
-      table={<DataTable columns={['Task', 'none', 'col names', 'change']} rows={all.map((r) => [r.name, f1(r.a), f1(r.b), signed1(r.d)])} caption={`Table 11 ${unit}`} />}
+      table={<DataTable columns={['Task', 'names intact', 'names shuffled', 'change']} rows={all.map((r) => [r.name, f1(r.a), f1(r.b), signed1(r.d)])} caption={`Table 11 ${unit}`} />}
     >
       <div className="mb-3 flex flex-wrap gap-3">
         <Segmented<Metric>
@@ -352,7 +352,7 @@ export function OverlapTables({ catalog }: { catalog: Catalog }) {
         title="RelBench (paper Table 6, p.17)"
         labels={TABLE6.dbs.map((d) => d.replace('rel-', ''))}
         value={(i, j) => TABLE6.m[i][j]}
-        note={(i, j) => `${TABLE6.dbs[i]} vs ${TABLE6.dbs[j]}: Jaccard ${TABLE6.m[i][j].toFixed(3)} (exact column-name matches; the paper gives no counts)`}
+        note={(i, j) => `${TABLE6.dbs[i]} vs ${TABLE6.dbs[j]}: Jaccard ${TABLE6.m[i][j].toFixed(3)} (exact column-name matches)`}
       />
       <OverlapGrid
         title="This site’s toy databases (computed live)"

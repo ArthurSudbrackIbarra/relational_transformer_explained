@@ -435,8 +435,8 @@ export function BfsFigure() {
         </div>
       </div>
       <p className="mx-auto mt-3 max-w-[var(--prose-max)] text-[16px] leading-snug text-ink-2">
-        Every step replays a decision recorded by the engine’s mirror of <span className="font-mono">fly.rs</span>, so the graph, the buckets and the tokens are the
-        real sampler state. Hover anything to find the same row in the other views; click a row in the graph to jump to its visit.
+        Each step replays a decision recorded by the site’s port of <span className="font-mono">fly.rs</span>, so the graph, the buckets and the tokens show the
+        sampler’s real state. Hover over anything to find the same row in the other views, or click a row in the graph to jump to its visit.
       </p>
     </div>
   );

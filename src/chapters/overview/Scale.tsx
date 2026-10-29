@@ -1,14 +1,13 @@
 /**
  * "Paper vs our miniature": what is identical (every operation) and what is not (sizes, data,
- * precision, random numbers, training length, attention kernel). Sizes come from the engine's
- * configs, training facts from results.json.
+ * training length, implementation). Sizes come from the engine's configs, training facts from
+ * results.json.
  */
 import { Check, Minus } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Cite, formatNumber } from '@/components';
+import { Cite } from '@/components';
 import { DEFAULT_L, MINI_CONFIG, PAPER_CONFIG, PAPER_L, paramCount } from '@/engine/model';
 import { int } from './live';
-import { maxCheckpointDiff, useVerification } from '@/chapters/about/data';
 import { useResultsJson } from './Results';
 
 function Item({ icon, children }: { icon: 'same' | 'diff'; children: ReactNode }) {
@@ -36,16 +35,13 @@ export function SameAndDifferent() {
   const { data } = useResultsJson();
   const steps = data?.pretrain?.steps;
   const batch = data?.config?.batch;
-  const { data: ver } = useVerification();
-  // the official FlexAttention class vs this site's dense port, same trained weights, real contexts (chapter 17)
-  const diff = ver ? maxCheckpointDiff(ver) : undefined;
   return (
     <div className="wide my-6 grid gap-4 md:grid-cols-2">
       <div className="card px-5 py-4">
         <div className="mb-2.5 text-[17px] font-semibold text-ink">Identical to the paper-era code</div>
         <ul className="grid gap-2 !p-0" style={{ listStyle: 'none' }}>
           <Item icon="same">
-            Preprocessing: node indexing, the four semantic types, z-scoring <Cite kind="spec" ref="§3" />
+            Preprocessing: the four semantic types and the z-scoring of numbers <Cite kind="spec" ref="§3" />
           </Item>
           <Item icon="same">
             The context sampler, rule for rule: parents first, width bound, temporal filter, stop at L <Cite kind="spec" ref="§4" />
@@ -58,7 +54,8 @@ export function SameAndDifferent() {
             The frozen text encoder, all-MiniLM-L12-v2 with 384-d vectors <Cite kind="spec" ref="§3.6" />
           </Item>
           <Item icon="same">
-            The protocol: leave-one-database-out pretraining, the OneCycle schedule, the best validation checkpoint per target task{' '}
+            The protocol: leave-one-database-out pretraining, the same learning-rate schedule, and for each target task the checkpoint with the best
+            validation score{' '}
             <Cite kind="spec" ref="§9" />
           </Item>
         </ul>
@@ -76,16 +73,8 @@ export function SameAndDifferent() {
             <Cite kind="spec" ref="§9.2" />
           </Item>
           <Item icon="diff">
-            Precision: float32 instead of bfloat16, keeping the paper environment’s RMSNorm ε = 2⁻⁷ <Cite kind="spec" ref="§7.2" />
-          </Item>
-          <Item icon="diff">
-            Random numbers: a seeded xoshiro128** generator instead of Rust’s ChaCha12, so contexts follow the same distribution but are not
-            bit-identical <Cite kind="spec" ref="§4.2" />
-          </Item>
-          <Item icon="diff">
-            Attention kernel: plain masked attention instead of FlexAttention, the same function
-            {diff !== undefined ? ` (the official class and this site’s port differ by at most ${formatNumber(diff, 2)} on a forward pass)` : ''};
-            chapter 17 shows the parity checks
+            Implementation: the sampler and the model run in your browser, ported to TypeScript from the official Rust and PyTorch code and checked
+            against it in chapter 17
           </Item>
         </ul>
       </div>

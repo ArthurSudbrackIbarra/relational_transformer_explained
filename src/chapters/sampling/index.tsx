@@ -111,17 +111,17 @@ function WhySection() {
       </p>
       <p>
         Which L cells? The authors follow “the intuition that most relevant information lies within a few hops of the seed row when following F→P and P→F links,
-        and that lower hops are more informative than higher hops” <Cite kind="paper" ref="p.15 App. A" />. A plain search cannot keep all of them: the chart
-        counts the cells within k hops of the seed
+        and that lower hops are more informative than higher hops” <Cite kind="paper" ref="p.15 App. A" />. A plain search over those hops quickly collects
+        more than L cells. The chart counts the cells within k hops of the seed
         {firstOver > 0 ? `, and already at ${firstOver} hop${firstOver > 1 ? 's' : ''} there are more than L = ${L}` : ''}.
       </p>
       <WhySampleFigure />
       <Callout variant="insight" title="Why parents and children are treated differently">
         <p>
-          A row has at most one parent per foreign-key column, but any number of children. The paper’s reasoning: “each parent row typically contains important
-          features (e.g., a transaction row links to user and product)”, while “informative signals from P→F links often arise via aggregation, with diminishing
-          returns from including many children”. So parents are followed immediately without subsampling, and children are subsampled with a width bound w{' '}
-          <Cite kind="paper" ref="p.16 App. A" />.
+          A row has at most one parent per foreign-key column, but it can have any number of children. The paper argues that “each parent row typically
+          contains important features (e.g., a transaction row links to user and product)”, while “informative signals from P→F links often arise via
+          aggregation, with diminishing returns from including many children”. So the sampler follows every parent right away and keeps only a random sample
+          of the children, at most w per row <Cite kind="paper" ref="p.16 App. A" />.
         </p>
       </Callout>
     </Section>
@@ -139,13 +139,13 @@ function AlgorithmSection() {
       <p>
         The released implementation, <span className="font-mono">rustler/src/fly.rs</span>, keeps the frontier in two structures: an <strong>F→P stack</strong>{' '}
         for parent rows and a list of <strong>P→F depth buckets</strong> for child rows <Cite kind="code" ref="rustler/src/fly.rs:366-368" />. Every frontier
-        entry carries a <Term id="depth-label">depth label</Term>, one more than the depth of the row that pushed it <Cite kind="spec" ref="§4.5" />. The visited
-        check happens when an entry is taken off the frontier, not when it is pushed, so duplicates can wait in the frontier and are skipped later{' '}
-        <Cite kind="code" ref="rustler/src/fly.rs:399-402" />.
+        entry carries a <Term id="depth-label">depth label</Term>, one more than the depth of the row that pushed it <Cite kind="spec" ref="§4.5" />. A row is
+        checked against the visited set only when it comes off the frontier, so the same row can wait in the frontier more than once. Every copy after the
+        first is skipped <Cite kind="code" ref="rustler/src/fly.rs:399-402" />.
       </p>
       <p>
-        Here are the paper’s pseudo-code and the code’s loop side by side. When you run the figure below, the lines of the current step light up in both, and the
-        figure quotes them right under its player.
+        The panel below puts the paper’s pseudo-code next to a condensed version of the code’s loop. When you run the replay further down, the lines of the
+        current step light up in both, and the replay also quotes them under its player.
       </p>
       <AlgorithmPanel />
       <Callout
@@ -159,27 +159,17 @@ function AlgorithmSection() {
         }
         code={
           <>
-            Take the lowest depth bucket that is not empty and swap-remove a uniformly drawn entry <Cite kind="code" ref="rustler/src/fly.rs:381-396" />. The depth
-            label is the length of the path through which the entry was found (+1 per hop, F→P or P→F), not a true shortest-path distance{' '}
+            Draw an entry uniformly from the lowest depth bucket that is not empty <Cite kind="code" ref="rustler/src/fly.rs:381-396" />. The depth label counts
+            the hops of the path through which the entry was found (+1 per hop, F→P or P→F), so it can be larger than the row’s shortest distance to the seed{' '}
             <Cite kind="spec" ref="§4.5" />.
           </>
         }
       />
       <p>
-        Now the live run. The figure opens on the finished context. Press play or use the arrow keys to rebuild it decision by decision, or switch to “Each row”
-        for a faster pass. Seed, L, w and the RNG seed can be changed here without touching the rest of the course.
+        The replay below opens on the finished context. Press play, or use the arrow keys, to rebuild it one decision at a time; “Each row” steps through it
+        faster. You can change the seed, L, w and the RNG seed here without affecting the rest of the course.
       </p>
       <BfsFigure />
-      <Callout variant="note" title="Same distribution, different random numbers">
-        <p>
-          fly.rs seeds Rust’s <span className="font-mono">StdRng</span> (ChaCha12) with <span className="font-mono">epoch + seed_row + seed</span>{' '}
-          <Cite kind="code" ref="rustler/src/fly.rs:371-375" />. This site uses a seeded xoshiro128** generator and draws its random numbers at the same points of
-          the loop. The bucket draw uses the same range, 0 to the bucket size; the w-subset is drawn with a different but equally uniform algorithm (a partial
-          Fisher–Yates shuffle instead of Rust’s <span className="font-mono">index::sample</span>, <Cite kind="code" ref="rustler/src/fly.rs:440" />). So contexts
-          follow the same distribution but are not bit-identical to the official ones <Cite kind="spec" ref="§4.2" /> <Cite kind="spec" ref="§13 #9" />. The RNG seed control is
-          the <span className="font-mono">seed</span> term; evaluation contexts use epoch 0 and seed 0 <Cite kind="spec" ref="§8.6" />.
-        </p>
-      </Callout>
     </Section>
   );
 }
@@ -189,27 +179,26 @@ function RulesSection() {
   return (
     <Section id="rules" kicker="Step 3" title="Four rules worth remembering">
       <p>
-        Strip away the bookkeeping and the released sampler follows four rules, among them the <Term id="temporal-filter">temporal filter</Term> and the{' '}
-        <Term id="bfs-width">width bound w</Term>. Each card shows its rule at work in the context above; “Show me” moves the replay
-        to that moment.
+        Without the bookkeeping, the released sampler comes down to four rules, including the <Term id="temporal-filter">temporal filter</Term> and the{' '}
+        <Term id="bfs-width">width bound w</Term>. Each card shows its rule at work in the context above, and “Show me” moves the replay to that moment.
       </p>
       <p>
-        Each rule differs in a detail from the paper’s description, and each card says how. The code is what produced the released model, so this course
-        follows the code <Cite kind="spec" ref="§10" />.
+        Each rule differs a little from the paper’s description, and each card says how. The released model was trained with the code, so the course follows
+        the code <Cite kind="spec" ref="§10" />.
       </p>
       <RuleCards />
       {task.kind === 'autocomplete' ? (
         <Callout variant="note" title="Autocomplete adds one more filter">
           <p>
             For this task, the <Term id="leakage-columns">leakage columns</Term> are skipped for the seed row and for every row whose timestamp equals the seed’s{' '}
-            <Cite kind="code" ref="rustler/src/fly.rs:457-461" />. And since the seed is a DB row, no task row ever enters the context{' '}
+            <Cite kind="code" ref="rustler/src/fly.rs:457-461" />. Because the seed is a DB row, no task row enters the context at all{' '}
             <Cite kind="spec" ref="§2.4" />.
           </p>
         </Callout>
       ) : (
         <p>
-          One more filter exists for autocomplete tasks only: their leakage columns are skipped for the seed row and for rows with the seed’s timestamp{' '}
-          <Cite kind="code" ref="rustler/src/fly.rs:457-461" />. Forecasting tasks such as {task.name} drop nothing <Cite kind="spec" ref="§4.1" />.
+          Autocomplete tasks add one more filter: their leakage columns are skipped for the seed row and for rows with the seed’s timestamp{' '}
+          <Cite kind="code" ref="rustler/src/fly.rs:457-461" />. Forecasting tasks such as {task.name} drop no columns <Cite kind="spec" ref="§4.1" />.
         </p>
       )}
     </Section>
@@ -235,13 +224,14 @@ function LabelsSection() {
           <p>
             The task table is attached to the database as an ordinary table <Cite kind="paper" ref="p.4 §3.1" />, so the search can walk into it. The path is
             short: the seed row pushes its entity onto the stack (depth 1), and the entity’s children go to bucket 2. Those children are the entity’s DB rows,
-            time-filtered and cut to w, plus every row of the same task table in any split whose timestamp is not later than the seed’s, never subsampled{' '}
+            time-filtered and cut to w, and the entity’s rows in the task table (any split) whose timestamp is not later than the seed’s. The task rows are
+            never cut to w{' '}
             <Cite kind="spec" ref="§2.5" />
-            <Cite kind="code" ref="rustler/src/fly.rs:406-452" />. Their label cells are not masked: they are <Term id="in-context-label">in-context labels</Term>.
+            <Cite kind="code" ref="rustler/src/fly.rs:406-452" />. Their label cells stay visible, which makes them <Term id="in-context-label">in-context labels</Term>.
           </p>
           <p>
-            The paper is careful to say this is not few-shot prompting: “While task rows provide ‘in-context labels’, our setting is not few-shot as explicit
-            subgraph-label pairs are not required” <Cite kind="paper" ref="p.2" />. The model receives labels only as ordinary cells of the context.
+            The paper does not count this as few-shot prompting: “While task rows provide ‘in-context labels’, our setting is not few-shot as explicit
+            subgraph-label pairs are not required” <Cite kind="paper" ref="p.2" />. The labels reach the model as ordinary cells of the context.
           </p>
           <p>
             In the context of {f.seedLong}, {f.entityShort} contributes{' '}
@@ -307,25 +297,16 @@ function LabelsSection() {
           <Figure title={`Visibility of ${task.name} rows by seed split`} caption={`Your seed is a ${split} row. A seed’s own row is the masked target; the rows of other entities at the same timestamp are the “same horizon” rows.`}>
             <SplitVisibility />
           </Figure>
-          <Callout
-            variant="paper-vs-code"
-            title="Same-horizon labels are visible"
-            paper={<>Not discussed.</>}
-            code={
-              <>
-                Other entities’ task rows with exactly the seed’s timestamp pass the test <span className="font-mono">child_ts &gt; seed_ts → skip</span>, so
-                their labels can be in the context <Cite kind="code" ref="rustler/src/fly.rs:422" />. The ICLR-submission sampler (commit eeccc2b) excluded them{' '}
-                <Cite kind="spec" ref="§2.5" />.
-              </>
-            }
-          >
+          <Callout variant="note" title="Same-horizon labels are visible">
             <p>
-              Such a row belongs to another entity at the <Term id="same-horizon">same horizon</Term>, and its label describes that entity’s own future window, the same window the seed asks
-              about. In the current context: <strong>{plural(f.same, 'same-horizon label')}</strong>.{' '}
+              The code skips a child only when <span className="font-mono">child_ts &gt; seed_ts</span>, so other entities’ task rows with exactly the seed’s
+              timestamp pass, and their labels can be in the context <Cite kind="code" ref="rustler/src/fly.rs:422" /> <Cite kind="spec" ref="§2.5" />. Such a row
+              belongs to another entity at the <Term id="same-horizon">same horizon</Term>: its label describes that entity’s own future window, the same window
+              the seed asks about. In the current context: <strong>{plural(f.same, 'same-horizon label')}</strong>.{' '}
               {preset === 'pending'
                 ? 'Searching for settings that reach one…'
                 : preset
-                  ? `Trying L = 128, 256, 512 with w from 16 down to 1 (this RNG seed), the first setting that reaches one is L = ${preset.L}, w = ${preset.w} (${plural(preset.count, 'same-horizon label')}): a narrower search reaches other entities with fewer cells.`
+                  ? `Of the settings L = 128, 256, 512 with w from 16 down to 1 (this RNG seed), the first that reaches one is L = ${preset.L}, w = ${preset.w} (${plural(preset.count, 'same-horizon label')}). A narrower search reaches other entities with fewer cells.`
                   : 'None of the settings tried (L = 128, 256 or 512 with w from 16 down to 1, this RNG seed) reaches one for this seed.'}
             </p>
             {preset && preset !== 'pending' && (
@@ -346,26 +327,19 @@ function LabelsSection() {
 
       <h3>How many labels does the paper see?</h3>
       <p>
-        For scale, the paper counts the labels in 1024-cell contexts of its tasks. Note rel-trial study-outcome and study-adverse: no labels at all, and
-        zero-shot AUROC on study-outcome is 51.8, close to random <Cite kind="paper" ref="p.8 Table 1" />.
+        For scale, the paper counts the labels in the 1024-cell contexts of its tasks. Two rel-trial tasks, study-outcome and study-adverse, get no labels at
+        all, and zero-shot AUROC on study-outcome is 51.8, close to random <Cite kind="paper" ref="p.8 Table 1" />.
       </p>
       <Figure wide>
         <Table12 />
         <p className="mt-3 text-[15px] leading-snug text-ink-2">
-          Source: paper Table 12 <Cite kind="paper" ref="p.23 Table 12" />. These counts were sampled before the code change that keeps same-horizon task rows, so
-          the released sampler can show more other-entity labels <Cite kind="spec" ref="§11.3" />.
+          Source: paper Table 12 <Cite kind="paper" ref="p.23 Table 12" />.
         </p>
       </Figure>
       <p>
-        Self labels are the main driver of zero-shot transfer. Removing them drops the paper’s mean zero-shot AUROC from 70.1 (Table 4’s baseline; Table 1’s
-        re-run headline mean is 69.7) to 53.8, and R² from 22.8 to −5.5, while removing other-entity labels changes little (70.6 and 22.9){' '}
-        <Cite kind="paper" ref="p.9 Table 4" /> <Cite kind="spec" ref="§10 #25" />. In the authors’ words, “zero-shot transfer is driven primarily by the model’s
-        ability to leverage past labels of the target entity” <Cite kind="paper" ref="p.9 §5.1" />.
-      </p>
-      <p>
-        One caveat on provenance: Table 4 is unchanged since the paper’s first arXiv version, so it predates the released sampler. At that time the public
-        sampler still excluded same-horizon task rows, so Table 4 does not measure the effect of the same-horizon labels the released code shows{' '}
-        <Cite kind="spec" ref="§2.5" /> <Cite kind="spec" ref="§11" />.
+        Self labels are the main driver of zero-shot transfer. Removing them drops the paper’s mean zero-shot AUROC from 70.1 to 53.8 and R² from 22.8 to −5.5.
+        Removing other-entity labels changes little (70.6 AUROC, 22.9 R²) <Cite kind="paper" ref="p.9 Table 4" />. In the authors’ words, “zero-shot transfer is
+        driven primarily by the model’s ability to leverage past labels of the target entity” <Cite kind="paper" ref="p.9 §5.1" />.
       </p>
     </Section>
   );
@@ -378,8 +352,8 @@ function ExperimentSection() {
         Move L and w and watch what the context is made of. These sliders share their settings with the replay above, and they stay local to this chapter until
         you apply them to the course.
       </p>
-      <ScaleNote paper="L = 1024, w = 256 (w from the released scripts)" ours="defaults L = 128, w = 16">
-        The sliders go beyond our defaults on purpose; the rules do not change with size.
+      <ScaleNote paper="L = 1024, w = 256" ours="defaults L = 128, w = 16">
+        The sliders go past our defaults on purpose. The rules are the same at any size.
       </ScaleNote>
       <Figure wide title="The context, counted">
         <div className="mb-5 max-w-[640px]">
@@ -389,15 +363,15 @@ function ExperimentSection() {
       </Figure>
       <SweepCharts />
       <p>
-        Two mechanisms are at work. A bucket is drawn uniformly, so the self labels in bucket 2 compete with the entity’s DB children for the
-        first positions: with a large w more DB children share that bucket, and a small L can fill up before every self label is drawn{' '}
-        <Cite kind="code" ref="rustler/src/fly.rs:381-396" />. And a smaller w keeps every bucket smaller, so the search reaches deeper buckets, where other
-        entities’ rows live, with fewer cells <Cite kind="spec" ref="§4.5" />.
+        Two mechanisms shape these counts. First, a bucket is drawn uniformly, so the self labels in bucket 2 compete with the entity’s DB children for the
+        early positions. A larger w puts more DB children in that bucket, and a small L can fill up before every self label is drawn{' '}
+        <Cite kind="code" ref="rustler/src/fly.rs:381-396" />. Second, a smaller w keeps every bucket smaller, so the search gets to the deeper buckets, where
+        other entities’ rows live, after fewer cells <Cite kind="spec" ref="§4.5" />.
       </p>
       <p>
         What does a shorter context cost? The paper varied L at inference for a model pretrained at L = 1024 and found that “RT’s performance degrades
         gracefully, showing a drop of only 4% absolute AUROC and 7% absolute R² with 25% lower time and 20% lower memory” <Cite kind="paper" ref="p.8 §4.5" />{' '}
-        (Fig. 4, from L = 1024 down to 256). The playground chapter runs the mini model on contexts of different L.
+        (Fig. 4, from L = 1024 down to 256). The playground chapter runs the mini model at different L.
       </p>
     </Section>
   );
@@ -410,7 +384,7 @@ const COMPARISON: { aspect: string; paper: ReactNode; code: ReactNode; ref: stri
   { aspect: 'Width bound', paper: <span className="font-mono">RandomSample(N, w)</span>, code: 'DB children only; task rows never subsampled', ref: 'rustler/src/fly.rs:426-452' },
   { aspect: 'Task tables', paper: '“only one task table is active at a time”', code: 'only the seed’s task table, any split', ref: 'rustler/src/fly.rs:417' },
   { aspect: 'Stop', paper: <span className="font-mono">while |C| &lt; L</span>, code: 'hard stop at exactly L tokens; last row may be partial', ref: 'rustler/src/fly.rs:502-509' },
-  { aspect: 'Cells of a row', paper: 'non-missing feature cells', code: 'same, minus columns_to_drop for seed and same-timestamp rows', ref: 'rustler/src/fly.rs:457-461' },
+  { aspect: 'Cells of a row', paper: 'non-missing feature cells', code: 'same, minus leakage columns (autocomplete) for the seed and same-timestamp rows', ref: 'rustler/src/fly.rs:457-461' },
   { aspect: 'Masked cells', paper: 'the target cell', code: 'exactly one: the seed’s target cell', ref: 'rustler/src/fly.rs:492-496' },
 ];
 
@@ -418,8 +392,8 @@ function CodeSection() {
   return (
     <Section id="alg-vs-code" kicker="Reference" title="Algorithm 1 vs the released code">
       <p>
-        The full comparison, from the specification <Cite kind="spec" ref="§4.15" />. The paper sources are Algorithm 1 <Cite kind="paper" ref="p.15 Alg. 1" />,
-        Appendix A <Cite kind="paper" ref="p.16 App. A" /> and Section 3.1 <Cite kind="paper" ref="p.4 §3.1" />.
+        The table compares Algorithm 1 with the released code, one aspect per row <Cite kind="spec" ref="§4.15" />. The paper column draws on Algorithm 1{' '}
+        <Cite kind="paper" ref="p.15 Alg. 1" />, Appendix A <Cite kind="paper" ref="p.16 App. A" /> and Section 3.1 <Cite kind="paper" ref="p.4 §3.1" />.
       </p>
       {/* narrow screens: one card per aspect, so the Code and Where columns are never scrolled away */}
       <dl className="wide my-6 grid gap-3 sm:hidden">
@@ -471,7 +445,7 @@ function CodeSection() {
         file={FLY_SELECT.file}
         lines={[FLY_SELECT.start, FLY_SELECT.end]}
         code={FLY_SELECT.code}
-        highlightLines={[366, 368, 371, 372, 373, 374, 375, 378, 379, 387, 388, 390, 391, 392, 393, 394, 399, 400, 401]}
+        highlightLines={[366, 368, 378, 379, 387, 388, 390, 391, 392, 393, 394, 399, 400, 401]}
         note="f2p_ftr is the F→P stack; p2f_ftr[depth] are the P→F buckets. The visited check happens after the pop."
       />
       <CodeRef
@@ -505,17 +479,17 @@ const QUIZ: QuizQuestion[] = [
       },
       {
         text: 'Rows of the seed’s own task table',
-        why: 'Task rows are children of the entity, so they are tested: only rows with a timestamp no later than the seed’s pass. They skip the width bound, not the time filter.',
+        why: 'Task rows are children of the entity, so they are tested, and only rows with a timestamp no later than the seed’s pass. They bypass only the width bound.',
       },
-      { text: 'The entity’s DB children at depth 2', why: 'They are P→F children and are compared with the seed’s timestamp.' },
+      { text: 'The entity’s DB children at depth 2', why: 'They are P→F children, so they are compared with the seed’s timestamp.' },
       {
         text: 'Rows whose timestamp equals the seed’s',
-        why: 'They are tested, and they pass because the filter keeps child_ts ≤ seed_ts. Passing is not the same as never being tested.',
+        why: 'They are tested, and they pass because the filter keeps child_ts ≤ seed_ts.',
       },
     ],
     explanation: (
       <>
-        “All parent rows (F→P) are always included” (paper p.4). In the code the filter lives inside the P→F loop only, and children without a timestamp pass it
+        “All parent rows (F→P) are always included” (paper p.4). In the code the filter sits inside the P→F loop only, and children without a timestamp pass it
         too (spec §4.6).
       </>
     ),
@@ -524,18 +498,18 @@ const QUIZ: QuizQuestion[] = [
     prompt: 'A customer has 40 orders before the seed’s timestamp and no reviews. With w = 16, how many of those orders can enter the context through that customer?',
     choices: [
       { text: 'All 40: the target entity’s rows are never subsampled', why: 'That holds for task rows only. Orders are DB children, so the width bound applies.' },
-      { text: 'Exactly 16', why: '16 are pushed, but fewer may end up in the context (see the explanation).' },
+      { text: 'Exactly 16', why: '16 are pushed, but some may already be visited, and L may run out before all of them are drawn.' },
       {
         text: 'At most 16, possibly fewer',
         correct: true,
-        why: 'A uniform random 16 are pushed to the next bucket; already-visited ones still count toward w, and L may run out before all 16 are drawn.',
+        why: 'A uniform random 16 are pushed to the next bucket, but some of them may already be visited, and L may run out before all 16 are drawn.',
       },
       { text: 'None: orders are only reached through products', why: 'Orders are children of the customer, so the customer’s expansion pushes them.' },
     ],
     explanation: (
       <>
         The bound keeps a uniform random w of the DB children that passed the time filter (fly.rs:439-452). If the customer also had reviews, orders and reviews
-        would share the same 16 places, while its task rows bypass the bound.
+        would share the same 16 places. Its task rows bypass the bound.
       </>
     ),
   },
@@ -549,12 +523,12 @@ const QUIZ: QuizQuestion[] = [
         why: 'All splits share one table name (fly.rs:417) and the filter keeps child_ts ≤ seed_ts (fly.rs:422).',
       },
       { text: 'Train, Val and Test rows', why: 'Test rows are later than the validation timestamp, so the time filter skips them.' },
-      { text: 'None, because other entities’ labels would leak', why: 'The released code does show them; only the ICLR-submission sampler excluded the same-timestamp rows.' },
+      { text: 'None, because other entities’ labels would leak', why: 'The released sampler does show them: rows with the seed’s own timestamp pass the time filter.' },
     ],
     explanation: (
       <>
-        These are the “same-horizon” rows (spec §2.5). The paper’s Table 4 finds that other-entity labels matter little for zero-shot quality, but it was computed
-        before same-horizon rows became visible, so it says nothing about them (spec §2.5, §11).
+        Other entities’ Val rows at the seed’s timestamp are the “same-horizon” rows: each label describes another entity’s outcome over the same future window
+        the seed asks about (spec §2.5).
       </>
     ),
   },
@@ -580,8 +554,8 @@ export default function SamplingChapter() {
             ]}
           >
             <ScaleNote paper="L = 1024, w = 256 (w from the released scripts)" ours="L = 128, w = 16">
-              Every rule in this chapter is the released sampler’s; only these two sizes are smaller, and our random-number generator differs from Rust’s (same
-              distribution).
+              Every rule in this chapter is the released sampler’s, and only these two sizes are smaller. Our random-number generator differs from the Rust
+              one but draws from the same distributions.
             </ScaleNote>
           </ChapterHeader>
           <div className="page-grid">

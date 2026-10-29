@@ -61,7 +61,7 @@ export function WhySampleFigure() {
         <Stat
           label={`Rows in the tables the sampler may enter (${db.name})`}
           value={g.totalRows.toLocaleString('en-US')}
-          caption="Every DB table plus this task’s table, all splits: an upper bound, since a row later than the seed that can only be reached as a child never passes the time filter."
+          caption="Every DB table plus this task’s table, all splits. It also counts rows the time filter would block, so it is an upper bound."
         />
         <Stat label="Feature cells in those tables" value={g.totalCells.toLocaleString('en-US')} caption="Every non-key, non-missing cell is a potential token." />
         <Stat label="Context length L" value={L} unit="tokens" emphasis caption="The model sees at most L cells per prediction (paper: 1024)." />

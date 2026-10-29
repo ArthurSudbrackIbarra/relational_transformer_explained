@@ -20,8 +20,8 @@ const IDEAS = [
     title: 'Cells as tokens',
     body: (
       <>
-        Every non-missing feature cell becomes one token: its value plus the text of its column and table, embedded as
-        “age of customers”. No per-schema feature engineering.
+        Each non-missing feature cell becomes one token. The token combines the cell’s value with the names of its column and
+        table, embedded as a phrase such as “age of customers”, so a new schema needs no hand-made features.
         <Cite kind="paper" ref="p.4 §3.1" />
       </>
     ),
@@ -31,9 +31,10 @@ const IDEAS = [
     title: 'Task-table prompting',
     body: (
       <>
-        The prediction task is attached to the database as one more table. Its rows are the seeds; earlier rows of the same task
-        carry visible labels into the context.
-        <Cite kind="paper" ref="p.4 §3.1" />
+        The prediction task is attached to the database as one more table. Each row pairs an entity and a time with a label, and a
+        prediction fills in the label of one row. Earlier rows of the same task reach the context through the same links as any
+        other row, and they bring their labels with them.
+        <Cite kind="paper" ref="p.4 §2.2" /> <Cite kind="paper" ref="p.4 §3.1" />
       </>
     ),
   },
@@ -42,8 +43,8 @@ const IDEAS = [
     title: 'Relational attention',
     body: (
       <>
-        Structure enters only through four attention masks (column, feature, neighbor, full) built from table, column and row
-        ids. There are no positional encodings.
+        The model sees the database structure only through four attention masks: column, feature, neighbor and full. They are
+        built from the table, column and row of each token and from the links between rows. RT has no positional encodings.
         <Cite kind="paper" ref="p.5 §3.2" />
       </>
     ),
@@ -70,9 +71,9 @@ export function Landing() {
               {SITE_TITLE}
             </h1>
             <p className="mt-5 max-w-[34em] text-[20.5px] leading-[1.6] text-pretty text-ink-2 sm:text-[21.5px]">
-              Follow one prediction through every operation of the Relational Transformer, from database rows to cell tokens,
-              relational attention and a zero-shot answer, running live in your browser on a scaled-down model that does exactly
-              what the paper’s code does.
+              Follow one prediction through every operation of the Relational Transformer, from the rows of a database to a
+              zero-shot answer. The figures run live in your browser, on a scaled-down model that does exactly what the paper’s
+              code does.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
@@ -113,9 +114,9 @@ export function Landing() {
           <div className="eyebrow">Three ideas</div>
           <h2 className="mt-2 text-[28px] leading-tight font-semibold tracking-[-0.018em] text-balance text-ink">What makes RT a relational foundation model</h2>
           <p className="mt-3 text-[19px] leading-[1.65] text-ink-2">
-            Relational databases differ in every way a model could rely on: number of tables, columns, types and links. RT handles
-            all of them with one architecture and, after pretraining on other databases, predicts on a database it has never seen
-            without any weight updates.
+            Relational databases vary in almost everything a model might depend on: how many tables they have, which columns and
+            types those tables hold, and how the tables link. RT uses one architecture for all of them. After pretraining on other
+            databases, it predicts on a database it has never seen without updating its weights.
             <Cite kind="paper" ref="p.4 §2.3" />
           </p>
         </div>
@@ -141,16 +142,16 @@ export function Landing() {
         <div className="mt-16 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
           <div className="max-w-[var(--prose-max)]">
             <div className="eyebrow">What runs here</div>
-            <h2 className="mt-2 text-[28px] leading-tight font-semibold tracking-[-0.018em] text-balance text-ink">Scaled down, not simplified</h2>
+            <h2 className="mt-2 text-[28px] leading-tight font-semibold tracking-[-0.018em] text-balance text-ink">A real model, at small scale</h2>
             <p className="mt-3 text-[19px] leading-[1.65] text-ink-2">
-              The site runs a real miniature RT: the same preprocessing, the same context sampler, the same masks, blocks, decoders
-              and losses as the paper-era code, pretrained here on three synthetic databases and tested zero-shot on a fourth it never
-              saw.
-              Only the sizes, the data and the floating-point precision change; wherever numbers appear, a note says so.
+              The site runs a real miniature RT. Its preprocessing, context sampler, masks, blocks, decoders and losses are the same
+              as in the paper’s official code. It was pretrained on three synthetic databases and is tested zero-shot on a fourth that
+              it never saw. Only the sizes, the data and the numeric precision differ, and the chapters say so wherever that changes a
+              number.
             </p>
             <p className="mt-3 text-[19px] leading-[1.65] text-ink-2">
-              The running example is ShopDB and the task customer-churn: will a
-              customer place no order in the next 30 days?
+              The running example comes from ShopDB, that fourth database, which holds the records of a small online shop. Its
+              customer-churn task asks: will a customer place no order in the next 30 days?
             </p>
           </div>
           <div className="card overflow-hidden">
@@ -187,7 +188,8 @@ export function Landing() {
             <div className="eyebrow">Course map</div>
             <h2 className="mt-2 text-[28px] leading-tight font-semibold tracking-[-0.018em] text-balance text-ink">Seventeen chapters, one prediction</h2>
             <p className="mt-3 text-[19px] leading-[1.65] text-ink-2">
-              Each chapter opens one stage of the pipeline on the same live context. Read in order, or jump to what you need.
+              Most chapters take one stage of the pipeline and show it on the same live context. Read them in order, or jump to the
+              one you need.
             </p>
           </div>
           <div className="mt-8 grid gap-10">
@@ -228,7 +230,7 @@ export function Landing() {
           <p className="mt-10 flex max-w-[var(--prose-max)] items-start gap-2.5 text-[18px] leading-[1.6] text-ink-2">
             <Award aria-hidden="true" size={20} className="mt-[0.2em] shrink-0 text-accent-text" />
             <span>
-              Work through all seventeen chapters, pass a short final quiz, and get a{' '}
+              Finish all seventeen chapters and pass a short final quiz to earn a{' '}
               <Link to="/certificate">certificate of completion</Link> with an ID that anyone can verify.
             </span>
           </p>

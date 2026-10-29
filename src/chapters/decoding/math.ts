@@ -104,24 +104,6 @@ export function decodeAt(fr: ForwardResult, w: RTWeights, pos: number): DecodeAt
   };
 }
 
-/** Uniform-scale check between two tensors: mean and spread of b/a over entries with |a| > tiny. */
-export function ratioStats(a: Float32Array, b: Float32Array): { mean: number; maxDev: number; n: number } {
-  let s = 0;
-  let n = 0;
-  const rs: number[] = [];
-  for (let i = 0; i < a.length; i++) {
-    if (Math.abs(a[i]) < 1e-6) continue;
-    const r = b[i] / a[i];
-    rs.push(r);
-    s += r;
-    n++;
-  }
-  const mean = n ? s / n : NaN;
-  let maxDev = 0;
-  for (const r of rs) maxDev = Math.max(maxDev, Math.abs(r - mean));
-  return { mean, maxDev, n: a.length };
-}
-
 export const sigmoid = (z: number) => (z >= 0 ? 1 / (1 + Math.exp(-z)) : Math.exp(z) / (1 + Math.exp(z)));
 export const bce = (z: number, y: number) => Math.max(z, 0) - z * y + Math.log1p(Math.exp(-Math.abs(z)));
 export const huber = (d: number) => (Math.abs(d) < 1 ? 0.5 * d * d : Math.abs(d) - 0.5);

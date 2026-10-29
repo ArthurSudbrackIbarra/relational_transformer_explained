@@ -1,7 +1,7 @@
 /**
  * The paper's published numbers (Ranjan et al., ICLR 2026, arXiv 2510.06377v3), typed from the PDF
  * (printed page = PDF page) and checked against `pdftotext -layout` of every page involved.
- * Spec: research/RT_TECHNICAL_SPEC.md §11 (numbers), §13 #1 (provenance), §10 #25-26.
+ * Spec: research/RT_TECHNICAL_SPEC.md §11 (numbers).
  *
  * Conventions
  *  - Values are percentages exactly as printed (AUROC % or R² %), one decimal.
@@ -215,7 +215,7 @@ export const TABLE10: Table10 = {
   reg: {
     id: 'Table 10',
     page: 21,
-    caption: 'Supervised fine-tuning, R² (%) for 8 regression tasks. Global-mean baseline is 0.0. RelLLM prints “nan”.',
+    caption: 'Supervised fine-tuning, R² (%) for 8 regression tasks. Global-mean baseline is 0.0. RelLLM has no regression results.',
     cols: T10_COLS,
     size: ['5.5M', '4.7M', '2.7M', '2.5M', '150K', '43K', '7.5K', '5.1K'],
     rows: [
@@ -522,14 +522,3 @@ export const STATED_RATIOS = { rtNo: 90.3, rtYes: 93.1, gemma27b: 83.7 } as cons
 
 /** App. C.2 (p.17): the largest exact column-name Jaccard overlap between two RelBench DBs (amazon–hm). */
 export const MAX_JACCARD = 0.043;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Provenance (spec §13 #1, which compares the arXiv v1/v2/v3 PDFs)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** arXiv v1's Table 1 RT (No) column, as quoted by spec §13 #1 (CLF_ORDER). v1 mean: 70.1. */
-export const V1_TABLE1_RTNO = [70.2, 63.9, 59.5, 61.8, 82.0, 89.1, 62.8, 80.0, 77.1, 54.5] as const;
-/** arXiv v1/v2's Table 2 RT (No) column, as quoted by spec §13 #1 (REG_ORDER). Mean: 22.8. */
-export const V1_TABLE2_RTNO = [33.2, 36.4, 4.5, 54.7, 14.0, 32.4, 5.2, 2.1] as const;
-/** v1 → v2 change of Table 1's RT means (spec §13 #1). */
-export const TABLE1_V1_MEANS = { rtNo: 70.1, rtYes: 72.9 } as const;

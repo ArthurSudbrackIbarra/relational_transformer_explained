@@ -380,11 +380,11 @@ export function HeadGrid({ live }: { live: AttnLive }) {
         </div>
       )}
       <p className="mx-auto mt-3 max-w-[var(--prose-max)] text-[16px] leading-snug text-ink-2">
-        Each matrix is one head of one layer: row q holds the weights that query q spreads over the keys, and every row sums to 1 over its allowed
-        keys, or is all zero when none is allowed. Under each head, <em>top</em> is its largest weight averaged over the real queries, and{' '}
-        <em>Δ</em> is the share of its weight it places differently from the mean of the {H} heads (½ Σ<sub>k</sub> |p<sub>head</sub> − p<sub>mean</sub>|,
-        averaged over queries). With √ scaling, a uniform row over {int(numReal)} keys ({pctw(1 / Math.max(1, numReal))} each) still shows as a pale wash;
-        the difference mode shows where one head departs from the others. All {H} heads of a layer share one mask, so their gray pattern is identical.
+        Each matrix is one head of one layer. Row q holds the weights that query q spreads over the keys, and it sums to 1 over the allowed keys,
+        or is all zero when no key is allowed. Under each head, <em>top</em> is its largest weight averaged over the real queries, and <em>Δ</em>{' '}
+        is the share of its weight that it places differently from the mean of the {H} heads (½ Σ<sub>k</sub> |p<sub>head</sub> − p<sub>mean</sub>|,
+        averaged over queries). With √ scaling, an even row over {int(numReal)} keys ({pctw(1 / Math.max(1, numReal))} each) still shows as a pale
+        wash. The difference mode shows where one head departs from the others.
       </p>
     </div>
   );

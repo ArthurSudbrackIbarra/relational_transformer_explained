@@ -88,9 +88,9 @@ export function ImplementationChecks({ live }: { live: AttnLive }) {
       </div>
       <p className="!mb-0 text-[15px] leading-snug text-ink-2">
         Checked on the live forward pass of this context. {int(res.nbrEmpty)} of the {int(ctx.numReal)} real tokens have an empty neighbor row
-        {res.padding > 0 ? `, and the ${int(res.padding)} padding tokens have empty rows in every mask` : ''}; column, feature and full rows of real tokens
-        are {res.otherEmpty === 0 ? 'never' : 'sometimes'} empty, since they always contain the query itself <Cite kind="spec" ref="§6.2" />. Each empty row
-        leaves its token unchanged, in every block <Cite kind="spec" ref="§6.1" />. The sums miss 1 only by float32 rounding.
+        {res.padding > 0 ? `, and the ${int(res.padding)} padding tokens have empty rows in every mask` : ''}. The column, feature and full rows of real
+        tokens are {res.otherEmpty === 0 ? 'never' : 'sometimes'} empty, since they always contain the query itself <Cite kind="spec" ref="§6.2" />. Every
+        empty row leaves its token unchanged, in every block <Cite kind="spec" ref="§6.1" />. The sums differ from 1 only by rounding.
       </p>
     </div>
   );

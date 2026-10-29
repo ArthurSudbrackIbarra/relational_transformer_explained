@@ -65,8 +65,8 @@ export function DifferenceCards() {
           </>
         }
       >
-        The same modules with narrower tensors and fewer blocks. Both counts are computed here from the module shapes of{' '}
-        <span className="font-mono text-[15px]">model.py</span>; the paper’s matches its “22.3M” <Cite kind="spec" ref="§7.3" />{' '}
+        The same modules, with narrower tensors and fewer blocks. Both parameter counts are computed here from the module shapes of{' '}
+        <span className="font-mono text-[15px]">model.py</span>, and the paper’s count matches its “22.3M” <Cite kind="spec" ref="§7.3" />{' '}
         <Cite kind="paper" ref="p.26 App. I.4" />.
       </DiffCard>
       <DiffCard
@@ -83,8 +83,8 @@ export function DifferenceCards() {
           </>
         }
       >
-        The sampler is the same algorithm at any (L, w); the cross-check below runs it at four settings, the paper’s included{' '}
-        <Cite kind="spec" ref="§4.1" />. Our databases are small, so a short context already reaches the seed’s neighborhood.
+        The sampler is the same algorithm at any (L, w); the cross-check above runs it at four settings, the paper’s among them{' '}
+        <Cite kind="spec" ref="§4.1" />. This site’s databases are small, so a short context already reaches the seed’s neighborhood.
       </DiffCard>
       <DiffCard
         title="Data"
@@ -92,19 +92,22 @@ export function DifferenceCards() {
         paper={<>RelBench: 7 databases, pretraining on the 6 not under test</>}
         ours={<>4 synthetic databases, pretraining on the 3 that are not ShopDB</>}
       >
-        Same protocol, leave one database out <Cite kind="paper" ref="p.6 §4.1" /> <Cite kind="spec" ref="§9.1" />. The learned weights and every
-        metric are this site’s own and are never compared with the paper’s tables on one axis.
+        Same protocol: leave one database out <Cite kind="paper" ref="p.6 §4.1" /> <Cite kind="spec" ref="§9.1" />. The learned weights and every
+        metric are this site’s own, and they are never plotted on one axis with the paper’s tables.
       </DiffCard>
       <DiffCard
         title="Precision"
         verdict="rounding"
-        paper={<>bfloat16 weights, cell values, text embeddings and optimizer state; RMSNorm ε = 2⁻⁷</>}
+        paper={
+          <>
+            bfloat16 weights and optimizer state <Cite kind="code" ref="rt/main.py:186-187" />, cell values and text embeddings{' '}
+            <Cite kind="code" ref="rt/embed.py:70-72" /> <Cite kind="spec" ref="§3.7" />; RMSNorm ε = 2⁻⁷
+          </>
+        }
         ours={<>float32 throughout, embeddings included; RMSNorm ε pinned to 2⁻⁷</>}
       >
-        float32 keeps 24 significant bits where bfloat16 keeps 8, so our numbers are closer to the exact maths, not further from it. The official
-        preprocessing stores the text embeddings as raw bf16 <Cite kind="code" ref="rt/embed.py:70-72" /> and rounds cell values to bf16 when it
-        builds a batch <Cite kind="spec" ref="§3.7" />. ε is pinned so that RMSNorm divides by the same √(mean x² + ε) as in the paper environment{' '}
-        <Cite kind="spec" ref="§7.2" />.
+        float32 keeps 24 significant bits where bfloat16 keeps 8, so the site’s numbers are closer to the exact result. ε is pinned so that RMSNorm
+        divides by the same √(mean x² + ε) as in the paper’s runs <Cite kind="spec" ref="§7.2" />.
       </DiffCard>
       <DiffCard
         title="Random numbers"
@@ -112,7 +115,7 @@ export function DifferenceCards() {
         paper={<>Rust StdRng (ChaCha12), seeded with epoch + seed row + seed</>}
         ours={<>xoshiro128** with the same seed formula, drawn at the same points</>}
       >
-        Wherever the sampler draws (which child row to keep, which frontier entry to expand), the two generators pick different rows, so a given
+        Wherever the sampler draws (which child rows to keep, which frontier entry to expand), the two generators pick different rows, so a given
         context is not bit-identical to Rust’s. The distribution over contexts is the same <Cite kind="spec" ref="§4.2" />. The audit below shows
         what the draws decide.
       </DiffCard>
@@ -122,13 +125,18 @@ export function DifferenceCards() {
         paper={<>compiled FlexAttention with block masks</>}
         ours={<>dense masked softmax (PyTorch port); per-query loops over allowed keys (browser)</>}
       >
-        One function, three kernels: softmax over the allowed keys, scale 1/√d_head, 0 for a query with no allowed key{' '}
-        <Cite kind="spec" ref="§6.1" />. Only the order of floating-point additions differs; the figure below checks it on the live context.
+        All three compute the same function. The scores are scaled by 1/√d_head, the softmax runs over the allowed keys only, and a query with no
+        allowed key outputs 0 <Cite kind="spec" ref="§6.1" />. Only the order of floating-point additions differs, and the figure below checks it on
+        the live context.
       </DiffCard>
       <DiffCard
         title="Training budget"
         verdict="values"
-        paper={<>50,001 steps × 256 contexts × 1024 tokens on 8×A100, about 2 hours</>}
+        paper={
+          <>
+            50,001 steps × 256 contexts × 1024 tokens on 8×A100, about 2 hours <Cite kind="paper" ref="p.6 §4.1" />
+          </>
+        }
         ours={
           ds && res?.pretrain ? (
             <>
@@ -151,7 +159,7 @@ export function DifferenceCards() {
       <DiffCard
         title="Evaluation sets"
         verdict="values"
-        paper={<>at most 40 batches × 32 seeds × 8 GPUs = 10,240 seed rows per split and task (set in the code; the paper does not say)</>}
+        paper={<>at most 10,240 seed rows per split and task (40 batches × 32 seeds × 8 GPUs)</>}
         ours={
           churnVal !== undefined ? (
             <>
@@ -162,8 +170,8 @@ export function DifferenceCards() {
           )
         }
       >
-        The official evaluation stops after 40 batches per GPU, a fixed subset of each split <Cite kind="spec" ref="§8.6" />. Our splits are tiny and
-        evaluated in full, so a difference of a few AUROC points between two checkpoints is within noise.
+        The official code stops evaluating after 40 batches per GPU, so it scores a fixed subset of each split <Cite kind="spec" ref="§8.6" />.
+        This site’s splits are tiny and evaluated in full, so a gap of a few AUROC points between two checkpoints is within noise.
       </DiffCard>
     </div>
   );
@@ -408,8 +416,8 @@ export function RandomnessAudit() {
         {other ? (
           <>
             With the seed term {other.term} instead of {seedTerm} (PRNG seed {other.prng} instead of {params.rngSeed}), {other.sharedRows} of{' '}
-            {other.rows} rows and {other.shared} of {other.n} cells also appear in the live context. Same rules, different picks: this is what a
-            different generator, like Rust’s, does. Your global settings are unchanged.
+            {other.rows} rows and {other.shared} of {other.n} cells also appear in the live context. The rules are the same and only the picks
+            differ, as they would with a different generator such as Rust’s. Your global settings are unchanged.
           </>
         ) : (
           <>

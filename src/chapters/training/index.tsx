@@ -66,15 +66,15 @@ export default function TrainingChapter() {
         slug="training"
         lede={
           <>
-            Every chapter so far ran the model with trained weights. This one shows where they come from: one hidden cell per context, a database held
-            out, a one-cycle learning-rate schedule, a checkpoint chosen per task, then fine-tuning. All of it from this site’s real training run,
-            next to the paper’s recipe.
+            Every chapter so far ran the model with trained weights. This one shows how they were made: pretraining that hides one cell per context,
+            a database held out for testing, a one-cycle learning-rate schedule, a checkpoint chosen per task, and fine-tuning at the end. The figures
+            come from this site’s own training run, shown next to the paper’s recipe.
           </>
         }
         learn={[
           'What RT is trained to do: recover one masked cell per context, with one loss for pretraining and fine-tuning',
           'What leave-one-database-out means, and why choosing a checkpoint on the target’s validation labels still counts as zero-shot',
-          'How the learning rate and Adam’s β1 move during training, and where the code differs from the paper’s description',
+          'How the learning rate and Adam’s β1 change over a pretraining run',
           'What our miniature run achieved on ShopDB, before and after fine-tuning, and what it cannot tell you',
         ]}
       >
@@ -120,15 +120,15 @@ export default function TrainingChapter() {
           The model predicts that cell with the decoder of its type and is scored with the loss of that type:{' '}
           <Term id="bce">binary cross-entropy</Term> against 1{'{'}y &gt; 0{'}'} for a boolean, the <Term id="huber">Huber loss</Term> with δ = 1 for
           a number, both on z-scored values. “The overall loss is the mean over all masked cells in the batch”, and “this formulation is used in both
-          pretraining and fine-tuning” <Cite kind="paper" ref="p.6 §3.3" />. Fine-tuning changes the data, never the objective. Chapter 12 works
-          through both losses with live numbers.
+          pretraining and fine-tuning” <Cite kind="paper" ref="p.6 §3.3" />. Fine-tuning changes the data; the objective stays the same. Chapter 12
+          works through both losses with live numbers.
         </p>
         <p>
-          Which seeds? Pretraining builds one dataset over every training task of every pretraining database, all on their training split{' '}
-          <Cite kind="code" ref="rt/main.py:123-136" />. A forecasting task contributes the rows of its Train split; an autocomplete task contributes
-          every row of its table that has the target cell <Cite kind="code" ref="rt/data.py:77-81" /> <Cite kind="spec" ref="§9.1" />. These items go
-          into a single list with no balancing, so a task’s share of the training signal is its share of the rows <Cite kind="spec" ref="§4.14" />.
-          Step through how one batch of our run comes together:
+          Which seed rows does pretraining use? It builds one dataset over every training task of every pretraining database, all on their training
+          split <Cite kind="code" ref="rt/main.py:123-136" />. A forecasting task contributes the rows of its Train split; an autocomplete task
+          contributes every row of its table that has the target cell <Cite kind="code" ref="rt/data.py:77-81" /> <Cite kind="spec" ref="§9.1" />.
+          These items go into a single list with no balancing, so a task’s share of the training signal is its share of the rows{' '}
+          <Cite kind="spec" ref="§4.14" />. Step through the figure to watch one batch of our run come together.
         </p>
         <BatchFigure set={set} dataset={dataset} />
         <p>
@@ -190,7 +190,7 @@ export default function TrainingChapter() {
                 lines: '369-371',
                 code: MAIN_SHUFFLE_369_371,
                 highlightLines: [370],
-                note: 'int(steps / len(loader)) is the epoch number, so pass e shuffles with seed e + 0.',
+                note: 'int(steps / len(loader)) is the epoch number, so every pass shuffles the list with a new seed: the epoch plus the run seed, 0.',
               },
             },
             {
@@ -201,8 +201,8 @@ export default function TrainingChapter() {
                 file: 'rustler/src/fly.rs',
                 lines: '336-355',
                 code: FLY_BATCH_336_355,
-                highlightLines: [347, 348, 350],
-                note: 'With 8 GPUs (world_size), rank k takes the k-th block of 32; the last batch wraps around to the start of the list.',
+                highlightLines: [347, 348],
+                note: 'With 8 GPUs, GPU k takes the k-th block of 32 items, so one optimizer step sees 256 contexts.',
               },
             },
             {
@@ -218,13 +218,12 @@ export default function TrainingChapter() {
             },
           ]}
         />
-        <Callout variant="note" title="Masking more cells is an ablation, not the default">
+        <Callout variant="note" title="Why not mask more cells?">
           <p>
-            The paper’s Table 14 also pretrains with extra cells masked at random, with probability P(mask) = 0.2 or 0.4, while the target cell is
-            always masked. Zero-shot quality goes down: mean AUROC 70.1 → 69.8 → 69.3 and mean R² 22.8 → 16.9 → 15.3{' '}
-            <Cite kind="paper" ref="p.24 Table 14" />. The released code has no such sampler: it masks the target cell only{' '}
-            <Cite kind="spec" ref="§10 #14" /> <Cite kind="spec" ref="§11.6" />, and so does this site. (Table 14’s P(mask) = 0 column, 70.1,
-            comes from the paper’s first version; the headline 69.7 of Table 1 was re-run later <Cite kind="spec" ref="§10 #25" />.)
+            The paper also tried masking extra cells at random during pretraining, on top of the target cell. Zero-shot quality went down as the
+            masking probability rose from 0 to 0.2 to 0.4: mean AUROC 70.1 → 69.8 → 69.3 and mean R² 22.8 → 16.9 → 15.3{' '}
+            <Cite kind="paper" ref="p.24 Table 14" />. The released code masks the target cell only <Cite kind="spec" ref="§10 #14" />{' '}
+            <Cite kind="spec" ref="§11.6" />, and so does this site.
           </p>
         </Callout>
       </Section>
@@ -241,8 +240,8 @@ export default function TrainingChapter() {
         </p>
         <LeaveOneOut set={set} dataset={dataset} results={results} />
         <p>
-          The pretraining script expresses the whole protocol as two list filters: train on every task whose database is not rel-amazon, evaluate
-          rel-amazon’s forecasting tasks, on val and test <Cite kind="code" ref="scripts/example_pretrain.py:17-18" />.
+          In the pretraining script the whole protocol is two list filters: train on every task whose database is not rel-amazon, and evaluate
+          rel-amazon’s forecasting tasks on val and test <Cite kind="code" ref="scripts/example_pretrain.py:17-18" />.
         </p>
         <CodeRef
           title="The leave-one-DB-out pretraining script (target: rel-amazon)"
@@ -265,82 +264,47 @@ export default function TrainingChapter() {
             <>
               {' '}
               Our generators give every pretraining forecast task that property: an entity’s label in one window correlates with its label in the
-              next, with lag-1 correlations from {fx(story.lag1Min, 2)} to {fx(story.lag1Max, 2)} (results.json). A model that learns to read an
+              next, with lag-1 correlations from {fx(story.lag1Min, 2)} to {fx(story.lag1Max, 2)}. A model that learns to read an
               entity’s history in SchoolDB can use the same skill on a ShopDB customer.
             </>
           )}
         </p>
-        <Callout
-          variant="paper-vs-code"
-          title="No cutoff on database rows"
-          paper={
-            <>
-              “We pretrain and fine-tune only on the training splits of the tasks, using database rows only up to the training cutoff timestamps”{' '}
-              <Cite kind="paper" ref="p.6 §4.1" />
-            </>
-          }
-          code={
-            <>
-              no cutoff anywhere: forecasting seeds are Train rows, but autocomplete seeds are every row of the table, from every period{' '}
-              <Cite kind="code" ref="rt/data.py:77-81" />
-            </>
-          }
-          verdict="This site follows the code: our autocomplete tasks use every row (spec §10 #10)."
-        />
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 3 */}
       <Section id="schedule" title="The learning-rate schedule" kicker="Step 3">
         <p>
           The optimizer is AdamW with weight decay 0.1 and a peak learning rate of 10⁻³ <Cite kind="paper" ref="p.6 §4.1" />. The schedule is
-          PyTorch’s OneCycleLR: the learning rate η climbs linearly for the first 20% of the steps, then falls linearly for the rest{' '}
-          <Cite kind="code" ref="rt/main.py:197-204" />. The code passes only the peak, the number of steps, the 20% and the word “linear”, so
-          PyTorch’s defaults decide the rest. The climb starts at the peak divided by 25, 4·10⁻⁵; the fall ends at that value divided by 10⁴, 4·10⁻⁹;
-          and with cycle_momentum on, Adam’s β1 moves the opposite way, from 0.95 down to 0.85 at the peak and back <Cite kind="spec" ref="§9.2" />.
+          PyTorch’s OneCycleLR <Cite kind="code" ref="rt/main.py:197-204" />. The learning rate η climbs linearly from 4·10⁻⁵ (the peak divided by
+          25) to the peak over the first 20% of the steps, then falls linearly to almost zero over the rest. The same scheduler moves Adam’s β1 the
+          opposite way, from 0.95 down to 0.85 at the peak and back up <Cite kind="spec" ref="§9.2" />.
         </p>
         <ScheduleFigure schedule={schedule} />
         <p>
-          β1 is Adam’s momentum: how much of the previous update direction each step keeps. The paper does not explain its choice of schedule. The
-          one-cycle policy comes from Smith and Topin, who warm up to a large learning rate and then anneal it for most of training{' '}
-          <Cite kind="url" ref="https://arxiv.org/abs/1708.07120" title="Smith & Topin, Super-Convergence (2017)" />, and Smith recommends lowering
+          β1 is Adam’s momentum: how much of the previous update direction each step keeps. The one-cycle policy comes from Smith and Topin, who
+          warm up to a large learning rate and then anneal it over most of training{' '}
+          <Cite kind="url" ref="https://arxiv.org/abs/1708.07120" title="Smith & Topin, Super-Convergence (2017)" />, and Smith recommends lower
           momentum while the learning rate is high{' '}
           <Cite kind="url" ref="https://arxiv.org/abs/1803.09820" title="Smith, A disciplined approach to neural network hyper-parameters (2018)" />.
-          The coded betas = (0.9, 0.999) therefore never apply as written: the scheduler overwrites β1 at every step.
+          Because the scheduler sets β1 at every step, the β1 = 0.9 in the optimizer call below is never used.
         </p>
         <CodeRef
-          title="bf16, AdamW with one parameter group, OneCycleLR"
+          title="AdamW and the OneCycleLR schedule"
           file="rt/main.py"
           lines="186-204"
           code={MAIN_OPT_186_204}
-          highlightLines={[187, 189, 191, 192, 198, 199, 200, 201, 202, 203]}
-          note="net.parameters() is a single group, so weight decay also applies to RMSNorm gains, biases and the mask vectors (spec §9.2)."
-        />
-        <Callout
-          variant="paper-vs-code"
-          title="Warmup from zero, decay to zero?"
-          paper={
-            <>
-              “a peak learning rate of 10⁻³, with linear warmup from zero for the first 20% of training, and linear decay to zero for the remainder”{' '}
-              <Cite kind="paper" ref="p.6 §4.1" />
-            </>
-          }
-          code={
-            <>
-              η goes 4·10⁻⁵ → 10⁻³ → 4·10⁻⁹, β1 is cycled 0.95 → 0.85 → 0.95, and gradients are clipped to norm 1.0, which the paper does not mention{' '}
-              <Cite kind="code" ref="rt/main.py:197-204" /> <Cite kind="code" ref="rt/main.py:413-418" />
-            </>
-          }
-          verdict="Close for η (4·10⁻⁵ is 4% of the peak); this site follows the code, β1 cycle and clipping included (spec §10 #13)."
+          highlightLines={[190, 191, 192, 198, 200, 201, 202, 203]}
         />
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 4 */}
       <Section id="run" title="Our training run" kicker="Step 4">
         <p>
-          This is the run behind every trained number on the site. It follows the paper’s recipe at a smaller scale: the same objective, optimizer,
-          schedule and clipping, with {steps !== undefined ? int(steps) : '…'} steps of {dataset?.batchSize ?? 32} contexts instead of 50,001 steps of
-          256. Each step is the code’s train step: forward pass and loss, clear the old gradients, backward pass, measure the global gradient norm,
-          clip it to 1.0, one AdamW update, one scheduler step <Cite kind="code" ref="rt/main.py:394-424" />.
+          Every trained number on the site comes from this run. It follows the paper’s recipe at a smaller scale: the same objective, optimizer,
+          schedule and gradient clipping, with {steps !== undefined ? int(steps) : '…'} steps of {dataset?.batchSize ?? 32} contexts instead of
+          50,001 steps of 256. Each step runs the code’s train step. A forward pass computes the loss, the old gradients are cleared and a backward
+          pass computes new ones. If the global gradient norm is above 1.0, the whole gradient is scaled down to norm 1. One AdamW update and one
+          scheduler step finish it <Cite kind="code" ref="rt/main.py:394-424" />.
         </p>
         <CodeRef
           title="One optimizer step"
@@ -388,18 +352,17 @@ export default function TrainingChapter() {
         <p>
           {churn.zsStep !== undefined && sales.zsStep !== undefined ? (
             <>
-              In our run, customer-churn keeps step {int(churn.zsStep)} and product-sales keeps step {int(sales.zsStep)}. One pretraining run, one
-              checkpoint per task: that is why the site ships a <span className="font-mono">pretrain-churn</span> and a{' '}
-              <span className="font-mono">pretrain-sales</span> file (plus <span className="font-mono">pretrain-rating</span> and{' '}
-              <span className="font-mono">pretrain-verified</span> for the two review tasks, and <span className="font-mono">pretrain-final</span>,
-              the last step), and why the global “auto” checkpoint depends on the task.{' '}
+              In our run, customer-churn keeps step {int(churn.zsStep)} and product-sales keeps step {int(sales.zsStep)}. One pretraining run
+              gives one checkpoint per task. That is why the site ships a separate zero-shot checkpoint for each task, such as{' '}
+              <span className="font-mono">pretrain-churn</span> and <span className="font-mono">pretrain-sales</span>, and why the “auto” checkpoint
+              setting depends on the task.{' '}
             </>
           ) : null}
           {churn.valJump !== undefined && (
             <>
-              Notice also how much the validation curve moves between neighboring evaluations: up to {fx(churn.valJump * 100, 1)} AUROC points for
-              customer-churn, on {churn.nVal ?? '…'} validation seeds. With so few seeds, which step wins is partly chance. At the chosen step the
-              test AUROC is {P(churn.zsTest)}; at the last step it would have been {P(churn.lastTest)}.
+              The validation curve also jumps between neighboring evaluations, by up to {fx(churn.valJump * 100, 1)} AUROC points for customer-churn
+              on its {churn.nVal ?? '…'} validation seeds. With so few seeds, which step wins is partly chance. At the chosen step the test AUROC is{' '}
+              {P(churn.zsTest)}; at the last step it would have been {P(churn.lastTest)}.
             </>
           )}
         </p>
@@ -407,18 +370,10 @@ export default function TrainingChapter() {
           <p>
             Yes, in the paper’s sense, which is about weight updates and where information enters. No gradient ever comes from ShopDB, and at
             inference ShopDB reaches the model only through the context window. The validation labels of the target task do choose among the
-            checkpoints of one run, and the paper says so openly <Cite kind="paper" ref="p.6 §4.1" /> <Cite kind="spec" ref="§9.1" />. It is the same
-            rule the paper applies to every method it fine-tunes: “for all methods, the best checkpoint is selected based on validation set
-            performance” <Cite kind="paper" ref="p.20 App. F.1" />. What you should not do is pick by the test metric; the replay shows how much that
-            would flatter the result.
-          </p>
-        </Callout>
-        <Callout variant="note" title="Step 0 is a candidate too">
-          <p>
-            The loop evaluates at step 0, before any update, and the best value starts at −∞. In continued pretraining (the paper’s “Yes” columns,
-            which train on the target database’s other tasks) the step-0 model is the leave-one-out checkpoint itself, so if further training never
-            improves validation, both columns report the same number. Table 1 shows exactly that for rel-f1: driver-dnf 81.2 and 81.2, driver-top3
-            89.3 and 89.3 <Cite kind="paper" ref="p.8 Table 1" /> <Cite kind="spec" ref="§9.3" />.
+            checkpoints of one run, and the paper says so openly <Cite kind="paper" ref="p.6 §4.1" /> <Cite kind="spec" ref="§9.1" />. It applies
+            the same rule to every method it fine-tunes: “for all methods, the best checkpoint is selected based on validation set performance”{' '}
+            <Cite kind="paper" ref="p.20 App. F.1" />. Choosing by the test metric would not be fair: the “best test over all evals” card at the
+            end of the replay shows how much it would flatter the result.
           </p>
         </Callout>
         <CodeRef title="What the run reports at the end" file="rt/main.py" lines="441-448" code={MAIN_BEST_441_448} />
@@ -427,7 +382,7 @@ export default function TrainingChapter() {
       {/* ───────────────────────────────────────────────────────────── 6 */}
       <Section id="results" title="Results on ShopDB" kicker="Step 6">
         <p>
-          Now the numbers. For each ShopDB forecasting task the figure places five models on one axis: an untrained network, the{' '}
+          For each ShopDB forecasting task, the figure places five models on one axis: an untrained network, the{' '}
           <Term id="entity-mean">EntityMean</Term> baseline, RT zero-shot, and RT fine-tuned on ShopDB’s Train split from a random init and from the
           pretrained checkpoint. Churn is scored by <Term id="auroc">AUROC</Term> and sales by <Term id="r2">R²</Term>, both in percent as in the
           paper’s tables.
@@ -435,145 +390,106 @@ export default function TrainingChapter() {
         <ResultsFigure results={results} />
         {results && (
           <>
-            <p>What the run shows:</p>
-            <ul>
-              <li>
-                <strong>Customer churn.</strong> Zero-shot RT reaches a test AUROC of {P(churn.zsTest)}, {cmp(churn.zsTest, churn.emTest)} EntityMean
-                ({P(churn.emTest)}) and {cmp(churn.zsTest, churn.initTest)} the untrained network ({P(churn.initTest)}). On validation the order is
-                the same: {P(churn.zsVal)} vs {P(churn.emVal)} vs {P(churn.initVal)}.
-              </li>
-              <li>
-                <strong>Product sales.</strong> Zero-shot RT reaches a test R² of {P(sales.zsTest)}, {cmp(sales.zsTest, sales.emTest)} EntityMean (
-                {P(sales.emTest)}). Pretraining alone lifts it from {P(sales.initTest)} for the untrained network, without a single gradient from
-                ShopDB. EntityMean is a strong baseline for counts that persist; the paper sees the same on two of its eight regression tasks, where
-                EntityMean beats RT (item-ltv 54.2 vs 32.5, post-votes 43.7 vs 33.9) <Cite kind="paper" ref="p.8 Table 2" />.
-              </li>
-              <li>
-                <strong>Fine-tuning.</strong> Selected on validation, fine-tuning from the pretrained checkpoint gives a test {P(churn.ftPreTest)} on
-                churn and {P(sales.ftPreTest)} on sales; from random init, {P(churn.ftUntTest)} and {P(sales.ftUntTest)}. Step 7 shows the curves
-                behind these numbers.
-              </li>
-            </ul>
-            <p>And what it does not show:</p>
-            <ul>
-              <li>
-                <strong>Small test sets.</strong> {churn.nTest ?? '…'} test seeds for churn and {sales.nTest ?? '…'} for sales. Differences of a few
-                points are within noise. The next figure makes this concrete: untrained networks, which have learned nothing, already spread
-                {story.initSpread ? ` from ${P(story.initSpread.lo)} to ${P(story.initSpread.hi)}` : ''} test AUROC on churn, depending only on their
-                random seed.
-              </li>
-              <li>
-                <strong>Simple synthetic data.</strong> Three small pretraining databases and ten tasks, against the paper’s six real databases and
-                about thirty tasks. Our numbers show that the mechanism runs end to end; they do not show how RT compares with anything.
-              </li>
-            </ul>
+            <p>
+              On customer churn, zero-shot RT reaches a test AUROC of {P(churn.zsTest)}, {cmp(churn.zsTest, churn.emTest)} EntityMean
+              ({P(churn.emTest)}) and {cmp(churn.zsTest, churn.initTest)} the untrained network ({P(churn.initTest)}). Validation gives the same
+              order: {P(churn.zsVal)} vs {P(churn.emVal)} vs {P(churn.initVal)}.
+            </p>
+            <p>
+              On product sales, zero-shot RT reaches a test R² of {P(sales.zsTest)}, {cmp(sales.zsTest, sales.emTest)} EntityMean
+              ({P(sales.emTest)}). Pretraining alone lifts it from {P(sales.initTest)} for the untrained network, without a single gradient from
+              ShopDB. EntityMean is a strong baseline when counts persist over time. In the paper it beats RT on two of the eight regression tasks
+              (item-ltv 54.2 vs 32.5, post-votes 43.7 vs 33.9) <Cite kind="paper" ref="p.8 Table 2" />.
+            </p>
+            <p>
+              Fine-tuning, again selected on validation, reaches a test AUROC of {P(churn.ftPreTest)} on churn and a test R² of {P(sales.ftPreTest)}{' '}
+              on sales when it starts from the pretrained checkpoint. From random init it reaches {P(churn.ftUntTest)} and {P(sales.ftUntTest)}. Step
+              7 shows the curves behind these numbers.
+            </p>
+            <p>
+              Two limits apply to all of this. The test sets are small, {churn.nTest ?? '…'} seeds for churn and {sales.nTest ?? '…'} for sales, so
+              differences of a few points are within noise. The next figure makes this concrete: untrained networks, which have learned nothing,
+              already spread{story.initSpread ? ` from ${P(story.initSpread.lo)} to ${P(story.initSpread.hi)}` : ''} in test AUROC on churn,
+              depending only on their random seed. The data are also simple and synthetic: three small pretraining databases and ten tasks, against
+              the paper’s six real databases and about thirty tasks. Our numbers show that the mechanism runs end to end. They say nothing about how
+              RT compares with other models.
+            </p>
           </>
         )}
         <InitSpread results={results} />
         <p>
-          Why is an untrained network not at 50? Its output is a fixed but random function of the context, and the context carries information about
-          the label, past labels included. On {churn.nTest ?? 'a few dozen'} test seeds, some random functions happen to rank churners above loyal
-          customers and others below. PyTorch draws every initial weight and bias from an interval symmetric around zero{' '}
-          <Cite kind="spec" ref="§7.4" />, so a network and its twin with the boolean decoder’s weights and bias negated are equally likely. The twin
-          outputs the opposite logit for every seed and ranks every pair the other way round (AUROC 100 − x), so the expected AUROC over
-          initializations is 50. Any single network is one draw from a wide distribution.
+          Why isn’t an untrained network at 50? Its output is a fixed but random function of the context, and the context carries information about
+          the label, past labels included. On only {churn.nTest ?? 'a few dozen'} test seeds, some random functions happen to rank churners above
+          loyal customers and others below. The average over initializations is still 50. PyTorch draws every initial weight and bias symmetrically
+          around zero <Cite kind="spec" ref="§7.4" />, so a network and its twin with the boolean decoder’s weights and bias negated are equally
+          likely. The twin outputs the opposite logit for every seed and ranks every pair the other way round (AUROC 100 − x). Any single network
+          is one draw from a wide distribution.
         </p>
         <p>
-          The metrics average over every seed. To see what training changes for one prediction, here is the running example’s context passed through
-          the three checkpoints of its task:
+          The metrics average over every seed. The next figure follows a single prediction instead: the running example’s context, passed through
+          the three checkpoints of its task.
         </p>
         <LiveCheckpoints results={results} />
         <p>
-          Every number in this section can be recomputed in your browser: the panel below rebuilds each seed’s context with the engine, runs the
-          exported weights, and computes the metric as the code does, AUROC on raw logits and R² in z-space{' '}
+          You can recompute every number in this section in your browser. The panel below rebuilds each seed’s context with the engine, runs the
+          exported weights and computes the metric the way the code does: AUROC on raw logits, R² in z-space{' '}
           <Cite kind="code" ref="rt/main.py:328-337" />.
         </p>
         <ReproducePanel results={results} />
-        <Callout variant="note" title="How the paper’s evaluation differs">
-          <p>
-            The official loop evaluates at most 40 batches per GPU, a fixed subset of at most 10,240 seeds per split, the same at every evaluation{' '}
-            <Cite kind="code" ref="rt/main.py:299-300" /> <Cite kind="spec" ref="§8.6" />. Under 8-GPU training, the last batch of a small split can
-            also count some seeds twice <Cite kind="spec" ref="§10 #18" />. Our splits are tiny and evaluated in one process, so every seed counts
-            exactly once.
-          </p>
-        </Callout>
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 7 */}
       <Section id="finetune" title="Fine-tuning: pretrained vs random init" kicker="Step 7">
         <p>
-          Fine-tuning trains on the target task itself: its Train split only, with the same objective, a constant learning rate of 10⁻⁴ and no weight
-          decay <Cite kind="code" ref="scripts/example_finetune.py:18-28" />. Checkpoints store only the model weights, so a new AdamW starts with
-          empty moments and no warmup <Cite kind="code" ref="rt/main.py:177-195" /> <Cite kind="spec" ref="§9.2" />. The paper compares starting from
-          the pretrained checkpoint with starting from random weights, which it calls untrained RT, and plots both against fine-tuning steps on a log
+          Fine-tuning trains on the target task itself, on its Train split only, with the same objective, a constant learning rate of 10⁻⁴ and no
+          weight decay <Cite kind="code" ref="scripts/example_finetune.py:18-28" />. Only the weights carry over from the checkpoint: AdamW starts
+          fresh, with no warmup <Cite kind="code" ref="rt/main.py:177-195" /> <Cite kind="spec" ref="§9.2" />. The paper compares starting from the
+          pretrained checkpoint with starting from random weights (which it calls untrained RT) and plots both against fine-tuning steps on a log
           axis <Cite kind="paper" ref="p.7 §4.2" />.
         </p>
         <FineTuneFigure curves={curves} />
         {sales.ft && churn.ft && (
-          <ul>
-            <li>
-              <strong>A head start.</strong> The pretrained run starts where zero-shot ends (sales test R² {P(sales.ft.step0)}), the random init at{' '}
-              {P(sales.ft.untStep0)}. The paper’s Figure 3 shows the same kind of gap: its pretrained curves start at the labeled zero-shot points,
-              70.8 AUROC and 29.0 R², and the untrained ones start below the bottom of its axes <Cite kind="paper" ref="p.7 Fig. 3" />.
-            </li>
+          <>
+            <p>
+              The pretrained run has a head start. It begins where zero-shot ends (sales test R² {P(sales.ft.step0)}), while the random init begins
+              at {P(sales.ft.untStep0)}. The paper’s Figure 3 shows the same kind of gap: its untrained curves start below the bottom of the axes{' '}
+              <Cite kind="paper" ref="p.7 Fig. 3" />.
+            </p>
             {sales.ft.earlyMin !== undefined && sales.ft.step0 !== undefined && sales.ft.earlyMin < sales.ft.step0 && (
-              <li>
-                <strong>A dip first.</strong> In its first updates the pretrained sales run drops from {P(sales.ft.step0)} to {P(sales.ft.earlyMin)}{' '}
-                (step {int(sales.ft.earlyMinStep)}) before it climbs. The paper sees “a small dip in performance in the very early steps, which we
-                conjecture might be due to the model transitioning from a zero-shot, in-context-labels- and semantics-driven regime to a data-driven
-                prediction regime” <Cite kind="paper" ref="p.7 §4.2" />.
-              </li>
+              <p>
+                In its first updates the pretrained sales run dips, from {P(sales.ft.step0)} to {P(sales.ft.earlyMin)} at step{' '}
+                {int(sales.ft.earlyMinStep)}, before it climbs. The paper sees “a small dip in performance in the very early steps, which we conjecture
+                might be due to the model transitioning from a zero-shot, in-context-labels- and semantics-driven regime to a data-driven prediction
+                regime” <Cite kind="paper" ref="p.7 §4.2" />.
+              </p>
             )}
             {churn.ft.peak !== undefined && churn.ft.final !== undefined && churn.ft.final < churn.ft.peak && (
-              <li>
-                <strong>Overfitting.</strong> ShopDB’s churn Train split has {int(story.trainRowsChurn)} rows, and{' '}
-                {int(curves?.runs['finetune-churn-pretrained']?.maxSteps)} steps of 32 contexts revisit each about {fx(story.ftEpochs, 0)} times.
-                Switch to “training loss”: it keeps falling, while the test AUROC peaks at {P(churn.ft.peak)} (step {int(churn.ft.peakStep)}) and ends
-                at {P(churn.ft.final)}. Validation selection keeps step {int(churn.ftPreStep)}, with test {P(churn.ftPreTest)},{' '}
-                {cmp(churn.ftPreTest, churn.zsTest)} zero-shot ({P(churn.zsTest)}). The paper’s Figure 3 averages only tasks “which do not show
-                overfitting” <Cite kind="paper" ref="p.7 Fig. 3" />; its per-task curves for the small rel-f1 tasks bend down the same way{' '}
-                <Cite kind="paper" ref="p.20 Fig. 7" />.
-              </li>
+              <p>
+                Train long enough and fine-tuning overfits. ShopDB’s churn Train split has {int(story.trainRowsChurn)} rows, and{' '}
+                {int(curves?.runs['finetune-churn-pretrained']?.maxSteps)} steps of 32 contexts revisit each one about {fx(story.ftEpochs, 0)} times.
+                Switch the figure to “training loss”: the loss keeps falling, while the test AUROC peaks at {P(churn.ft.peak)} (step{' '}
+                {int(churn.ft.peakStep)}) and ends at {P(churn.ft.final)}. Validation selection keeps step {int(churn.ftPreStep)}, with a test AUROC
+                of {P(churn.ftPreTest)}, {cmp(churn.ftPreTest, churn.zsTest)} zero-shot ({P(churn.zsTest)}). The paper’s per-task curves for the small
+                rel-f1 tasks bend down the same way <Cite kind="paper" ref="p.20 Fig. 7" />.
+              </p>
             )}
-          </ul>
+          </>
         )}
         <CodeRef
           title="The fine-tuning script"
           file="scripts/example_finetune.py"
           lines="1-37"
           code={FINETUNE_SCRIPT_1_37}
-          highlightLines={[10, 12, 14, 18, 24, 25, 26, 28]}
+          highlightLines={[12, 18, 19, 24, 25, 26, 28]}
+          note="It loads a pretrained checkpoint, then trains and evaluates on a single target task, here rel-amazon’s user-churn."
         />
-        <Callout
-          variant="paper-vs-code"
-          title="The released fine-tuning script cannot draw Figure 3 as is"
-          paper={
-            <>
-              “we fine-tune for 33k steps”, best checkpoint on validation, curves on a log axis from step 0 <Cite kind="paper" ref="p.6 §4.1" />{' '}
-              <Cite kind="paper" ref="p.7 Fig. 3" />
-            </>
-          }
-          code={
-            <>
-              32,769 steps; <code>eval_pow2=False</code>, so no evaluations at steps 1, 2, 4, …; <code>save_ckpt_dir=None</code>, so nothing is saved;
-              and <code>load_ckpt_path</code> names a file no script writes <Cite kind="code" ref="scripts/example_finetune.py:10-14" />
-            </>
-          }
-          verdict="This site follows the paper’s text: fine-tuning starts from the task’s pretrained checkpoint and evaluates at powers of two (spec §10 #21, §9.2)."
-        >
-          <p>
-            Which checkpoint the paper actually fine-tuned from is not certain: an earlier version of the script started from the
-            continued-pretraining checkpoint. Figure 3’s caption, “Target datasets and tasks are unseen during pretraining”, points to the
-            leave-one-out checkpoint <Cite kind="spec" ref="§9.2" />.
-          </p>
-        </Callout>
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 8 */}
       <Section id="hyperparameters" title="Hyperparameters, paper vs this site" kicker="Step 8">
         <p>
-          The table lists every training setting of the paper-era scripts next to ours. Only sizes, data, precision and hardware differ; the
-          optimizer, schedule, clipping, objective and selection rule are the same code paths <Cite kind="spec" ref="§9.2" />.
+          The table puts every training setting of the paper’s scripts next to ours. Only sizes, data, precision and hardware differ. The
+          optimizer, schedule, clipping, objective and selection rule run the same code <Cite kind="spec" ref="§9.2" />.
         </p>
         <HyperTable curves={curves} results={results} dataset={dataset} />
         <ScaleNote />
@@ -623,23 +539,24 @@ export default function TrainingChapter() {
                 'Selection by target-task validation labels is stated in the paper (p.6). It is a mild use of labels, but no gradient comes from the target database.',
             },
             {
-              prompt: 'What learning rate does the paper-era code use for the very first pretraining step?',
+              prompt: 'What does fine-tuning change compared with pretraining?',
               choices: [
                 {
-                  text: '0, as the paper says (“warmup from zero”)',
-                  why: 'OneCycleLR starts at max_lr / div_factor, and the default div_factor is 25.',
-                },
-                {
-                  text: '4·10⁻⁵',
+                  text: 'The rows it trains on: only the target task’s Train split. The masked-cell loss stays the same.',
                   correct: true,
-                  why: '10⁻³ / 25 = 4·10⁻⁵, rising linearly to 10⁻³ at 20% of the steps.',
+                  why: 'The paper uses one formulation for both stages (p.6 §3.3). Fine-tuning swaps the seeds and uses a constant, smaller learning rate.',
                 },
                 {
-                  text: '10⁻³',
-                  why: 'That is the peak, reached only after 20% of the steps.',
+                  text: 'The objective: a new prediction head replaces the decoders and gets its own loss',
+                  why: 'There is no new head. The same decoders and the same per-type losses (BCE, Huber) are used.',
+                },
+                {
+                  text: 'Nothing: fine-tuning just continues pretraining on the same task list',
+                  why: 'Fine-tuning trains on the target task, which pretraining never saw.',
                 },
               ],
-              explanation: 'The decay likewise ends at 4·10⁻⁹, not 0, and β1 cycles between 0.95 and 0.85 (spec §10 #13).',
+              explanation:
+                'Fine-tuning keeps the decoders and the masked-cell loss. It changes the data (the target task’s Train split) and the optimizer settings (a constant 10⁻⁴, no weight decay).',
             },
           ]}
         />

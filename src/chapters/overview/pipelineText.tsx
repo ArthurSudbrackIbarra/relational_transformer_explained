@@ -126,9 +126,9 @@ export function StepText(p: StepTextProps): ReactNode {
     case 'context':
       return (
         <p className="!m-0">
-          <strong>The context.</strong> From the seed row, a bounded-width breadth-first search follows key links: parent rows first, then child rows,
-          at most w = {ctx.params.w} database rows per visited row (rows of the seed’s own task table are never subsampled), skipping child rows dated
-          after the seed <Cite kind="paper" ref="p.4 §3.1" />
+          <strong>The context.</strong> From the seed row, a breadth-first search follows key links: parent rows first, then child rows, skipping
+          child rows dated after the seed. For each visited row it keeps at most w = {ctx.params.w} children from database tables, and every
+          child from the seed’s own task table <Cite kind="paper" ref="p.4 §3.1" />
           <Cite kind="spec" ref="§4.7" />. Here it visits {plural(p.disc.length, 'row')}: {visitedBreakdown(live)}, and stops when the window holds L
           = {ctx.params.L} cells. Each line joins a row to the row that led to it: solid when the search went up a foreign key to a parent (F→P),
           dashed when it went down to a child (P→F).
@@ -277,23 +277,23 @@ export function StepText(p: StepTextProps): ReactNode {
       if (!pred) return <p className="!m-0">Loading the weights and the text embeddings…</p>;
       return (
         <p className="!m-0">
-          <strong>The prediction.</strong> After {p.nBlocks} blocks and a final RMSNorm, every decoder runs at every position, and only the masked
-          cell’s output is read <Cite kind="code" ref="rt/model.py:229-239" />
+          <strong>The prediction.</strong> After {p.nBlocks} blocks and a final RMSNorm, the decoder for the target’s type turns the masked cell’s
+          final vector into a number <Cite kind="code" ref="rt/model.py:229-239" />
           <Cite kind="spec" ref="§8.3" />.{' '}
           {pred.taskKind === 'binary' ? (
             <>
               The boolean decoder gives a logit of {formatNumber(pred.output, 3)}, and σ turns it into P(
-              {task.targetCol}) = {formatPct(pred.probability ?? NaN)}. The true label, stored in the token but gated out of the input, is{' '}
+              {task.targetCol}) = {formatPct(pred.probability ?? NaN)}. The true label, hidden from the model, is{' '}
               <code>{String(pred.label.raw)}</code>.
             </>
           ) : (
             <>
               The number decoder gives a z-score of {formatNumber(pred.output, 3)}, which the Train statistics turn back into{' '}
-              {formatNumber(pred.value ?? NaN, 2)}. The true value, gated out of the input, is {formatNumber(Number(pred.label.raw), 2)}.
+              {formatNumber(pred.value ?? NaN, 2)}. The true value, hidden from the model, is {formatNumber(Number(pred.label.raw), 2)}.
             </>
           )}{' '}
           {live.assets.weightsKind === 'trained' && db.name === 'shop'
-            ? 'No weight was ever trained on ShopDB: this is a zero-shot prediction.'
+            ? 'No weight was ever trained on ShopDB, so this is a zero-shot prediction.'
             : live.assets.weightsKind === 'init'
               ? 'These weights are untrained, so the number means nothing yet.'
               : ''}

@@ -21,6 +21,7 @@ const STAGE: Record<string, { label: string; icon: LucideIcon }> = {
   attention: { label: 'Attention', icon: Network },
   block: { label: 'Attention', icon: Network },
   decoding: { label: 'Prediction', icon: Gauge },
+  'end-to-end': { label: 'all stages', icon: MapPin },
 };
 
 export function CourseMap({ current }: { current: string }) {

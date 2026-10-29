@@ -6,7 +6,6 @@
  *    mask (live context; checked on every pair).
  *  - ZeroUpdateCheck: in the live forward pass, the neighbor sublayer's update is exactly 0 wherever the
  *    neighbor mask row is empty (spec §6.1).
- *  - ColumnTableCheck: the extra table test of the column mask changes no pair (spec §6.2, §10 #12).
  */
 import { FlipHorizontal2 } from 'lucide-react';
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react';
@@ -17,7 +16,7 @@ import { buildMasks } from '@/engine/masks';
 import { useForward } from '@/state/hooks';
 import { FitMask } from './FitMask';
 import { TableKey } from './FourMasks';
-import { countRow, diffCount, int, masksWithoutPad, parentPart, sameColumnOtherTable, transpose } from './maskUtils';
+import { countRow, diffCount, int, masksWithoutPad, parentPart, transpose } from './maskUtils';
 import { TOY_L, TOY_REAL, TOY_SHAPE, TOY_SLOTS, TOY_TOKENS, toyRowName } from './toy';
 import type { LiveMasks } from './useLiveMasks';
 
@@ -52,7 +51,7 @@ export function PaddingDemo() {
   return (
     <Figure
       wide
-      title="Why the masks are ANDed with “not padding” (toy context of spec §6.3, 19 cells + 5 padding)"
+      title="Why the masks are ANDed with “not padding” (the toy context of Step 7: 19 cells and 5 padding tokens)"
       controls={
         <Segmented
           label="Mask"
@@ -111,7 +110,7 @@ export function PaddingDemo() {
         <strong className="text-ink">{int(changed)} pairs</strong> would change.{' '}
         {layer === 'feat'
           ? `Every real cell whose parent list has an empty (−1) slot would match the padding keys (node −1) as if they were a parent, and the ${TOY_L - TOY_REAL} padding tokens would all share one “row”.`
-          : `Every padding query (node −1) would be found in the parent list of every key that has an empty (−1) slot, which here is every token, since no row has five parents; so it would “see” those tokens as its children.`}
+          : `Every key with an empty (−1) slot in its parent list would count the padding queries (node −1) as parents. No row here has five parents, so every token has such a slot, and each padding query would “see” every token as its child.`}
       </p>
     </Figure>
   );
@@ -301,15 +300,5 @@ export function ZeroUpdateCheck({ live }: { live: LiveMasks }) {
       )}
       <ScaleNote inline />
     </div>
-  );
-}
-
-/** Live check: requiring the same table on top of the same column id changes no pair. */
-export function ColumnTableCheck({ live }: { live: LiveMasks }) {
-  const n = useMemo(() => sameColumnOtherTable(live.ctx.tokens), [live.ctx]);
-  return (
-    <StatusBadge status={n === 0 ? 'good' : 'warning'} className="!rounded-lg">
-      Live context: {n === 0 ? 'no pair' : `${int(n)} pairs`} with the same column id but a different table id
-    </StatusBadge>
   );
 }

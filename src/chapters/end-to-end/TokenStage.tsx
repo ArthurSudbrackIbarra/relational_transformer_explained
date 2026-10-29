@@ -22,10 +22,10 @@ const ROADS: { title: string; to: string; fields: string[]; note: string }[] = [
     note: 'col_name_values and text_values are 384-wide MiniLM rows, written from col_name_idxs and the text index.',
   },
   {
-    title: 'Not read by model.py',
-    to: 'the evaluation read-out, or nothing',
+    title: 'Not read by the model',
+    to: 'the read-out, or nothing',
     fields: ['is_targets', 'is_task_nodes', 'class_value_idxs'],
-    note: 'is_targets only picks the prediction out after the forward pass.',
+    note: 'is_targets picks the prediction out after the forward pass; the other two go unused.',
   },
 ];
 

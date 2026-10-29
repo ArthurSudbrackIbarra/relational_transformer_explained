@@ -10,7 +10,6 @@
  *  - official code excerpts (CodeRef) are verbatim copies from the paper-era snapshot (./snippets.ts).
  * Spec: research/RT_TECHNICAL_SPEC.md §3.6, §3.7, §4.2, §6.1, §7.2, §7.3, §9, §10 (#16, #20), §13, §14.
  */
-import { Link } from 'react-router-dom';
 import {
   Callout,
   ChapterHeader,
@@ -40,7 +39,6 @@ import {
   MAIN_BF16_186_187,
   MODEL_ATTN_FWD_30_47,
   MODEL_BLOCK_NORMS_71_73,
-  MODEL_FLEX_IMPORT_14_17,
   MODEL_MAKE_BLOCK_MASK_89_101,
   README_BIBTEX_155_160,
 } from './snippets';
@@ -78,7 +76,7 @@ function EngineAttentionCode() {
   const b = data ? findBlock(data, /^\s+for \(let qi = 0; qi < S; qi\+\+\) \{/, /row\[p - a\] \*= invZ;/) : null;
   return (
     <SiteCode
-      title="The browser engine: a softmax over each query’s allowed keys (the CSR list keys[start[q]..start[q+1]])"
+      title="The browser engine: a softmax over each query’s allowed keys, listed in keys[start[q]..start[q+1]]"
       file="src/engine/model/ops.ts"
       start={b?.start}
       code={data ? (b?.code ?? '// loop not found') : null}
@@ -94,8 +92,8 @@ export default function AboutChapter() {
         slug="about"
         lede={
           <>
-            Every figure in this course runs a real, miniature Relational Transformer in your browser. This last chapter opens the workshop: how the
-            pieces were built, how each one was checked against the paper-era code, and what differs from the paper.
+            Every figure in this course runs a real, miniature Relational Transformer in your browser. This last chapter shows how it was built,
+            how each piece was checked against the paper-era code, and where the site differs from the paper.
           </>
         }
         learn={[
@@ -112,8 +110,8 @@ export default function AboutChapter() {
       {/* ───────────────────────────────────────────────────────────── 1 */}
       <Section id="pipeline" title="Two halves: built once, run on every change" kicker="The pipeline">
         <p>
-          The site has two halves. The <strong>offline half</strong> ran once, on a CPU. It generated four small databases, embedded every string
-          with the frozen text encoder, trained the model and checked it. Its results are plain files in{' '}
+          The <strong>offline half</strong> of the site ran once, on a CPU. It generated four small databases, embedded every string with the
+          frozen text encoder, then trained the model and checked it. Its results are plain files in{' '}
           <span className="font-mono text-[16px]">public/data/</span>.
         </p>
         <p>
@@ -122,9 +120,9 @@ export default function AboutChapter() {
           anything.
         </p>
         <p>
-          One decision holds the two halves together: the same TypeScript preprocessing and sampler produce the training contexts offline and the
-          live context here. The model was trained on exactly the kind of token sequence the chapters display, and there is no second sampler that
-          could drift from the first. Click a stage, or press play, to see what it does and its numbers right now.
+          Both halves use the same TypeScript preprocessing and sampler. That code built the training contexts offline, and it builds the live
+          context here. So the model was trained on the same kind of token sequence the chapters show, and there is no second sampler that could
+          drift from the first. Click a stage, or press play, to see what it does and what its numbers are right now.
         </p>
         <Figure
           wide
@@ -149,8 +147,8 @@ export default function AboutChapter() {
         <ul>
           <li>
             The <strong>official class</strong> <span className="font-mono text-[16px]">RelationalTransformer</span> from{' '}
-            <span className="font-mono text-[16px]">rt/model.py</span> at the paper-era commit, run unmodified apart from one pinned setting (RMSNorm ε,
-            below). It only ever serves as the reference.
+            <span className="font-mono text-[16px]">rt/model.py</span> at the paper-era commit, run unmodified except for one pinned setting (RMSNorm ε,
+            below). It is used only as the reference.
           </li>
           <li>
             A <strong>PyTorch port</strong> with the same module and parameter names, so a checkpoint loads into either class. It swaps FlexAttention
@@ -165,9 +163,9 @@ export default function AboutChapter() {
         </Figure>
         <p>
           Why are the differences not exactly zero? Every value is a float32, which keeps about seven significant digits. The implementations add the
-          same products in different orders (blocked matrix kernels in PyTorch, plain loops in TypeScript), and floating-point addition is not
-          associative, so the last bit or two can differ. A difference near 10⁻⁶ on activations of size one to ten is a few float32 steps. A real
-          bug, such as a wrong mask entry or a missing norm, moves values by 10⁻² or more.
+          same products in different orders (blocked matrix kernels in PyTorch, plain loops in TypeScript). Floating-point addition is not
+          associative, so the last bit or two can differ. A difference near 10⁻⁶ on activations of size one to ten is a few float32 steps, while a
+          real bug, such as a wrong mask entry or a missing norm, moves values by 10⁻² or more.
         </p>
 
         <h3>Run the parity test in your browser</h3>
@@ -192,7 +190,7 @@ export default function AboutChapter() {
 
         <h3>Every checkpoint against the official class</h3>
         <p>
-          The chain only holds if the port equals the official class. <span className="font-mono text-[16px]">parity.py</span> loads each exported
+          The chain holds only if the port equals the official class. <span className="font-mono text-[16px]">parity.py</span> loads each exported
           checkpoint into both, runs them on the same batch of real contexts from all four databases, and compares every decoder output and the
           loss. The official class runs its compiled FlexAttention on CPU.
         </p>
@@ -204,11 +202,11 @@ export default function AboutChapter() {
         </Figure>
         <Callout variant="insight" title="The one setting that had to be pinned: RMSNorm ε">
           <p>
-            The official block creates its norms without an ε <Cite kind="code" ref="rt/model.py:71-73" />. PyTorch then uses the machine epsilon of
-            the input’s dtype. The paper trained in bfloat16 <Cite kind="code" ref="rt/main.py:186-187" />, where that epsilon is 2⁻⁷ = 0.0078125 under
-            the pinned torch 2.6.0; in float32 it would be about 1.2 × 10⁻⁷ <Cite kind="spec" ref="§7.2" />. Running the official class in float32
-            unchanged would therefore not reproduce the paper environment. <span className="font-mono text-[16px]">parity.py</span> pins it to 2⁻⁷,
-            and the port and the browser engine use 2⁻⁷ as well.
+            The official block creates its norms without an ε <Cite kind="code" ref="rt/model.py:71-73" />, so PyTorch falls back to the machine
+            epsilon of the input’s dtype. The paper trained in bfloat16 <Cite kind="code" ref="rt/main.py:186-187" />, where that epsilon is 2⁻⁷ =
+            0.0078125; in float32 it would be about 1.2 × 10⁻⁷ <Cite kind="spec" ref="§7.2" />. Run unchanged in float32, the official class would
+            not match the paper’s setup, so <span className="font-mono text-[16px]">parity.py</span> pins ε to 2⁻⁷. The port and the browser engine
+            use 2⁻⁷ as well.
           </p>
           <CodeRef title="No eps argument: the default depends on the dtype" file="rt/model.py" lines="71-73" code={MODEL_BLOCK_NORMS_71_73} />
           <CodeRef title="The whole model is cast to bfloat16 before training" file="rt/main.py" lines="186-187" code={MAIN_BF16_186_187} />
@@ -248,9 +246,8 @@ export default function AboutChapter() {
         </Figure>
         <p>
           Then reviewers with three lenses (model, data, training) tried to break it. Each proposed correction was re-checked against the code, the
-          repository’s git history, the arXiv versions of the paper and the PyTorch 2.6.0 source, and the outcome was logged in §14{' '}
-          <Cite kind="spec" ref="§14" />. The questions that could not be settled are listed in §13 instead of being guessed{' '}
-          <Cite kind="spec" ref="§13" />.
+          paper and the PyTorch source, and the outcome was logged in §14 <Cite kind="spec" ref="§14" />. Questions that could not be settled are
+          listed as open in §13 rather than guessed <Cite kind="spec" ref="§13" />.
         </p>
         <Figure
           wide
@@ -260,9 +257,8 @@ export default function AboutChapter() {
           <VerificationLog />
         </Figure>
         <p>
-          The small scripts behind the “verified locally” marks are kept in <span className="font-mono text-[16px]">research/specchecks/</span>: for
-          example <span className="font-mono text-[16px]">onecycle.py</span> prints the exact learning-rate schedule <Cite kind="spec" ref="§9.2" />,{' '}
-          <span className="font-mono text-[16px]">check1.py</span> tests RMSNorm’s default ε, FlexAttention on fully masked rows and bfloat16 rounding,
+          The small scripts behind the spec’s “verified locally” marks are in <span className="font-mono text-[16px]">research/specchecks/</span>. For
+          example, <span className="font-mono text-[16px]">onecycle.py</span> prints the exact learning-rate schedule <Cite kind="spec" ref="§9.2" />,
           and <span className="font-mono text-[16px]">toy_rt_w1.mjs</span> produced the worked example of the masks chapter{' '}
           <Cite kind="spec" ref="§6.3" />.
         </p>
@@ -272,19 +268,19 @@ export default function AboutChapter() {
       <Section id="differences" title="What is scaled down, and what is different" kicker="Honest differences">
         <p>
           Scale is the only thing this site changes on purpose. Every operation, from the preprocessing formulas to the decoders, follows the
-          paper-era code. A handful of other differences come with running in a browser on a laptop. For each one, the question that matters is
-          whether it changes the mathematics or only the rounding.
+          paper-era code. A few other differences come from running in a browser on a laptop. The badge on each card says how far a difference
+          reaches: the same operations at a smaller size, only the rounding, different random draws, or different learned numbers.
         </p>
         <ScaleNote />
         <DifferenceCards />
 
         <h3>One function, three kernels</h3>
         <p>
-          Attention is the place where the three implementations look most different. All three compute the masked softmax of the paper,{' '}
+          Attention is where the three implementations look most different. All three compute the paper’s masked softmax,{' '}
           softmax(Mask(QKᵀ; M)/√d_head)·V with −∞ where the mask is 0 <Cite kind="paper" ref="p.5 §3.2" />. FlexAttention receives the boolean mask as a{' '}
-          <em>block mask</em>, skips key blocks that hold no allowed pair, and treats the remaining masked scores as −∞{' '}
-          <Cite kind="code" ref="rt/model.py:89-101" />. The port computes all S × S scores and fills the masked ones with −∞. The browser engine keeps,
-          for each query, the list of its allowed keys and computes the softmax and the weighted sum over that list only.
+          <em>block mask</em> and treats masked scores as −∞ <Cite kind="code" ref="rt/model.py:89-101" />. The port computes all S × S scores and
+          fills the masked ones with −∞. The browser engine keeps a list of allowed keys for each query and computes the softmax and the weighted sum
+          over that list only.
         </p>
         <CodeRef
           title="Official: every layer calls the compiled flex_attention with its block mask"
@@ -292,17 +288,15 @@ export default function AboutChapter() {
           lines="30-47"
           code={MODEL_ATTN_FWD_30_47}
           highlightLines={[43]}
-          note="The SDPA branch (lines 39-41) is never taken: every layer receives a mask (spec §6.1)."
         />
         <CodeRef title="Official: a dense boolean mask becomes a block mask, shared by all heads (H=None)" file="rt/model.py" lines="89-101" code={MODEL_MAKE_BLOCK_MASK_89_101} />
-        <CodeRef title="Official: flex_attention is compiled once at import" file="rt/model.py" lines="14-17" code={MODEL_FLEX_IMPORT_14_17} />
         <PortAttentionCode />
         <EngineAttentionCode />
         <p>
-          One case needs care: a query with no allowed key. It happens in the neighbor layer for every cell whose row has no child rows in the
-          context. A naive dense softmax divides 0 by 0 there and returns NaN. FlexAttention’s compiled kernel replaces the zero sum by 1 and outputs
-          0, the port zeroes such rows explicitly, and the engine skips them <Cite kind="spec" ref="§6.1" />. The figure recomputes one sublayer of
-          the live forward pass the dense way and compares it with the engine’s weights.
+          Some queries have no allowed key at all. In the neighbor layer, this happens to every cell whose row has no child rows in the context. A
+          plain dense softmax would divide 0 by 0 there and return NaN, but all three implementations output 0: FlexAttention’s compiled kernel
+          replaces the zero sum by 1, the port zeroes these rows explicitly, and the engine skips them <Cite kind="spec" ref="§6.1" />. The figure
+          recomputes one sublayer of the live forward pass the dense way and compares its weights with the engine’s, query by query.
         </p>
         <Figure
           wide
@@ -310,9 +304,9 @@ export default function AboutChapter() {
           caption={
             <>
               Each strip has one cell per key position of the live context (gray = padding). Raw scores use the diverging scale (blue negative, red
-              positive). Weights use the blue sequential scale relative to the row’s largest weight; a weight of exactly 0 stays blank and red marks
-              NaN. Hover a cell to read its values. The arrows step through the query positions. This uses the global context, so it follows your
-              simulation settings.
+              positive). Weights use the blue sequential scale, relative to the row’s largest weight; a weight of exactly 0 stays blank, and red
+              marks NaN. Hover a cell to read its values, and use the arrows to step through the query positions. The figure uses the live context,
+              so it follows your simulation settings.
             </>
           }
         >
@@ -322,67 +316,27 @@ export default function AboutChapter() {
         <h3>What the random numbers decide</h3>
         <p>
           The official sampler seeds Rust’s standard generator with epoch + seed row + seed <Cite kind="code" ref="rustler/src/fly.rs:371-375" />.
-          This site uses a different generator with the same seed formula, drawing at the same two points of the algorithm and with the same ranges.
-          The spec notes that bit-exact parity with Rust is not needed: any seeded generator gives the same distribution over contexts{' '}
-          <Cite kind="spec" ref="§4.2" /> <Cite kind="spec" ref="§13" />. What does change is which rows a given draw selects. Here is where the
-          draws happened in the live context.
+          This site uses a different generator with the same seed formula, and it draws at the same two points of the algorithm, with the same
+          ranges. As the spec notes, bit-exact parity with Rust is not needed: any seeded generator gives the same distribution over contexts{' '}
+          <Cite kind="spec" ref="§4.2" /> <Cite kind="spec" ref="§13" />. What changes is which rows a given draw selects. The figure shows where the
+          sampler drew in the live context.
         </p>
         <CodeRef title="The per-context generator of the official sampler" file="rustler/src/fly.rs" lines="371-375" code={FLY_RNG_371_375} />
         <Figure wide title="Where the sampler used random numbers in the live context">
           <RandomnessAudit />
         </Figure>
-        <Callout
-          variant="paper-vs-code"
-          title="Precision"
-          paper={
-            <>
-              One pretraining run “takes around 2 hours … on 8×A100 GPUs at BFloat16 precision” <Cite kind="paper" ref="p.6 §4.1" />.
-            </>
-          }
-          code={
-            <>
-              Pure bfloat16: the model is cast to bf16, with no autocast and no float32 master weights, so the optimizer state is bf16 too; RMSNorm’s
-              ε is therefore 2⁻⁷ <Cite kind="code" ref="rt/main.py:186-187" /> <Cite kind="spec" ref="§9.2" />. Batch values are rounded to bf16 when
-              the batch is built <Cite kind="spec" ref="§3.7" />.
-            </>
-          }
-          verdict={
-            <>
-              This site runs float32 everywhere and pins ε to 2⁻⁷. The preprocessing chapter shows the bf16 rounding of real cell values (
-              <Link to="/preprocessing">chapter 4</Link>).
-            </>
-          }
-        />
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 4 */}
       <Section id="sources" title="Sources and licenses" kicker="Credits">
         <p>
-          The site depends on three outside sources: the paper, the official code and the text encoder. For each one, the license below is only what
-          could be checked directly: the paper’s PDF metadata, the official repository’s git history, and the encoder’s model card.
+          The site depends on three outside sources: the paper, the official code and the text encoder. Each license below states only what could
+          be checked directly, in the paper’s PDF metadata, the official repository’s git history or the encoder’s model card.
         </p>
         <SourceCards />
-        <Callout
-          variant="paper-vs-code"
-          title="Which MiniLM?"
-          paper={
-            <>
-              “we use the MiniLMv2 [41] model from SentenceTransformers [33], which produces 384 dimensional embeddings”{' '}
-              <Cite kind="paper" ref="p.6 §4.1" />.
-            </>
-          }
-          code={
-            <>
-              Loads <span className="font-mono text-[15px]">sentence-transformers/all-MiniLM-L12-v2</span>{' '}
-              <Cite kind="code" ref="rt/embed.py:14-15" /> <Cite kind="code" ref="rt/embed.py:38" />. The “v2” is the sentence-transformers release
-              name, not MiniLMv2 <Cite kind="spec" ref="§10" />.
-            </>
-          }
-          verdict={<>This site uses the model the code loads, all-MiniLM-L12-v2, with mean pooling and L2 normalization.</>}
-        />
         <p>
-          This course is an independent teaching re-implementation. It is not an official release of the paper’s authors, and its small model is not
-          one of their checkpoints. If you use RT in your own work, cite the paper; the official repository gives this entry:
+          This course is an independent teaching re-implementation. It is not an official release by the paper’s authors, and its small model is not
+          one of their checkpoints. If you use RT in your own work, cite the paper. The official repository gives this entry:
         </p>
         <CodeRef title="Citation entry from the official README" file="README.md" lines="155-160" code={README_BIBTEX_155_160} language="plain" defaultOpen />
         <Figure wide title="Software this site is built with" caption="Versions are read from package.json; licenses are the ones each package declares.">
@@ -393,15 +347,15 @@ export default function AboutChapter() {
       {/* ───────────────────────────────────────────────────────────── 5 */}
       <Section id="run" title="Run it, and rebuild it" kicker="Do it yourself">
         <p>
-          Running the site needs only Node. Rebuilding the offline half needs the Python environment described in{' '}
-          <span className="font-mono text-[16px]">python/README.md</span>. After any change to a generator, the training or the engine, run the whole
-          verification step again, so that <span className="font-mono text-[16px]">verification.json</span> keeps describing the files that are
-          actually shipped. That is why the checkpoint table above lists a SHA-256 for each weight file.
+          Running the site needs only Node. Rebuilding the offline half also needs the Python environment described in{' '}
+          <span className="font-mono text-[16px]">python/README.md</span>. After any change to a generator, the training or the engine, rerun the whole
+          verification step so that <span className="font-mono text-[16px]">verification.json</span> keeps describing the files that are actually
+          shipped. That is why the checkpoint table above lists a SHA-256 for each weight file.
         </p>
         <RunCommands />
         <p>
-          A good way in: change a line of <span className="font-mono text-[16px]">src/engine/masks.ts</span>, run the tests and watch the mask and
-          parity tests fail. Then revert it.
+          To watch the checks catch a bug, change a line of <span className="font-mono text-[16px]">src/engine/masks.ts</span> and run the tests: the
+          mask and parity tests fail. Then revert the change.
         </p>
       </Section>
 
@@ -426,14 +380,14 @@ export default function AboutChapter() {
               { text: 'The site changes the sampling algorithm to make it faster.', why: 'The algorithm is the same rule for rule; the cross-check confirms it.' },
             ],
             explanation:
-              'Same seed formula, same draw points and ranges, different generator (spec §4.2). The distribution over contexts is the same; individual draws are not.',
+              'The site keeps Rust’s seed formula, draw points and ranges but uses a different generator (spec §4.2). The distribution over contexts is the same, while individual draws differ.',
           },
           {
             prompt: 'Which difference from the paper changes the numbers the model learns, not only their rounding?',
             choices: [
               {
                 text: 'float32 instead of bfloat16, with the same RMSNorm ε',
-                why: 'More precision changes how each result is rounded, not what is computed. Same weights in, the same outputs to within rounding.',
+                why: 'More precision changes only how each result is rounded. The same weights give the same outputs to within rounding.',
               },
               { text: 'Dense masked attention instead of FlexAttention', why: 'Same function; the parity checks agree to about 10⁻⁶.' },
               { text: 'Four synthetic databases and a much shorter training run', correct: true },

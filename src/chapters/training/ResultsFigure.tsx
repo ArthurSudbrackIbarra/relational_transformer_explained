@@ -6,7 +6,7 @@
  * and a "re-run it in your browser" panel that recomputes each number with the live engine.
  */
 import { Check, Play, X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   Button,
@@ -18,7 +18,6 @@ import {
 } from "@/components";
 import { useElementSize } from "@/components/viz/useSize";
 import type { CheckpointName } from "@/engine/pipeline";
-import { loadPublicJson } from "@/engine/model/io";
 import { catVar } from "@/styles/palette";
 import { fx, int, pct, sci, SHOP_FORECAST, type Results } from "./data";
 import { useBrowserEval } from "./evaluate";
@@ -384,7 +383,7 @@ function PaperContext() {
       T2_MEAN.entityMean.toFixed(1),
     ],
     [
-      "RT zero-shot, target DB unseen, “No” (Tables 1, 2)",
+      "RT zero-shot (Tables 1, 2)",
       T1_MEAN.rtNo.toFixed(1),
       T2_MEAN.rtNo.toFixed(1),
     ],
@@ -407,8 +406,9 @@ function PaperContext() {
         <Cite kind="paper" ref="p.21 Table 10" />
       </div>
       <div className="text-[14.5px] text-ink-2">
-        10 classification and 8 regression tasks from 6 real databases.
-        Different data and scale: compare the ordering, not the values.
+        10 classification and 8 regression tasks from 6 real databases. The
+        data and scale differ from ours, so compare the order of the models
+        rather than the values.
       </div>
       <div className="relative mt-2 overflow-x-auto">
         <DataTable
@@ -650,20 +650,6 @@ function InitSpreadInner({
 
 export function ReproducePanel({ results }: { results: Results | null }) {
   const [taskId, setTaskId] = useState(SHOP_FORECAST[0].id);
-  // TS vs PyTorch parity, measured offline at every activation (public/data/verification.json)
-  const [parity, setParity] = useState<number | undefined>();
-  useEffect(() => {
-    let alive = true;
-    loadPublicJson<{ ts_vs_torch_max_abs_diff?: number }>(
-      "data/verification.json",
-    ).then(
-      (v) => alive && setParity(v.ts_vs_torch_max_abs_diff),
-      () => undefined,
-    );
-    return () => {
-      alive = false;
-    };
-  }, []);
   const t = SHOP_FORECAST.find((q) => q.id === taskId)!;
   const ckpts: {
     name: CheckpointName;
@@ -750,14 +736,11 @@ export function ReproducePanel({ results }: { results: Results | null }) {
         </div>
       </div>
       <figcaption className="mx-auto mt-3 max-w-[var(--prose-max)] text-[16px] leading-snug text-ink-2">
-        L = 128, w = 16 and the evaluation RNG seed 0, as in training, whatever
-        the global simulation settings say{" "}
-        <Cite kind="code" ref="rt/main.py:158-160" />. The browser runs the
-        TypeScript forward pass, which agrees with PyTorch to{" "}
-        {parity !== undefined ? `at most ${sci(parity, 1)}` : "about 10⁻⁶"} at
-        every activation of the verified contexts (
-        <Link to="/about">chapter 17</Link>), so the metrics agree to the shown
-        digits unless two seeds’ predictions are nearly tied.
+        Contexts use L = 128, w = 16 and sampling seed 0, as in training,
+        whatever the global simulation settings say{" "}
+        <Cite kind="code" ref="rt/main.py:158-160" />. The browser runs this
+        site’s TypeScript forward pass, which{" "}
+        <Link to="/about">chapter 17</Link> checks against PyTorch.
       </figcaption>
     </figure>
   );

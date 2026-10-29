@@ -155,8 +155,8 @@ export function Fig3InWords() {
       caption={
         <>
           The paper plots test AUROC and R² against fine-tuning steps + 1 on a log axis, up to 32k steps at batch size 256, averaged over the tasks
-          that do not overfit <Cite kind="paper" ref="p.7 Fig. 3" />. We do not redraw the curves: each axis carries only the numbers the paper prints
-          or states. Per-task curves are in Figs. 7 and 8 <Cite kind="paper" ref="p.20-21 App. F" />.
+          that do not overfit <Cite kind="paper" ref="p.7 Fig. 3" />. This panel does not redraw the curves; it marks only the numbers the paper
+          prints or states.
         </>
       }
     >
@@ -199,8 +199,9 @@ export function Fig3InWords() {
         <li className="flex gap-2">
           <span aria-hidden="true" className="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
           <span>
-            Fine-tuning from the pretrained checkpoint shows “a small dip in performance in the very early steps”, which the authors conjecture is a
-            transition from a zero-shot, in-context-labels- and semantics-driven regime to a data-driven one <Cite kind="paper" ref="p.7 §4.2" />.
+            Fine-tuning from the pretrained checkpoint shows “a small dip in performance in the very early steps”. The authors suspect this is the
+            model switching from what drives zero-shot prediction (in-context labels and semantics) to learning from the training data{' '}
+            <Cite kind="paper" ref="p.7 §4.2" />.
           </span>
         </li>
         <li className="flex gap-2">
@@ -274,7 +275,7 @@ export function SupervisedExplorer() {
         { id: 'mean', head: ['Mean', '', ''], cells: t.mean, mean: true },
       ]}
       markMax
-      caption={<>{t.caption} Rows in the paper’s order (sorted by training-set size). Underline: best in row, computed here.</>}
+      caption={<>{t.caption} Rows are sorted by training-set size, as in the paper. The best entry in each row is underlined.</>}
     />
   );
 
@@ -301,7 +302,7 @@ export function SupervisedExplorer() {
           “Models are trained on the full training set until convergence, with checkpoint selection based on validation performance”{' '}
           <Cite kind="paper" ref="p.21 Table 10" />. Hollow markers: untrained, or a method that cannot be pretrained. Highest printed mean:{' '}
           {METHODS[T10_METHOD[best[0].c]].label} ({f1(best[0].v as number)}), then {METHODS[T10_METHOD[best[1].c]].label} ({f1(best[1].v as number)}).
-          {metric === 'reg' && ' RelLLM prints “nan” for every regression task.'} Hover a row for the training-set size.
+          {metric === 'reg' && ' RelLLM has no regression results.'} Hover a row for the training-set size.
         </>
       }
     >

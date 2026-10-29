@@ -292,7 +292,7 @@ Each chapter: `ChapterHeader` → 3–6 `Section`s of prose and interactive figu
 15. **`playground`: Zero-shot playground and ablations.** Pick any ShopDB seed and run live. Edit in-context labels; remove self labels / other labels; shuffle column names; change L (Fig. 4 analogue); disable attention-layer types at inference.
    - Clearly label that the paper's layer ablations **retrain** the model; ours are inference-time.
    - Show the prediction and the attention change, side by side with the paper's ablation numbers (§11).
-16. **`results`: What the paper found.** Interactive charts of Tables 1, 2, 4, 5, 10, 13, 15 (from spec §11). The ranked drivers of zero-shot transfer. Limitations (§7 of paper). All paper-vs-code discrepancies (spec §10) as a browsable list. Glossary. References.
+16. **`results`: What the paper found.** Interactive charts of Tables 1, 2, 4, 5, 10, 13, 15 (from spec §11). The ranked drivers of zero-shot transfer. Limitations (§7 of paper). The few places where the code differs from the paper in a way that changes behaviour (five cards; errata, version history and number provenance are left out). Glossary. References.
 17. **`about`: How this simulation was built and verified.** Pipeline, the parity tests (TS == PyTorch port == official model.py), what is scaled down, sources and licenses.
 
 ## 7. Global state (`src/state/`)

@@ -108,7 +108,7 @@ export function TrainStatsFigure({ data }: { data: ChapterData }) {
             </table>
             {trainStats && (
               <div className="mt-1.5 text-[14.5px] text-muted">
-                Train stats: μ = {fixed(trainStats.mean, 4)}, σ = {fixed(trainStats.std, 4)} over {nf(trainStats.count)} labels (sample std). The arrows mark values copied from Train.
+                Train stats: μ = {fixed(trainStats.mean, 4)}, σ = {fixed(trainStats.std, 4)} over {nf(trainStats.count)} labels. The arrows mark values copied from Train.
               </div>
             )}
           </div>

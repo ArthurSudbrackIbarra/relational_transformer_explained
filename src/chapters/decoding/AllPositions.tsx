@@ -91,8 +91,8 @@ export function AllPositions({ lane, pos, setPos }: { lane: Lane; pos: number; s
           </>
         ) : (
           <>
-            A gray cell means “this token has this type” (sem_types == i). The loss multiplies each decoder’s per-position loss by that row AND the
-            masks row, so out of {int(S)} positions × 4 decoders, exactly one value survives: the masked target’s own type.
+            A gray cell means “this token has this type” (sem_types == i). The loss multiplies each decoder’s per-position loss by that row and by
+            the masks row, so out of {int(S)} positions × 4 decoders, exactly one value survives: the masked target’s own type.
             {ctx.numReal < S && <> Padding positions store sem_type 0, so they are gray in the number row; their masks entry is 0.</>}
           </>
         )

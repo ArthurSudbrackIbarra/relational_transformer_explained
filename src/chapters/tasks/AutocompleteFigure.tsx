@@ -200,7 +200,7 @@ export function AutocompleteFigure({
               <>
                 <dt className="text-ink-2">Leakage cells dropped from the seed row</dt>
                 <dd className="num text-right font-semibold text-ink">{drops.length - dropsOther}</dd>
-                <dt className="text-ink-2">Other reviews at exactly the seed’s timestamp (same second), which would lose it too</dt>
+                <dt className="text-ink-2">Other reviews with exactly the seed’s timestamp (they lose it too)</dt>
                 <dd className="num text-right font-semibold text-ink">
                   {sameTsOthers === 0 ? 'none' : `${sameTsOthers} (${dropsOther} cell${dropsOther === 1 ? '' : 's'} dropped here)`}
                 </dd>

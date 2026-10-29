@@ -5,14 +5,13 @@
  */
 import { RotateCcw } from 'lucide-react';
 import { memo, useMemo, useRef, useState, type PointerEvent as RPointerEvent, type KeyboardEvent } from 'react';
-import { Button, Figure, Segmented, Slider, TeX } from '@/components';
+import { Button, Figure, Slider, TeX } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import { rmsnormRow } from '@/engine/model';
 import { fmt, fmtSigned } from './live';
 
-const EPS_PAPER = 2 ** -7;
-/** float32 machine epsilon: what newer torch uses for bf16 inputs (spec §7.2). */
-const EPS_FP32 = 2 ** -23;
+/** RT's RMSNorm ε (spec §7.2). */
+const EPS = 2 ** -7;
 const X0: [number, number] = [0.5, 0.2];
 /** Half-width of the zoom inset around the origin (in data units): a few times √(2ε) for ε = 2⁻⁷. */
 const ZOOM = 0.3;
@@ -23,10 +22,9 @@ const ZOOM = 0.3;
  */
 export const RmsNormPlane = memo(function RmsNormPlane({ presetRms }: { presetRms?: number }) {
   const [x, setX] = useState<[number, number]>(X0);
-  const [epsKey, setEpsKey] = useState<'paper' | 'fp32'>('paper');
   const [g1, setG1] = useState(1);
   const [g2, setG2] = useState(1);
-  const eps = epsKey === 'paper' ? EPS_PAPER : EPS_FP32;
+  const eps = EPS;
   // the plot always holds the target ellipse (radius √2·γ) and every possible output y
   const LIM = Math.max(2, Math.ceil(1.15 * Math.SQRT2 * Math.max(g1, g2) * 2) / 2);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -87,18 +85,6 @@ export const RmsNormPlane = memo(function RmsNormPlane({ presetRms }: { presetRm
       title="RMSNorm in two dimensions: drag the input"
       controls={
         <>
-          <div className="flex flex-col gap-1">
-            <span className="text-[15px] font-medium text-ink-2">ε</span>
-            <Segmented
-              label="Epsilon"
-              value={epsKey}
-              onChange={setEpsKey}
-              options={[
-                { value: 'paper', label: '2⁻⁷ (paper environment, this site)' },
-                { value: 'fp32', label: '2⁻²³ (float32 ε)' },
-              ]}
-            />
-          </div>
           <Slider label="γ₁" value={g1} min={0} max={2} step={0.05} onChange={setG1} format={(v) => v.toFixed(2)} className="w-[150px]" />
           <Slider label="γ₂" value={g2} min={0} max={2} step={0.05} onChange={setG2} format={(v) => v.toFixed(2)} className="w-[150px]" />
           <div className="flex flex-wrap gap-2">
@@ -118,7 +104,7 @@ export const RmsNormPlane = memo(function RmsNormPlane({ presetRms }: { presetRm
                 a column projection (rms {fmt(presetRms, 3)})
               </Button>
             )}
-            <Button size="sm" variant="ghost" icon={<RotateCcw size={14} aria-hidden="true" />} onClick={() => (setX(X0), setG1(1), setG2(1), setEpsKey('paper'))}>
+            <Button size="sm" variant="ghost" icon={<RotateCcw size={14} aria-hidden="true" />} onClick={() => (setX(X0), setG1(1), setG2(1))}>
               Reset
             </Button>
           </div>
@@ -126,10 +112,10 @@ export const RmsNormPlane = memo(function RmsNormPlane({ presetRms }: { presetRm
       }
       caption={
         <>
-          The output y is computed by the same RMSNorm kernel the engine uses, with d = 2. The dashed curve is where y lands when ε is negligible:
-          the circle of radius √2 (rms = 1) stretched by γ. The shaded disk is the ε zone, mean(x²) &lt; ε: inside it ε is most of the sum under the
-          square root; the magnified view shows it at a readable size. Drag x into it, use the arrow keys after focusing the handle
-          (Shift for bigger steps), or try the column-projection preset. The plane widens when a γ needs the room.
+          The output y is computed with the engine’s own RMSNorm kernel at d = 2. The dashed curve is where y lands when ε is negligible: the
+          circle of radius √2 (rms = 1), stretched by γ. The shaded disk is the ε zone, where mean(x²) &lt; ε and ε is most of the sum under the
+          square root; the magnified view shows it at a readable size. Drag x into it, move it with the arrow keys after focusing the handle (Shift
+          for bigger steps), or try the column-projection preset. The plane widens when a γ needs more room.
         </>
       }
     >
@@ -274,7 +260,7 @@ export const RmsNormPlane = memo(function RmsNormPlane({ presetRms }: { presetRm
           <dl className="num max-w-[460px] text-[16px]">
             <Row k="input x" v={`(${fmtSigned(x[0], 2)}, ${fmtSigned(x[1], 2)})`} />
             <Row k="mean(x²)" v={fmt(out.ms, 4)} />
-            <Row k="+ ε" v={epsKey === 'paper' ? fmt(eps, 7) : eps.toExponential(2)} />
+            <Row k="+ ε" v={fmt(eps, 7)} />
             <Row k="scale 1/√(mean(x²)+ε)" v={`×${out.scale >= 100 ? out.scale.toExponential(2) : fmt(out.scale, 3)}`} />
             <Row k="output y" v={`(${fmtSigned(out.y[0], 3)}, ${fmtSigned(out.y[1], 3)})`} strong />
             <Row k="rms before γ" v={fmt(out.rmsOut, 3)} />
@@ -283,12 +269,13 @@ export const RmsNormPlane = memo(function RmsNormPlane({ presetRms }: { presetRm
           <div className="mt-4 rounded-lg bg-surface-2 px-3.5 py-2.5 text-[16px] leading-snug text-ink-2">
             {atOrigin ? (
               <>
-                <TeX tex="\mathrm{RMSNorm}(\vec 0) = \vec 0" /> exactly: 0 divided by √ε is still 0. This is why padding stays zero.
+                <TeX tex="\mathrm{RMSNorm}(\vec 0) = \vec 0" /> exactly: 0 divided by √ε is still 0, so a zero vector such as a padding token’s x₀
+                stays zero through every RMSNorm.
               </>
             ) : out.epsShare > 0.2 ? (
               <>
                 Here ε is a large part of the sum under the square root, so the output is <strong className="text-ink">shorter</strong> than the
-                circle: RMSNorm can scale a vector up by at most 1/√ε{epsKey === 'paper' ? ` ≈ ${fmt(1 / Math.sqrt(eps), 1)}` : ''}.
+                circle: RMSNorm can scale a vector up by at most 1/√ε ≈ {fmt(1 / Math.sqrt(eps), 1)}.
               </>
             ) : (
               <>

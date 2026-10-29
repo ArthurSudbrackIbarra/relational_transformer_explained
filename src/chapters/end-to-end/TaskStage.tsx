@@ -260,7 +260,7 @@ export function TaskStage() {
             <p className="!mt-2.5 !mb-0 text-[15px] leading-snug text-ink-2">
               {nTokens === 1 ? 'One cell' : `${nTokens} cells`} of this row become tokens, the first of the context: the sampler visits the seed
               row before any other <Cite kind="code" ref="rustler/src/fly.rs:366" /> <Cite kind="code" ref="rustler/src/fly.rs:454-500" />. The label is still stored in the target token (
-              <span className="num">{rawText(hidden)}</span>), but the model never reads it: the input replaces it with a learned mask vector{' '}
+              <span className="num">{rawText(hidden)}</span>), but the model never reads it: the input embedding uses a learned mask vector in its place{' '}
               <Cite kind="spec" ref="§5.3" />.
             </p>
           </div>

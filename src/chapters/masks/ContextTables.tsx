@@ -68,8 +68,8 @@ interface CellGeom {
 
 export const HOLE_TEXT: Record<HoleKind, string> = {
   null: 'no token: the value is null, so no cell was stored',
-  dropped: 'no token: leakage column dropped for this row (fly.rs:457-461)',
-  cut: 'no token: the sampler stopped at exactly L tokens inside this row (fly.rs:502-509)',
+  dropped: 'no token: a column that would leak the label was dropped for this row',
+  cut: 'no token: the sampler reached L tokens partway through this row',
 };
 
 export function ContextTables({

@@ -181,7 +181,7 @@ export function Loading({ what = 'the precomputed MiniLM vectors', height = 160 
 export function LoadError({ error }: { error: string }) {
   return (
     <div className="rounded-lg border border-border bg-surface-2 px-4 py-3 text-[15px] text-ink-2">
-      Could not load the precomputed embeddings ({error}). This figure needs public/data/embeddings; nothing is shown rather than invented.
+      Could not load the precomputed embeddings ({error}). This figure needs the files in public/data/embeddings.
     </div>
   );
 }

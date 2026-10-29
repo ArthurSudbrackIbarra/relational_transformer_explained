@@ -3,7 +3,7 @@
  *
  * Every mask shown is the engine's (src/engine/masks.ts, a mirror of rt/model.py:164-191) for the
  * live context of the global store, so the seed, context and tokens match every other chapter.
- * Spec: research/RT_TECHNICAL_SPEC.md §6.1-6.3, §6.6, §10 #12, #24.
+ * Spec: research/RT_TECHNICAL_SPEC.md §6.1-6.5.
  */
 import { useMemo } from 'react';
 import {
@@ -22,7 +22,7 @@ import {
   Term,
 } from '@/components';
 import { SemType } from '@/engine/types';
-import { ColumnTableCheck, PaddingDemo, TransposeFlip, ZeroUpdateCheck } from './Details';
+import { PaddingDemo, TransposeFlip, ZeroUpdateCheck } from './Details';
 import { FOURMASKS_ZOOM, FourMasks } from './FourMasks';
 import { LayerCards } from './LayerCards';
 import { MaskCounts } from './MaskCounts';
@@ -30,7 +30,6 @@ import { article, childlessTables, int, LAYER_ORDER, listAnd, maskStats, outLink
 import {
   MODEL_ATTN_FWD_30_47,
   MODEL_BLOCK_FWD_82_86,
-  MODEL_BLOCK_MASKS_193_206,
   MODEL_BLOCKS_LOOP_226_227,
   MODEL_MAKE_BLOCK_MASK_89_101,
   MODEL_MASKS_164_191,
@@ -136,46 +135,35 @@ export default function MasksChapter() {
           Inside every attention layer, RT computes standard scaled dot-product attention. Each token’s query vector is compared with every key
           vector, the scores pass through a softmax, and the resulting weights average the value vectors <Cite kind="paper" ref="p.5 §3.2" />. Each
           of the four layers has its own query, key, value and output weights <Cite kind="code" ref="rt/model.py:25-28" /> and its own RMSNorm{' '}
-          <Cite kind="code" ref="rt/model.py:71-79" />. What sets the four layers apart is the <strong>attention mask</strong>{' '}
+          <Cite kind="code" ref="rt/model.py:71-79" />, but what makes them behave differently is the <strong>attention mask</strong>{' '}
           <TeX tex="\mathbf{M}\in\{0,1\}^{n\times n}" />: <TeX tex="\mathbf{M}[q,k]=1" /> means that token <em>q</em> may attend to token{' '}
           <em>k</em>, and 0 means it cannot <Cite kind="paper" ref="p.5 §3.2" />.
         </p>
         <p>
           You may know masks from GPT-style language models, which use the causal mask <TeX tex="\mathbf{M}^{\text{causal}}[q,k]=\mathbf{1}\{k\le q\}" />{' '}
-          so that no token reads the tokens after it <Cite kind="paper" ref="p.5 §3.2" />. RT has no causal mask: its attention is
+          so that no token reads the tokens after it <Cite kind="paper" ref="p.5 §3.2" />. RT has no causal mask. Its attention is
           bidirectional, and its masks are built from row, column and table ids, so they say nothing about token order{' '}
-          <Cite kind="spec" ref="§6.1" /> <Cite kind="spec" ref="§6.5" />. They encode relations instead.
+          <Cite kind="spec" ref="§6.1" /> <Cite kind="spec" ref="§6.5" />. They encode how the cells relate to each other in the database.
         </p>
         <p>
-          A word on names. Paper Figure 1 brackets
-          the column, feature and neighbor layers as the <Term id="relational-attention">Relational Attention layers</Term>, and the fourth, full
-          attention, is unrestricted <Cite kind="paper" ref="p.2 Fig. 1" /> (App. J uses the name for all four{' '}
-          <Cite kind="paper" ref="p.26 App. J" />). This chapter says “the three relational masks” for the first three and “the four masks”
-          when full is included.
+          The paper calls the column, feature and neighbor layers the <Term id="relational-attention">Relational Attention layers</Term>, and
+          this chapter calls their masks the three relational masks. The fourth layer, full attention (the paper also says global attention),
+          lets every token read every other one <Cite kind="paper" ref="p.2 Fig. 1" /> <Cite kind="paper" ref="p.5 §3.2" />.
         </p>
         <MathBlock
           tex={SDPA_TEX}
           className="text-[17.5px] sm:text-[19px]"
           label={<Cite kind="paper" ref="p.5 §3.2" />}
-          caption={<span className="text-[15.5px]">Scaled dot-product attention with masking, as printed in the paper (v3).</span>}
+          caption={<span className="text-[15.5px]">Scaled dot-product attention with masking, as written in the paper.</span>}
         />
         <p>
-          The mask acts <em>before</em> the softmax. A blocked pair gets the score −∞, and <TeX tex="e^{-\infty}=0" />, so the softmax shares all
-          of the weight among the allowed keys as if the blocked ones did not exist. Rows are queries and columns are keys; every matrix in this
-          chapter is drawn that way.
+          The mask is applied <em>before</em> the softmax. A blocked pair gets the score −∞, and <TeX tex="e^{-\infty}=0" />, so the softmax
+          shares all of the weight among the allowed keys as if the blocked ones did not exist. Rows are queries and columns are keys, and every
+          matrix in this chapter is drawn that way.
         </p>
-        <Callout variant="note" title="An erratum in earlier versions of the paper">
-          <p>
-            arXiv v1 and v2 wrote <TeX tex="\operatorname{Softmax}\big((\mathbf{Q}\mathbf{K}^{\top}\odot\mathbf{M})/\sqrt{d_K}\big)" />, an
-            element-wise product with the mask. Version 3 corrected it to the −∞ form above, which is what the code computes through FlexAttention{' '}
-            <Cite kind="spec" ref="§6.6" /> <Cite kind="code" ref="rt/model.py:43" />. The figure shows what the product would do if read
-            literally: a score multiplied by 0 becomes 0, and <TeX tex="e^{0}=1" /> is still a weight, so blocked keys would keep part of the
-            attention.
-          </p>
-        </Callout>
         <p>
-          The figure uses the real scores of the trained mini model at the masked target. It lets you pick one of the three relational layers,
-          which Step 2 defines; for now, watch only what happens to the blocked keys. Tokens are labeled row·column
+          The figure uses the real scores of the trained mini model at the masked target. You can pick any of the three relational layers
+          (Step 2 defines them); for now, watch only what happens to the blocked keys. Tokens are labeled row·column
           {seed && entityTok ? (
             <>
               : {rowTag(seed, prefixes)} is the seed row {rowName(seed)} and{' '}
@@ -186,9 +174,8 @@ export default function MasksChapter() {
         </p>
         <SoftmaxDemo live={live} />
         <p>
-          The Python code never writes the −∞ itself. Each layer hands a precompiled block mask to FlexAttention, whose kernel sets the blocked
-          scores to −∞ and skips tiles of the score matrix that are blocked entirely <Cite kind="code" ref="rt/model.py:43" />. The plain scaled-dot-product branch is never taken, because all four layers always receive a mask{' '}
-          <Cite kind="spec" ref="§6.1" />.
+          The Python code never writes the −∞ itself. Each layer passes its mask to PyTorch’s FlexAttention, and the kernel sets the blocked
+          scores to −∞ <Cite kind="code" ref="rt/model.py:43" /> <Cite kind="spec" ref="§6.1" />.
         </p>
         <CodeRef
           title={
@@ -223,8 +210,8 @@ export default function MasksChapter() {
                   ; the OutLinks of {rowName(childTok)} {outLinksVerb(childTok)} {outLinksText(childTok)}
                 </>
               ) : null}
-              . OutLinks is defined on the database, so it can name a row the sampler left out; such a row has no tokens and cannot be read{' '}
-              <Cite kind="spec" ref="§4.13" />.
+              . OutLinks comes from the database, so it can name a row the sampler left out. Such a row has no tokens, and nothing can attend to
+              it <Cite kind="spec" ref="§4.13" />.
             </>
           )}
         </p>
@@ -232,9 +219,9 @@ export default function MasksChapter() {
         <p>
           The code builds all four masks from five arrays of the token batch: <code>node_idxs</code> (which row),{' '}
           <code>f2p_nbr_idxs</code> (that row’s parents, up to five, padded with −1), <code>col_name_idxs</code> and <code>table_name_idxs</code>{' '}
-          (which column of which table) and <code>is_padding</code> <Cite kind="code" ref="rt/model.py:154-158" />. No value, no embedding and no
-          position enters a mask. RT has no positional encodings; relational structure enters only through these masks, which do not care about
-          token order <Cite kind="paper" ref="p.5 §3.1" /> <Cite kind="spec" ref="§6.5" />.
+          (which column of which table) and <code>is_padding</code> <Cite kind="code" ref="rt/model.py:154-158" />. A mask never looks at a cell’s
+          value or embedding, and it does not depend on where a token sits in the sequence. RT has no positional encodings either: the relational
+          structure enters the model only through these masks <Cite kind="paper" ref="p.5 §3.1" /> <Cite kind="spec" ref="§6.5" />.
         </p>
         <FourMasks live={live} />
         <p>
@@ -275,24 +262,6 @@ export default function MasksChapter() {
           highlightLines={[165, 187, 188, 189, 190]}
           note="Each comparison broadcasts to a (B, S, S) boolean tensor: row = query, column = key. The engine's buildMasks mirrors these lines one by one."
         />
-        <Callout
-          variant="paper-vs-code"
-          title="“Global” and “full” are the same layer"
-          paper={
-            <>
-              §3.2 lists “four attention types: column, feature, neighbor, and global”, and App. E and J also say “global”{' '}
-              <Cite kind="paper" ref="p.5 §3.2" /> <Cite kind="paper" ref="p.19 App. E" /> <Cite kind="paper" ref="p.26 App. J" />. The §3.2
-              bullet title and Figure 1 say “Full attention” <Cite kind="paper" ref="p.2 Fig. 1" />, and Algorithm 2 writes{' '}
-              <TeX tex="\operatorname{MHA}(X;\,M^{\text{full}})" /> <Cite kind="paper" ref="p.26 Alg. 2" />.
-            </>
-          }
-          code={
-            <>
-              the dictionary key is <code>"full"</code>, and its mask is just <code>pad</code> <Cite kind="code" ref="rt/model.py:186-191" />
-            </>
-          }
-          verdict="There are four layers, not five. This site calls the last one full (spec §6.2)."
-        />
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 3 */}
@@ -304,7 +273,7 @@ export default function MasksChapter() {
           it.
         </p>
         <p>
-          Start with the <Term id="target-cell">masked target</Term>, then try the presets. Some things to look for. The target sees{' '}
+          Start with the <Term id="target-cell">masked target</Term>, then try the presets. The target sees{' '}
           {forecast ? 'the task’s visible labels' : `the other ${seed?.colName ?? ''} values`} in the column panel and{' '}
           {targetNbrKeys === 0 ? 'nothing in the neighbor panel' : 'its children in the neighbor panel'}.
           {entityTok && (
@@ -329,22 +298,22 @@ export default function MasksChapter() {
       {/* ───────────────────────────────────────────────────────────── 4 */}
       <Section id="what-flows" title="What each layer is for" kicker="Step 4">
         <p>
-          The paper motivates each layer in one sentence, and its Appendix E adds what each contributes to expressive power. The cards pair those
-          sentences with what the mask does in the live context. Each diagram is a small, real excerpt of the context, chosen for that layer: the
-          live mask restricted to those tokens. Lines run from every key the query may read into the query.
+          The paper motivates each layer in one sentence, and its Appendix E says what each one adds to expressive power. Each card pairs those
+          sentences with what the mask does in the live context. Its diagram is a small excerpt of the real context, picked to show that layer,
+          with the live mask applied to those tokens: lines run into the query from every key it may read.
         </p>
         <LayerCards live={live} />
         <Callout variant="insight" title="Why four masked layers instead of one full layer?">
           <p>
-            App. E argues that two of the layers are not strictly needed for expressivity: global attention can emulate column attention, and
-            feature and global attention together can simulate neighbor attention <Cite kind="paper" ref="p.19-20 App. E" />. Feature attention
-            cannot be replaced that way: it is “the only mechanism that explicitly groups cells into rows” <Cite kind="paper" ref="p.19 App. E" />.
-            The paper still hard-wires all four patterns, describing the relational layers as ones that “effectively encode relational structure
-            and inductive bias” <Cite kind="paper" ref="p.5 §3.2" />. Its ablation (Table 5) trains models with one layer type removed, adding
-            blocks to keep the parameter count constant <Cite kind="spec" ref="§11.4" />; the results chapter shows those numbers.
+            Appendix E argues that two of the layers are not strictly needed for expressivity: full attention can emulate column attention, and
+            feature and full attention together can simulate neighbor attention <Cite kind="paper" ref="p.19-20 App. E" />. Feature attention has
+            no such substitute, since it is “the only mechanism that explicitly groups cells into rows” <Cite kind="paper" ref="p.19 App. E" />.
+            The paper keeps all four anyway, describing the relational layers as ones that “effectively encode relational structure and inductive
+            bias” <Cite kind="paper" ref="p.5 §3.2" />. The structure of the database is written into the masks, so the model does not have to
+            learn it from data. The results chapter shows what happens when one layer type is removed <Cite kind="spec" ref="§11.4" />.
           </p>
         </Callout>
-        <Callout variant="note" title="How information can reach the target (a teaching interpretation, not a paper claim)">
+        <Callout variant="note" title="How information can reach the target">
           <p>
             Reading the masks in block order, for the live {dbShort} task:{' '}
             {forecast && seed && entityTok ? (
@@ -381,9 +350,9 @@ export default function MasksChapter() {
         <p>
           The masks differ widely in density. In the live context of {S} positions, full attention allows{' '}
           {hasPad
-            ? `${int(byLayer.full.pairs)} ordered pairs: every pair of the ${int(ctx.numReal)} non-padding tokens (padding is excluded), ${pct(byLayer.full.density)} of the ${int(S * S)}`
+            ? `${int(byLayer.full.pairs)} ordered pairs: every pair of the ${int(ctx.numReal)} non-padding tokens, ${pct(byLayer.full.density)} of the ${int(S * S)}`
             : `every one of the ${int(S * S)} ordered pairs`}
-          . The relational masks allow a small share of the {int(S * S)}: column {pct(byLayer.col.density)}, feature{' '}
+          . The relational masks allow only a small share of the {int(S * S)}: column {pct(byLayer.col.density)}, feature{' '}
           {pct(byLayer.feat.density)}, neighbor {pct(byLayer.nbr.density)}. The paper implements the layers “with sparse attention masks, and
           compiled to efficient FlashAttention-based kernels using FlexAttention” <Cite kind="paper" ref="p.5 §3.2" />.
         </p>
@@ -403,17 +372,13 @@ export default function MasksChapter() {
         </p>
         <PaddingDemo />
         <p>
-          With the AND in place, a padding query has an all-zero row in every mask and a padding key is never read. Padding inputs are the zero
-          vector{' '}
-          <span className="whitespace-nowrap">
-            as well <Cite kind="spec" ref="§5.2" />.
-          </span>
+          With the AND in place, a padding query has an all-zero row in every mask, and no query ever reads a padding key.
         </p>
 
         <h3>An empty row gives exactly zero</h3>
         <p>
-          Column, feature and full rows always contain at least the query itself, so they are never empty. Only a neighbor row can be: when no row
-          in the context points to the query’s row. In {dbShort} that holds for{' '}
+          For a query that is not padding, the column, feature and full rows always contain at least the query itself, so they are never empty.
+          Only a neighbor row can be empty, when no row in the context points to the query’s row. In {dbShort} that holds for{' '}
           {listAnd([
             ...(ctx.tokens.some((t) => !t.isPadding && t.tableType !== 'Db') ? ['every task row'] : []),
             ...(childless.length ? [`every row of ${listAnd(childless)} (no table has a foreign key to ${childless.length > 1 ? 'them' : 'it'})`] : []),
@@ -421,10 +386,9 @@ export default function MasksChapter() {
               ? [`any ${listAnd(parentTables.map((n) => singular(n)), 'or')} row whose child rows did not make it into the context`]
               : []),
           ])}
-          . A softmax over
-          nothing but −∞ would be 0/0. In the pinned PyTorch 2.6 FlexAttention kernel, a fully masked row outputs exactly 0, not NaN and not a
-          uniform average <Cite kind="spec" ref="§6.1" />. Because <TeX tex="W_o" /> has no bias, the residual update is 0 and the token passes
-          through the sublayer unchanged. Our forward pass reproduces this, and you can check it live:
+          . A query with no allowed key has nothing to average, and FlexAttention outputs exactly 0 for it <Cite kind="spec" ref="§6.1" />.
+          Because <TeX tex="W_o" /> has no bias, the update added to the residual stream is 0 as well, and the token passes through the sublayer
+          unchanged. The check below runs on the live forward pass:
         </p>
         <ZeroUpdateCheck live={live} />
 
@@ -432,57 +396,37 @@ export default function MasksChapter() {
         <p>
           The feature mask has two parts: “same row” and “the key’s row is one of my parents”. The neighbor mask asks the reverse question: “the
           query’s row is one of the key’s parents” <Cite kind="paper" ref="p.5 §3.2" />. Swapping the roles of query and key is a transpose, so
-          neighbor is exactly the parent part of feature, flipped across the diagonal <Cite kind="spec" ref="§6.2" />. Information that flows from
-          parent to child in the feature layer flows from child to parent in the neighbor layer.
+          neighbor is exactly the parent part of feature, flipped across the diagonal <Cite kind="spec" ref="§6.2" />. In the feature layer
+          information flows from parent to child, and in the neighbor layer it flows back from child to parent.
         </p>
         <TransposeFlip live={live} />
 
         <h3>The column test also checks the table</h3>
         <p>
-          The column mask compares two ids, <code>col_name_idxs</code> and <code>table_name_idxs</code>, where the paper writes a single
-          condition. The ids also decide which cells count as one column: the preprocessor interns the table name and the phrase “&lt;col&gt; of
-          &lt;table&gt;” once per table, so Train, Val and Test task rows share both ids and the labels of every split meet in a single column
-          group <Cite kind="code" ref="rustler/src/pre.rs:424-437" /> <Cite kind="spec" ref="§6.2" />.
+          The paper writes the column mask as a single condition,{' '}
+          <TeX tex="\mathbf{1}\{\mathrm{Col}(k)=\mathrm{Col}(q)\}" /> <Cite kind="paper" ref="p.5 §3.2" />. The code compares two ids,{' '}
+          <code>col_name_idxs</code> and <code>table_name_idxs</code> <Cite kind="code" ref="rt/model.py:181-183" />. Both say the same thing,
+          because a column id already names its table: it points to the phrase “&lt;col&gt; of &lt;table&gt;”. These ids also decide which cells
+          count as one column. Train, Val and Test task rows carry the same table name, so they share both ids, and the labels of every split
+          meet in a single column group <Cite kind="code" ref="rustler/src/pre.rs:424-437" /> <Cite kind="spec" ref="§6.2" />.
         </p>
-        <Callout
-          variant="paper-vs-code"
-          title="The column mask also compares tables"
-          paper={
-            <>
-              <TeX tex="\mathbf{M}^{\text{column}}[q,k]=\mathbf{1}\{\mathrm{Col}(k)=\mathrm{Col}(q)\}" /> <Cite kind="paper" ref="p.5 §3.2" />
-            </>
-          }
-          code={
-            <>
-              same <code>col_name_idx</code> <strong>and</strong> same <code>table_name_idx</code> <Cite kind="code" ref="rt/model.py:181-183" />
-            </>
-          }
-          verdict="Equivalent. The column id indexes the phrase “<col> of <table>”, which already names the table, so the second test never changes a pair (spec §6.2, §10 #12)."
-        >
-          <div className="mt-1">
-            <ColumnTableCheck live={live} />
-          </div>
-        </Callout>
 
         <h3>One mask for all heads</h3>
         <p>
-          <code>_make_block_mask</code> calls <code>create_block_mask</code> with <code>H=None</code>, so a layer’s mask is broadcast over every
-          head <Cite kind="spec" ref="§6.1" />. Heads differ in which allowed keys they learn to weigh, never in which keys are allowed.
+          All heads of a layer share one mask. The code builds it without a head dimension (<code>H=None</code>, line 96), so it applies to
+          every head <Cite kind="spec" ref="§6.1" />. Each head can learn to weigh the allowed keys differently, but every head is allowed the same
+          keys.
         </p>
         <CodeRef title="_make_block_mask: one mask, every head" file="rt/model.py" lines="89-101" code={MODEL_MAKE_BLOCK_MASK_89_101} highlightLines={[96]} />
 
         <h3>Built once, used by every block</h3>
         <p>
-          Because the masks depend only on ids, the forward pass builds them once, before the first block, converts each to a FlexAttention block
-          mask, and passes the same four block masks to all 12 blocks of the paper model (4 blocks here){' '}
-          <Cite kind="code" ref="rt/model.py:193-206" /> <Cite kind="code" ref="rt/model.py:226-227" />. Inside a block the layers run in the order{' '}
-          <LayerLabel layer="col" /> → <LayerLabel layer="feat" /> → <LayerLabel layer="nbr" /> → <LayerLabel layer="full" />, each picking its own
-          mask <Cite kind="code" ref="rt/model.py:82-86" />.
+          The masks depend only on ids, so the forward pass builds them once, before the first block, and passes the same four masks to all 12
+          blocks of the paper model (4 blocks here) <Cite kind="code" ref="rt/model.py:193-206" /> <Cite kind="code" ref="rt/model.py:226-227" />.
+          Inside a block the layers run in the order <LayerLabel layer="col" /> → <LayerLabel layer="feat" /> → <LayerLabel layer="nbr" /> →{' '}
+          <LayerLabel layer="full" />, and each one picks its own mask <Cite kind="code" ref="rt/model.py:82-86" />.
         </p>
-        <ScaleNote paper="12 blocks" ours="4 blocks">
-          The masks are the same whatever the number of blocks: they are built once from ids and every block reuses them.
-        </ScaleNote>
-        <CodeRef title="Dense masks become block masks, once per forward pass" file="rt/model.py" lines="193-206" code={MODEL_BLOCK_MASKS_193_206} />
+        <ScaleNote paper="12 blocks" ours="4 blocks" />
         <CodeRef title="The same block masks go to every block" file="rt/model.py" lines="226-227" code={MODEL_BLOCKS_LOOP_226_227} />
         <CodeRef
           title={
@@ -501,31 +445,30 @@ export default function MasksChapter() {
       {/* ───────────────────────────────────────────────────────────── 7 */}
       <Section id="worked-example" title="Worked example: the spec’s toy database" kicker="Step 7">
         <p>
-          The technical specification prints the masks of a toy ShopDB, three customers, two products, five orders and a churn task table,
-          computed by an independent re-implementation <Cite kind="spec" ref="§6.3" />. Its context, seeded at customer c0’s validation row
-          with L = 24 and w = 1, holds 19 cells and 5 padding tokens. Given the spec’s token list (copied verbatim below), the engine’s{' '}
-          <code>buildMasks</code> reproduces all four printed masks character for character. A unit test also checks that our sampler emits
-          the same 19 tokens for a suitable RNG seed; it has to search for one, because the w = 1 subsample is random{' '}
-          <Cite kind="spec" ref="§6.3" />. Step through the query rows; the line under the player explains why each key is allowed.
+          The live context is too large to check by hand. The technical specification prints the masks of a much smaller one, built from a toy
+          ShopDB with three customers, two products, five orders and a churn task table <Cite kind="spec" ref="§6.3" />. The context is seeded
+          at customer c0’s validation row with L = 24 and w = 1, and it holds 19 cells and 5 padding tokens. The figure runs the engine’s{' '}
+          <code>buildMasks</code> on these tokens, and its four masks match the ones printed in the spec. Step through the query rows; the line
+          under the player explains why each key is allowed.
         </p>
         <WorkedExample />
         <h3>Reading the toy masks</h3>
         <ul>
           <li>
-            <strong>Column.</strong> The masked target (row 1) sees the label cells 6, 12 and 18. Two are c0’s own past labels (false, false), one
-            belongs to another customer (c2: true). Every timestamp cell (0, 5, 11, 17) sees all task timestamps; <code>order_time</code> sees
-            only <code>order_time</code>.
+            In the column mask, the masked target (row 1) sees the label cells 6, 12 and 18. Two are c0’s own past labels (false, false), and one
+            belongs to another customer (c2: true). Every timestamp cell (0, 5, 11, 17) sees all task timestamps, while <code>order_time</code>{' '}
+            sees only <code>order_time</code>.
           </li>
           <li>
-            <strong>Feature.</strong> The target sees its own row (0, 1) and its parent c0 (2-4). Order o1 (7, 8) sees itself, c0 (2-4) and p1 (9,
+            In the feature mask, the target sees its own row (0, 1) and its parent c0 (2-4). Order o1 (7, 8) sees itself, c0 (2-4) and p1 (9,
             10). Customer cells see only their own row.
           </li>
           <li>
-            <strong>Neighbor.</strong> c0’s cells (2-4) see their children in the context: #16 (0, 1), #14 (5, 6), o1 (7, 8) and #12 (11, 12). p1
-            (9, 10) sees o1 and o4. Rows 0, 1, 5-8, 11-14, 17 and 18 are empty, so the neighbor sublayer adds 0 to them.
+            In the neighbor mask, c0’s cells (2-4) see their children in the context: #16 (0, 1), #14 (5, 6), o1 (7, 8) and #12 (11, 12). p1 (9,
+            10) sees o1 and o4. Rows 0, 1, 5-8, 11-14, 17 and 18 are empty, so the neighbor sublayer adds 0 to them.
           </li>
           <li>
-            <strong>Full.</strong> Rows 0-18 see keys 0-18; the five padding rows see nothing <Cite kind="spec" ref="§6.3" />.
+            In the full mask, rows 0-18 see keys 0-18, and the five padding rows see nothing <Cite kind="spec" ref="§6.3" />.
           </li>
         </ul>
       </Section>
@@ -571,11 +514,14 @@ export default function MasksChapter() {
             {
               prompt: 'A churn task row has no children in the context. What does the neighbor sublayer add to its cells?',
               choices: [
-                { text: 'Exactly zero: they pass through unchanged.', correct: true, why: 'A fully masked row outputs 0 in FlexAttention, and W_o has no bias (spec §6.1).' },
-                { text: 'The average of all value vectors.', why: 'That would be a uniform softmax over every key. The kernel returns 0 for a row with no allowed key.' },
-                { text: 'NaN, which the loss then ignores.', why: 'The pinned FlexAttention kernel guards this case: no NaN appears.' },
+                { text: 'Exactly zero: they pass through unchanged.', correct: true, why: 'With no allowed key the attention output is 0, and W_o has no bias, so the residual stream is unchanged (spec §6.1).' },
+                { text: 'The average of all value vectors.', why: 'That would mean every key gets the same weight, as if nothing were masked. A row with no allowed key outputs 0.' },
+                {
+                  text: 'The cells of its parent customer row, as a fallback.',
+                  why: 'A mask has no fallback. Reading the parent row is the feature layer’s job; in the neighbor layer this row has no allowed key.',
+                },
               ],
-              explanation: 'Only neighbor rows can be empty, and an empty row means a zero update. You saw it checked live in step 6.',
+              explanation: 'Only neighbor rows can be empty, and an empty row means a zero update. You saw it checked live in Step 6.',
             },
           ]}
         />

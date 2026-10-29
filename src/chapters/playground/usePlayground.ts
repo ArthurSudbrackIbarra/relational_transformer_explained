@@ -66,7 +66,7 @@ export interface CkptOption {
 export function ckptOptions(task: TaskDef, baseCkpt?: CheckpointName): CkptOption[] {
   const zero = autoCheckpoint(task.id).name;
   const out: CkptOption[] = [
-    { id: 'init', name: 'init', label: 'Untrained', short: 'step 0: random init', hint: 'Step 0 of pretraining: PyTorch-default random weights.' },
+    { id: 'init', name: 'init', label: 'Untrained', short: 'step 0: random init', hint: 'Step 0 of pretraining: random initial weights.' },
     { id: 'zero', name: zero, label: 'Zero-shot', short: 'pretrained on 3 other DBs', hint: `${zero}: pretrained on the other three databases only.` },
   ];
   const ft: CheckpointName | null = task.id === 'shop/customer-churn' ? 'finetune-churn' : task.id === 'shop/product-sales' ? 'finetune-sales' : null;

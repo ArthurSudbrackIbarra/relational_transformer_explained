@@ -83,10 +83,8 @@ export const AnatomyFigure = memo(function AnatomyFigure({ table, rows, slot, db
     row: (
       <>
         A <strong>row</strong> is one record, here one {s.name === 'orders' ? 'order' : `${s.name} record`}. Every row is a set of cells, one
-        for each column <Cite kind="paper" ref="p.3 §2.1" />. RT uses whole rows: once a row is chosen, all of its non-missing feature cells go
-        into its <Term id="context-window">context</Term> <Cite kind="paper" ref="p.16 App. A" />. Chapter 6 adds two small exceptions (a context
-        that fills up, and leakage columns of autocomplete tasks) <Cite kind="code" ref="rustler/src/fly.rs:502-509" />
-        <Cite kind="code" ref="rustler/src/fly.rs:457-461" />.
+        for each column <Cite kind="paper" ref="p.3 §2.1" />. RT takes rows whole: once a row is chosen, all of its non-missing feature cells go
+        into its <Term id="context-window">context</Term> <Cite kind="paper" ref="p.16 App. A" />.
       </>
     ),
     column: (
@@ -146,7 +144,7 @@ export const AnatomyFigure = memo(function AnatomyFigure({ table, rows, slot, db
           </span>
         ))}
         ), “define how rows are uniquely identified and connected across tables” <Cite kind="paper" ref="p.3 §2.1" />: the primary key and the
-        foreign keys. Neither ever becomes a token. RT keeps the foreign keys as structure (links between rows) and skips the primary key
+        foreign keys. Neither kind ever becomes a token. RT keeps the foreign keys as structure (links between rows) and skips the primary key
         entirely, because a row is identified by its position <Cite kind="code" ref="rustler/src/pre.rs:439-442" />
         <Cite kind="spec" ref="§1.2" />.
       </>

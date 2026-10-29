@@ -154,7 +154,7 @@ export default function OverviewChapter() {
         {
           text: 'A non-missing feature cell, together with its column and table name',
           correct: true,
-          why: 'Each cell is one token, built from its value, its column name and its table name (p.2).',
+          why: 'Each cell is one token, built from its value, its column name and its table name.',
         },
         {
           text: 'A whole table, summarized into one vector',
@@ -189,7 +189,7 @@ export default function OverviewChapter() {
         },
         {
           text: 'From a natural-language description of the database and the task',
-          why: 'The LLM baselines get such descriptions; RT gets none (Table 1 caption, p.8).',
+          why: 'The LLM baselines in the paper get such descriptions. RT gets none.',
         },
         {
           text: 'From an encoder trained for that database’s tables',
@@ -235,17 +235,16 @@ export default function OverviewChapter() {
         slug={SLUG}
         lede={
           <>
-            The Relational Transformer fills in one missing cell of a relational database, for a database it has never seen, from a single forward
-            pass over a small window of cells. This chapter runs the whole pipeline once on a live example, before the rest of the course takes it
-            apart.
+            The Relational Transformer (RT) fills in one missing cell of a relational database it has never seen, in a single forward pass over a
+            small window of cells. This chapter runs the whole pipeline once on a live example. The rest of the course then takes it apart.
           </>
         }
         learn={[
-          'Why relational data is hard for the models we already have',
+          'Why relational data is hard for existing models',
           'What RT takes in (cells of a database plus a task table) and what it puts out (one masked cell)',
           'Its three ideas: cell tokens, task-table prompting and relational attention',
           'What “zero-shot” means for RT, and the paper’s headline results',
-          'What this site’s miniature changes (sizes, data, precision) and what it keeps (every operation)',
+          'How this site’s miniature differs from the paper’s model (size, data, training) and what it keeps (every operation)',
         ]}
       >
         <RunningExample live={live} />
@@ -254,20 +253,20 @@ export default function OverviewChapter() {
       {/* ─────────────────────────────── 1 ─────────────────────────────── */}
       <Section id="why" title="Why relational data is different">
         <p>
-          Pretrained transformers changed language and vision: one general architecture, trained on a lot of data, transfers to new tasks with little
-          or no extra training. Relational data has no such model yet, although <Term id="relational-database">relational databases</Term> are the
-          dominant store of structured enterprise information <Cite kind="paper" ref="p.1 §1" />. The difficulty is the shape of the data. A database
-          is several tables with columns of mixed types, and rows are linked across tables by primary and foreign keys. The signal for a prediction is
-          scattered across rows, columns, linked tables and time <Cite kind="paper" ref="p.1 §1" />.
+          In language and vision, a single pretrained transformer can move to a new task with little or no extra training. Relational data has no
+          such model yet, even though most structured enterprise data lives in <Term id="relational-database">relational databases</Term>{' '}
+          <Cite kind="paper" ref="p.1 §1" />. The trouble is the shape of the data. A database is several tables with columns of mixed types, and
+          primary and foreign keys link rows across tables. The signal for one prediction is spread over rows, columns, linked tables and time{' '}
+          <Cite kind="paper" ref="p.1 §1" />.
         </p>
         <p>
           Take the question this course follows.{' '}
           {ex && live.entityName ? (
             <>
               Will {live.entityName}, a customer of the synthetic shop ShopDB, place no order in the 30 days after {live.seedDate}? The customer’s own
-              row in <code>customers</code> holds a name, a country, an age, a premium flag and a signup date. The evidence is in other tables: the{' '}
-              {plural(f.ordersBefore, 'order')} placed before that date, the products those orders point to, the reviews written, and whether the
-              customer went quiet in earlier months.
+              row in <code>customers</code> holds a name, a country, an age, a premium flag and a signup date. Most of the evidence sits in other
+              tables: the {plural(f.ordersBefore, 'order')} placed before that date, the products those orders point to, the reviews the customer
+              wrote, and whether they went quiet in earlier months.
             </>
           ) : (
             <>
@@ -278,28 +277,28 @@ export default function OverviewChapter() {
           A model has to gather that evidence across keys and respect time: to predict at a time t, it may only use rows created before t{' '}
           <Cite kind="paper" ref="p.3 §2.1" />.
         </p>
-        <p>There are four established ways to hand such a database to a model. Each keeps something and loses something.</p>
+        <p>There are four established ways to hand such a database to a model, and each of them loses something on the way.</p>
         <Figure
           wide
           title="Four ways to hand ShopDB to a model"
-          caption="Every view is built from the live ShopDB around the running example. Switch tabs to compare; none of these is how RT reads the data."
+          caption="Each view is built from the live ShopDB around the running example. Switch tabs to compare them. RT reads the data differently from all four."
         >
           <Approaches live={live} />
         </Figure>
         <p>
-          The paper’s verdict is that none of these provides a viable backbone for a foundation model on relational databases{' '}
-          <Cite kind="paper" ref="p.2 §1" />. RT is designed around three principles instead: capture the relational structure while keeping the
-          natural symmetries of relational data, support flexible self-supervised pretraining, and generalize zero-shot across heterogeneous schemas{' '}
-          <Cite kind="paper" ref="p.4 §3" />.
+          The paper concludes that none of them can be the backbone of a foundation model for relational databases{' '}
+          <Cite kind="paper" ref="p.2 §1" />. RT is designed around three principles instead. It should capture the relational structure while
+          keeping the natural symmetries of relational data, support flexible self-supervised pretraining, and generalize zero-shot to databases with
+          other schemas <Cite kind="paper" ref="p.4 §3" />.
         </p>
       </Section>
 
       {/* ─────────────────────────────── 2 ─────────────────────────────── */}
       <Section id="pipeline" title="RT in one picture">
         <p>
-          Here is the whole pipeline on the live example, in six stages. Press play or pick a stage; each one names the chapters that open it up.
-          Everything you see is computed in your browser by the same simulation every chapter uses, so the seed, the context and the forward pass here
-          are the ones you will meet again later.
+          The figure below runs the whole pipeline on the live example in six stages. Press play or pick a stage; each stage links to the chapters
+          that cover it in detail. Your browser computes all of it with the same simulation every chapter uses, so the seed, the context and the
+          forward pass shown here come back in later chapters.
         </p>
         <Figure
           wide
@@ -336,17 +335,17 @@ export default function OverviewChapter() {
           highlightLines={[226, 227]}
           note={
             <>
-              Lines 208-214 add the column-name term, 216-224 add each token’s value term, or the learned mask vector for the masked cell, 226-227 run
-              the blocks, and 229 is the final RMSNorm. The decoders then run at every position <Cite kind="code" ref="rt/model.py:238-239" />.
+              Lines 208-214 add the column-name term, 216-224 add each token’s value term (or the learned mask vector, for the masked cell), 226-227
+              run the blocks, and 229 is the final RMSNorm. A decoder for the target’s type then turns the masked cell’s final vector into the
+              prediction <Cite kind="code" ref="rt/model.py:238-239" />.
             </>
           }
         />
-        <Callout variant="note" title="The answer is in the sequence, and still cannot leak">
+        <Callout variant="note" title="The masked cell keeps its name and loses its value">
           <p>
-            The masked cell keeps its column name and its type, so the model knows which cell of which row it must fill in. Its true value even stays
-            stored in the token, because the sampler writes every cell’s value; the embedding simply ignores it for the masked cell and uses the mask
-            vector instead <Cite kind="spec" ref="§5.3" />
-            <Cite kind="code" ref="rt/model.py:216-224" />. Chapter 7 changes the hidden label and shows that the prediction does not move.
+            The masked cell’s column name and type stay in the input, so the model knows which cell of which row to fill in. In place of the value,
+            the embedding uses a learned mask vector, so the answer cannot affect the prediction <Cite kind="spec" ref="§5.3" />
+            <Cite kind="code" ref="rt/model.py:216-224" />. Chapter 7 overwrites the true label and shows that the prediction stays the same.
           </p>
         </Callout>
       </Section>
@@ -354,7 +353,7 @@ export default function OverviewChapter() {
       {/* ─────────────────────────────── 3 ─────────────────────────────── */}
       <Section id="ideas" title="Three ideas">
         <p>
-          The paper names three innovations <Cite kind="paper" ref="p.2 §1" />. Each one below comes with the live example.
+          The paper lists three innovations <Cite kind="paper" ref="p.2 §1" />. This section shows each one on the live example.
         </p>
 
         <h3>1. Cells are tokens</h3>
@@ -364,7 +363,7 @@ export default function OverviewChapter() {
           <Cite kind="paper" ref="p.4 §3.1" />. The value goes through a small encoder for its type: number, text, datetime or boolean. The column and
           table enter together as the text embedding of the phrase “<span>&lt;column&gt; of &lt;table&gt;</span>”, made by a
           frozen sentence encoder <Cite kind="paper" ref="p.5 §3.1" />
-          . Key columns produce no tokens, only links, and missing values produce nothing <Cite kind="spec" ref="§1.2" />
+          . Key columns become links instead of tokens, and missing values are skipped <Cite kind="spec" ref="§1.2" />
           <Cite kind="spec" ref="§3.5" />.
         </p>
         <Figure
@@ -381,25 +380,14 @@ export default function OverviewChapter() {
           becomes “fill in this masked cell”, the same objective RT is pretrained on <Cite kind="paper" ref="p.2 §1" />
           <Cite kind="paper" ref="p.3 §2.2" />.
         </p>
-        <Callout
-          variant="paper-vs-code"
-          title="The embedding formula"
-          paper={
-            <>
-              <TeX tex="\mathbf{x} = \mathbf{W}_d\,\mathbf{r} + \mathbf{W}\,\mathcal{E}^{\text{schema}}(c,t)" />
-              , with the value term replaced by a learned mask vector for masked cells <Cite kind="paper" ref="p.5 §3.1" />.
-            </>
-          }
-          code={
-            <>
-              Each projection has a bias and is followed by its own RMSNorm; the mask vector is added as is{' '}
-              <Cite kind="code" ref="rt/model.py:208-224" />
-              <Cite kind="spec" ref="§10" />.
-            </>
-          }
-        >
-          <p>Chapter 8 takes this formula apart with live numbers.</p>
-        </Callout>
+        <p>
+          In the paper’s notation a token’s embedding is{' '}
+          <TeX tex="\mathbf{x} = \mathbf{W}_d\,\mathbf{r} + \mathbf{W}\,\mathcal{E}^{\text{schema}}(c,t)" />: the value{' '}
+          <TeX tex="\mathbf{r}" />, projected by a matrix for its data type <TeX tex="d" />, plus a projection of the phrase’s text embedding. For a
+          masked cell, a learned mask vector takes the place of the value term <Cite kind="paper" ref="p.5 §3.1" />. In the forward pass shown
+          earlier, each projected term also passes through its own RMSNorm before the terms are added{' '}
+          <Cite kind="code" ref="rt/model.py:208-224" />. Chapter 8 works through the formula with live numbers.
+        </p>
 
         <h3>2. The task is a table</h3>
         <p>
@@ -407,12 +395,13 @@ export default function OverviewChapter() {
           <Cite kind="paper" ref="p.3 §2.2" />. RT stores them in a <Term id="task-table">task table</Term>, one row per entity and timestamp, holding
           a foreign key to the entity, the timestamp and the label <Cite kind="paper" ref="p.4 §2.2" />. With{' '}
           <Term id="task-table-prompting">task-table prompting</Term>, that table is attached to the database. Only one task table is active at a
-          time, its rows serve as seed rows, and to the model it is an ordinary table <Cite kind="paper" ref="p.4 §3.1" />.
+          time, and its rows are the seed rows. To the model it is just another table <Cite kind="paper" ref="p.4 §3.1" />.
         </p>
         <p>
-          The payoff is in what the sampler finds next to the seed. The same entity’s earlier task rows are its children, so they enter the context
-          like any other row, with their labels visible <Cite kind="spec" ref="§2.5" />: <Term id="in-context-label">in-context labels</Term>. The
-          paper stresses that this is not few-shot learning, since no explicit subgraph-label pairs are required <Cite kind="paper" ref="p.2 §1" />.
+          Attaching the task table pays off when the sampler explores around the seed. The entity’s earlier task rows are children of the entity’s
+          row, so they enter the context like any other rows, labels included <Cite kind="spec" ref="§2.5" />. These are{' '}
+          <Term id="in-context-label">in-context labels</Term>. Unlike few-shot prompting, nobody has to pick labeled examples for the model: the
+          labels arrive because they sit in rows linked to the entity <Cite kind="paper" ref="p.2 §1" />.
           {ex && live.entityShort && f.self > 0 && (
             <>
               {' '}
@@ -431,22 +420,23 @@ export default function OverviewChapter() {
         >
           <LabelTimeline live={live} rows={taskRows} />
         </Figure>
-        <Callout variant="insight" title="Past labels of the same entity drive zero-shot transfer">
+        <Callout variant="insight" title="The entity’s own past labels matter most">
           <p>
-            In the paper’s context ablation, removing the target entity’s own past labels (its self labels) drops the mean zero-shot AUROC from 70.1 to 53.8 and the
-            mean R² from 22.8 to −5.5. Removing other entities’ labels changes little (70.6 and 22.9) <Cite kind="paper" ref="p.9 Table 4" />. RT
-            still does more than average them: it beats the EntityMean baseline, which predicts the mean of those past labels{' '}
-            <Cite kind="paper" ref="p.9 §5.1" />.
+            When the paper removes the target entity’s own past labels from the context, the mean zero-shot AUROC falls to 53.8, barely above random,
+            and the mean R² falls to −5.5, worse than always predicting the mean. Removing other entities’ labels changes almost nothing{' '}
+            <Cite kind="paper" ref="p.9 Table 4" />. RT still does more than average the past labels: it beats the EntityMean baseline, which
+            predicts exactly that average <Cite kind="paper" ref="p.9 §5.1" />.
           </p>
         </Callout>
 
         <h3>3. Structure lives in the attention masks</h3>
         <p>
-          The database’s structure is not written into the tokens. It enters through <Term id="relational-attention">relational attention</Term>: each
-          block runs four attention layers with the same arithmetic and different masks. Column attention connects cells of the same column, feature
-          attention connects a cell to its own row and the rows it points to, neighbor attention connects it to the rows that point to its row, and
-          full attention connects everything <Cite kind="paper" ref="p.5 §3.2" />. There are no positional encodings, so the order of tables, rows and
-          columns does not matter <Cite kind="paper" ref="p.5 §3.1" />.
+          The tokens themselves say nothing about how rows are linked. That structure enters through{' '}
+          <Term id="relational-attention">relational attention</Term>: each block runs four attention layers with the same arithmetic and different
+          masks. Column attention connects cells of the same column, feature attention connects a cell to its own row and the rows it points to,
+          neighbor attention connects it to the rows that point to its row, and full attention connects everything{' '}
+          <Cite kind="paper" ref="p.5 §3.2" />. There are no positional encodings, so the order of tables, rows and columns does not matter{' '}
+          <Cite kind="paper" ref="p.5 §3.1" />.
         </p>
         <Figure
           wide
@@ -463,11 +453,11 @@ export default function OverviewChapter() {
         <p>
           On this context the masked cell sees {plural(f.col, 'token')} through column attention, {plural(f.feat, 'token')} through feature attention,{' '}
           {f.nbr === 0 ? 'none' : plural(f.nbr, 'token')} through neighbor attention and all {int(f.full)} through full attention. Information from
-          elsewhere still arrives, over several steps:{' '}
+          rows farther away also arrives along the links, over more than one layer. For example,{' '}
           {ex
-            ? 'the customer’s cells read the orders that point to them in a neighbor layer, and the masked cell reads the customer’s cells in the next block’s feature layer.'
-            : 'a parent row’s cells read the rows that point to them in a neighbor layer, and the masked cell reads its parent row’s cells in the next block’s feature layer.'}{' '}
-          That reading follows from the masks; it is not a claim of the paper <Cite kind="spec" ref="§6.4" />. Chapters 9 to 11 follow those paths.
+            ? 'the customer’s cells read the orders that point to them in a neighbor layer, and the masked cell reads the customer’s cells in the next block’s feature layer'
+            : 'a parent row’s cells read the rows that point to them in a neighbor layer, and the masked cell reads its parent row’s cells in the next block’s feature layer'}{' '}
+          <Cite kind="spec" ref="§6.4" />. Chapters 9 to 11 follow those paths.
         </p>
         <CodeRef
           title="One block: four masked attentions, then the MLP"
@@ -476,9 +466,8 @@ export default function OverviewChapter() {
           code={MODEL_BLOCK_82_86}
           note={
             <>
-              Each sublayer is a residual update of the normalized stream (pre-norm), in the order column, feature, neighbor, full{' '}
-              <Cite kind="spec" ref="§7.1" />. The paper’s Algorithm 2 writes the norm after the attention instead; the code is what ran{' '}
-              <Cite kind="paper" ref="p.26 Alg. 2" />.
+              Each sublayer normalizes the stream, computes its update and adds it back (a pre-norm residual), in the order column, feature, neighbor,
+              full, then the MLP <Cite kind="spec" ref="§7.1" />.
             </>
           }
         />
@@ -489,9 +478,9 @@ export default function OverviewChapter() {
         <p>
           The paper defines <Term id="zero-shot">zero-shot relational learning</Term> as “predicting new targets on a new RDB with a new schema,
           without weight updates. Information about the new RDB is available only at inference time, solely through the context window”{' '}
-          <Cite kind="paper" ref="p.4 §2.3" />. To test it, the authors pretrain separately for each target database on all tasks of all the other
-          databases, a <Term id="leave-one-db-out">leave-one-database-out</Term> protocol <Cite kind="paper" ref="p.6 §4.1" />. This site runs one
-          such split: it pretrains on SchoolDB, RacingDB and ForumDB and holds out ShopDB.
+          <Cite kind="paper" ref="p.4 §2.3" />. To test this, the authors pretrain one model per target database, on all the tasks of all the other
+          databases: a <Term id="leave-one-db-out">leave-one-database-out</Term> protocol <Cite kind="paper" ref="p.6 §4.1" />. This site runs one
+          such split. It pretrains on SchoolDB, RacingDB and ForumDB and holds out ShopDB.
         </p>
         <Figure wide title="Leave one database out, on this site">
           <LeaveOneOut weightsKind={assets.weightsKind} />
@@ -509,45 +498,29 @@ export default function OverviewChapter() {
         >
           <AskTheModel live={live} />
         </Figure>
-        <Callout variant="note" title="One caveat: the checkpoint is chosen on the target task’s validation labels">
-          <p>
-            No gradient step ever touches the target database. The checkpoint, though, is chosen per target task by its validation score, which reads
-            that task’s validation labels. The paper does this because it found significant overfitting during pretraining{' '}
-            <Cite kind="paper" ref="p.6 §4.1" />
-            <Cite kind="spec" ref="§9.1" />. This site follows the same protocol.
-          </p>
-        </Callout>
       </Section>
 
       {/* ─────────────────────────────── 5 ─────────────────────────────── */}
       <Section id="results" title="Headline results">
         <p>
-          Pretrained on RelBench databases, the paper’s RT has about 22 million parameters and is evaluated zero-shot on ten binary and eight
-          regression forecasting tasks of databases it never saw <Cite kind="paper" ref="p.6 §4.1" />
-          <Cite kind="paper" ref="p.8 Tables 1-2" />. Measured by <Term id="auroc">AUROC</Term>, where 50 is random, it beats every other method in
-          the same setting, including the far larger Gemma3 language models and the <Term id="entity-mean">EntityMean</Term> baseline, on average over
-          the tasks.
+          The paper’s RT has about 22 million parameters and is pretrained on RelBench databases. It is tested zero-shot on ten binary and eight
+          regression forecasting tasks from databases it never saw <Cite kind="paper" ref="p.6 §4.1" />
+          <Cite kind="paper" ref="p.8 Tables 1-2" />. On mean <Term id="auroc">AUROC</Term>, where 50 is random, it beats every other method in that
+          setting, including the far larger Gemma3 language models and the <Term id="entity-mean">EntityMean</Term> baseline. Its mean zero-shot AUROC
+          is 90% of what an RT fine-tuned on each task reaches, and 93% when the target database (but not the task) was part of pretraining{' '}
+          <Cite kind="paper" ref="p.2 §1" />
+          <Cite kind="paper" ref="p.21 Table 10" />.
         </p>
         <PaperHeadline />
-        <Callout variant="note" title="Which “93%”?">
-          <p>
-            The abstract says RT averages “93% of fully supervised AUROC”. That figure is the continued-pretraining setting, where the target database
-            (not the task) was seen: 71.9 / 77.2. On a database never seen in pretraining the share is 69.7 / 77.2 = 90.3%. Both are in the paper{' '}
-            <Cite kind="paper" ref="p.1" />
-            <Cite kind="paper" ref="p.2 §1" />
-            <Cite kind="spec" ref="§10" />. The ablation tables report 70.1 for the unseen-database setting because they come from an earlier run of
-            the experiments; the headline tables are the later one <Cite kind="spec" ref="§10" />.
-          </p>
-        </Callout>
-        <p>And here is what the miniature on this site achieves on ShopDB, the database it never saw:</p>
+        <p>This site’s miniature gets the same test on ShopDB, the database it never saw:</p>
         <MiniResults />
       </Section>
 
       {/* ─────────────────────────────── 6 ─────────────────────────────── */}
       <Section id="scale" title="The paper’s model and this site’s miniature">
         <p>
-          The model in your browser is a real RT, not a sketch of one. Every operation is the paper-era code’s; only the sizes, the data and the
-          floating-point precision change.
+          The model in your browser is a complete RT: it runs every operation of the paper-era code. Only the scale differs. The model is
+          smaller, it trains on four small synthetic databases instead of RelBench, and its training run is much shorter.
         </p>
         <ScaleNote />
         <SameAndDifferent />
@@ -559,8 +532,8 @@ export default function OverviewChapter() {
           note={
             <>
               Five encoders with their RMSNorms, four decoders, four mask vectors, the blocks and the final norm. With d = 256, 8 heads, d_ff = 1024
-              and 12 blocks this adds up to 22,336,131 parameters <Cite kind="spec" ref="§7.3" />. The frozen text encoder is not part of the model:
-              its vectors are computed once, beforehand.
+              and 12 blocks this adds up to 22,336,131 parameters <Cite kind="spec" ref="§7.3" />. The frozen text encoder is not among them: its
+              vectors are computed once, ahead of time.
             </>
           }
         />
@@ -569,9 +542,9 @@ export default function OverviewChapter() {
       {/* ─────────────────────────────── 7 ─────────────────────────────── */}
       <Section id="map" title="The course map">
         <p>
-          The next eleven chapters each open one stage of the picture above, in pipeline order, on the same live context. The last four step back: how
-          the model is trained, what happens when you change its inputs, what the paper found, and how this simulation was checked against the
-          official code.
+          Chapters 2 to 12 each open one stage of the picture above, in pipeline order, on the same live context. Chapter 13 puts the stages back
+          together for one prediction. The last four step back: how the model is trained, what happens when you change its inputs, what the paper
+          found, and how this simulation was checked against the official code.
         </p>
         <CourseMap current={SLUG} />
         <Quiz questions={quiz} />

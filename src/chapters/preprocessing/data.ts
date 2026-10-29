@@ -146,12 +146,12 @@ export function fateCounts(pdb: PreprocessedDB, f: TableFile): FateCounts {
 /** Why a node has (or lacks) a timestamp, in words. */
 export function tsReason(f: TableFile, row: number, ts: number | null): string {
   const s = f.table.schema;
-  if (ts !== null) return `whole seconds of ${s.timeCol}, set at every non-null foreign key (always the same value)`;
+  if (ts !== null) return `whole seconds of ${s.timeCol}`;
   if (!s.timeCol) return `${f.tableName} has no time column`;
   const fks = Object.keys(s.fkeys);
   const rec = f.table.rows[row] ?? {};
-  if (fks.length === 0) return `${f.tableName} has a time column but no foreign key, and pre.rs sets the timestamp only inside the FK loop`;
-  if (fks.every((k) => rec[k] === null || rec[k] === undefined)) return 'every foreign key of this row is null, so the FK loop never runs';
+  if (fks.length === 0) return `${f.tableName} has a time column but no foreign key, and pre.rs sets the timestamp while it reads a foreign key`;
+  if (fks.every((k) => rec[k] === null || rec[k] === undefined)) return 'every foreign key of this row is null, and pre.rs sets the timestamp while it reads a foreign key';
   return `the ${s.timeCol} value of this row is missing`;
 }
 
@@ -240,26 +240,6 @@ export function booleanStats(n: number, k: number): { mean: number; std: number;
 export function sharePct(k: number, n: number): string {
   const p = (100 * k) / Math.max(1, n);
   return Math.abs(p - Math.round(p)) < 0.05 ? `${Math.round(p)}%` : `${p.toFixed(1)}%`;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// bf16 (fly.rs:482-490, spec §3.7)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const f32 = new Float32Array(1);
-const u32 = new Uint32Array(f32.buffer);
-
-/**
- * Round a float32 value to bfloat16 (round to nearest, ties to even), as `half::bf16::from_f32`
- * does when fly.rs builds the batch. Returns the bf16 value as a number.
- */
-export function toBf16(x: number): number {
-  if (!Number.isFinite(x)) return x;
-  f32[0] = x;
-  const b = u32[0];
-  const lsb = (b >>> 16) & 1;
-  u32[0] = ((b + 0x7fff + lsb) >>> 0) & 0xffff0000;
-  return f32[0];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

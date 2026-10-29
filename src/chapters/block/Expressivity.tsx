@@ -15,7 +15,7 @@ const APP_E: { layer: AttnLayer; quote: string; page: string; ours: ReactNode }[
     page: 'p.19 App. E',
     ours: (
       <>
-        Not needed for expressivity, yet it is the layer with “the highest impact on zero-shot transfer” in the paper’s ablation{' '}
+        RT is just as expressive without it, yet in the paper’s ablation it is the layer with “the highest impact on zero-shot transfer”{' '}
         <Cite kind="paper" ref="p.9 §5.2" /> (Table 5 below).
       </>
     ),
@@ -26,8 +26,9 @@ const APP_E: { layer: AttnLayer; quote: string; page: string; ours: ReactNode }[
     page: 'p.19 App. E',
     ours: (
       <>
-        The paper adds that neighbor attention gives only partial row information (cells of one row see the same neighbors) and cannot
-        uniquely tell rows apart, especially in tables without incoming foreign keys <Cite kind="paper" ref="p.19 App. E" />.
+        Neighbor attention gives only partial row information, the paper adds. Cells of one row attend to the same neighbors, but that cannot
+        tell rows apart reliably, especially in a table that no foreign key points to, whose rows have no neighbors at all{' '}
+        <Cite kind="paper" ref="p.19 App. E" />.
       </>
     ),
   },
@@ -156,8 +157,8 @@ export function Table5() {
         </table>
       </div>
       <p className="!mb-0 mt-2 text-[15px] leading-snug text-ink-2">
-        Bold: the largest drop in each row. The paper keeps the parameter count constant by adding blocks when a layer is removed{' '}
-        <Cite kind="paper" ref="p.10 Table 5" />; the classification counterpart (Table 13) shows only minor differences{' '}
+        Bold: the largest drop in each row. To keep the parameter count equal, the paper adds blocks when it removes a layer{' '}
+        <Cite kind="paper" ref="p.10 Table 5" />. On the classification tasks, removing a layer changes the results only a little{' '}
         <Cite kind="paper" ref="p.23 Table 13" />.
       </p>
     </div>
@@ -248,8 +249,8 @@ export function Table15() {
         </table>
       </div>
       <p className="!mb-0 mt-2 text-[15px] leading-snug text-ink-2">
-        C, F, N = column, feature, neighbor; the letters give the order inside each block. “Parallel” applies the three layers in parallel and
-        sums their outputs <Cite kind="paper" ref="p.24 Table 15" />.
+        C, F and N stand for column, feature and neighbor, in the order they run inside each block. “Parallel” runs the three layers side by
+        side and sums their outputs <Cite kind="paper" ref="p.24 Table 15" />.
       </p>
     </div>
   );

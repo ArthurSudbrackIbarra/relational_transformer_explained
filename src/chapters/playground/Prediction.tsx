@@ -214,7 +214,7 @@ export function PredictionCard() {
             Hidden label{" "}
             <span
               className="num rounded-md bg-surface-2 px-1.5 py-px text-ink"
-              title="Stored in the target token but gated out of the input (spec §5.3)"
+              title="The true value. The model never sees it."
             >
               {task.targetCol} = {labelText(truth)}
             </span>

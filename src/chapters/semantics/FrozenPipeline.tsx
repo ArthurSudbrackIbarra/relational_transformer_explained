@@ -63,15 +63,14 @@ export function FrozenPipeline({ nStrings, dbLabel, d }: { nStrings: number; dbL
     {
       active: ['encoder'],
       edge: 0,
-      text: <>embed.py runs the sentence encoder over the whole list, once. This is the only time the encoder ever runs.</>,
+      text: <>embed.py runs the sentence encoder over the whole list once. Training and prediction never run it again.</>,
     },
     {
       active: ['table'],
       edge: 1,
       text: (
         <>
-          The vectors are written to disk as one raw [{int(nStrings)}, 384] array (bf16 in the paper’s code, float32 on this site). From here
-          on, a string is just a row number.
+          The vectors are written to disk as one [{int(nStrings)}, 384] array. From here on, a string is just a row number.
         </>
       ),
     },
@@ -80,9 +79,9 @@ export function FrozenPipeline({ nStrings, dbLabel, d }: { nStrings: number; dbL
       edge: 2,
       text: (
         <>
-          While it builds a batch, the sampler copies, for every token, row <code>col_name_idx</code> into <code>col_name_values</code>, and row{' '}
-          <code>text_idx</code> into <code>text_values</code> (the value string for a text cell, the unused <code>text[0]</code> for every other
-          cell). A memory copy, no neural network.
+          While it builds a batch, the sampler copies, for every token, row <code>col_name_idx</code> into <code>col_name_values</code> and row{' '}
+          <code>text_idx</code> into <code>text_values</code> (the value string for a text cell, the placeholder <code>text[0]</code> for any
+          other cell). This is a plain memory copy, and no neural network runs.
         </>
       ),
     },
@@ -375,9 +374,9 @@ export function LearnedProjection({ phrase, store, assets, catalog }: { phrase: 
                 </table>
               </div>
               <p className="mt-2 !mb-0 text-[14.5px] leading-snug text-ink-2">
-                The encoder fixes where every phrase starts. On the way into the token, training can reshape that geometry only through this one
-                affine map (W, b) and the gain γ, the same for every phrase of every database. The right column is what the model actually adds to
-                each token as its column term{assets.weightsKind === 'init' ? ' (here with untrained weights)' : ''}.
+                The encoder fixes where every phrase starts. Training can reshape that geometry only through this one affine map (W, b) and the
+                gain γ, which are the same for every phrase of every database. The right column is what the model adds to each token as its column
+                term{assets.weightsKind === 'init' ? ' (here with untrained weights)' : ''}.
               </p>
             </div>
           )}

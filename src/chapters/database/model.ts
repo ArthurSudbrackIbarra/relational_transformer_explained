@@ -203,22 +203,6 @@ export function seedTimeMs(pdb: PreprocessedDB, seedNode: number): number | null
   return s ? tsToMs(s.ts) : null;
 }
 
-/** Rows of each DB table that carry a sampler timestamp (pre.rs:481-493). */
-export function timestampCoverage(pdb: PreprocessedDB, db: RawDatabase) {
-  return db.tables.map((t) => {
-    const info = pdb.tableInfo[`${t.schema.name}:Db`];
-    let withTs = 0;
-    if (info) for (let i = 0; i < info.numNodes; i++) if (pdb.nodes[info.nodeIdxOffset + i]?.ts !== null) withTs++;
-    return {
-      table: t.schema.name,
-      timeCol: t.schema.timeCol,
-      nFk: Object.keys(t.schema.fkeys).length,
-      rows: t.rows.length,
-      withTs,
-    };
-  });
-}
-
 /** For a forecast task whose entity table is `focus.table`: the seed node of that entity in `seeds`, if any. */
 export function seedForEntity(pdb: PreprocessedDB, task: TaskDef, seeds: number[], focus: RowRef): number | null {
   if (task.kind !== 'forecast' || task.entityTable !== focus.table) return null;

@@ -38,7 +38,6 @@ import {
   FLY_MASK,
   FLY_SEEDS,
   FLY_TASK_TABLE_SKIP,
-  PRE_CAST_BOOL,
   PRE_NAME_INTERN,
   PRE_TABLE_TYPE,
   TASKS_AUTOCOMPLETE,
@@ -181,10 +180,6 @@ export default function TasksChapter() {
   );
   const [idWrapRef, idWrapSize] = useElementSize<HTMLDivElement>();
   const idNarrow = (idWrapSize.width || 800) < 560;
-  const acSeedCounts = useMemo(
-    () => Object.fromEntries(SPLITS.map((sp) => [sp, getSeeds(shopPdb, rating, sp).length])) as Record<Split, number>,
-    [shopPdb, rating],
-  );
 
   // finished task table view
   const tableInfo = shopPdb.tableInfo[`${churn.name}:${tableSplit}`];
@@ -199,7 +194,6 @@ export default function TasksChapter() {
   const customersCount = shop.tables.find((t) => t.schema.name === 'customers')!.rows.length;
   const ordersCount = shop.tables.find((t) => t.schema.name === 'orders')!.rows.length;
   const churnRows = SPLITS.reduce((a, s) => a + churn.tables![s].rows.length, 0);
-  const earliestTrain = useMemo(() => Math.min(...churn.tables!.Train.rows.map((r) => r.timestamp as number)), [churn]);
   const custName = entityName(shop, 'customers', customer);
   // a live example of leakage: the first one-star review with text
   const leakExample = useMemo(() => {
@@ -207,17 +201,6 @@ export default function TasksChapter() {
     const i = t ? t.rows.findIndex((r) => r.rating === 1 && typeof r.review_text === 'string') : -1;
     return t && i >= 0 ? { row: i, text: t.rows[i].review_text as string, rating: t.rows[i].rating as number } : null;
   }, [shop]);
-
-  // same-timestamp groups among the reviews (sampler resolution: 1 s; None == None also matches, spec §1.4, §4.9)
-  const { reviewTimeDupes, reviewCount } = useMemo(() => {
-    const info = shopPdb.tableInfo[`${rating.table}:Db`];
-    const m = new Map<number | null, number>();
-    for (let i = 0; i < info.numNodes; i++) {
-      const ts = shopPdb.nodes[info.nodeIdxOffset + i]?.ts ?? null;
-      m.set(ts, (m.get(ts) ?? 0) + 1);
-    }
-    return { reviewTimeDupes: [...m.values()].filter((k) => k > 1).length, reviewCount: info.numNodes };
-  }, [shopPdb, rating]);
 
   return (
     <ChapterPage slug="tasks">
@@ -285,35 +268,14 @@ export default function TasksChapter() {
           <MaskedCellFigure db={shop} pdb={shopPdb} ratingTask={rating} churnTask={churn} review={review} customer={customer} />
         </Figure>
         <p>
-          Either way, each training or evaluation example masks exactly one cell: the target cell of its{' '}
+          Either way, each training or evaluation example masks exactly one cell, the target cell of its{' '}
           <Term id="seed-row">seed row</Term>. Every other cell that enters the context stays visible{' '}
-          <Cite kind="code" ref="rustler/src/fly.rs:492-496" /> <Cite kind="spec" ref="§4.10" />; autocomplete tasks first drop their
-          leakage columns, as section 4 shows <Cite kind="spec" ref="§4.9" />. The type of that cell decides the loss: a boolean
-          target is trained as binary classification, a numeric one as regression <Cite kind="paper" ref="p.6 §3.3" />{' '}
-          <Cite kind="code" ref="rt/model.py:250-255" />.
+          <Cite kind="code" ref="rustler/src/fly.rs:492-496" /> <Cite kind="spec" ref="§4.10" />, except that autocomplete tasks first
+          drop their leakage columns (section 4) <Cite kind="spec" ref="§4.9" />. The type of the target cell decides the loss: a
+          boolean target is trained as binary classification, a numeric one as regression <Cite kind="paper" ref="p.6 §3.3" />{' '}
+          <Cite kind="code" ref="rt/model.py:250-255" />. The paper masks only these two kinds of cell, “as RelBench tasks are either
+          binary classification or regression” <Cite kind="paper" ref="p.6 §3.3" />.
         </p>
-        <Callout
-          variant="paper-vs-code"
-          title="Which cells can be masked"
-          paper={
-            <>
-              “In this work, we only mask cells in boolean or numeric columns as RelBench tasks are either binary classification or
-              regression” <Cite kind="paper" ref="p.6 §3.3" />.
-            </>
-          }
-          code={
-            <>
-              The loss follows the target cell’s type: number and datetime get a Huber loss, boolean gets binary cross-entropy, and a
-              text target raises a <code>ValueError</code>, “masking text not supported” <Cite kind="code" ref="rt/model.py:250-257" />. A
-              datetime target would train; no task uses one.
-            </>
-          }
-          verdict="This site follows the code. ShopDB’s tasks, like the paper’s, use boolean and numeric targets only."
-        >
-          <p>
-            See <Cite kind="spec" ref="§2.6" /> and <Cite kind="spec" ref="§10 #15" />.
-          </p>
-        </Callout>
       </Section>
 
       {/* ───────────────────────────── 2 ───────────────────────────── */}
@@ -326,37 +288,34 @@ export default function TasksChapter() {
         </p>
         <p>
           ShopDB’s version is <code>customer-churn</code>: will the customer place <em>no</em> order in the next {churn.timedeltaDays} days?
-          Each row has three
-          columns: a <code>timestamp</code> t, a foreign key <code>customer_id</code>, and the label <code>churn</code>. Like RelBench task
-          tables, it has no primary key <Cite kind="spec" ref="§2.1" />. The label summarizes the future window (t, t + Δ], here with
-          Δ = {churn.timedeltaDays} days <Cite kind="spec" ref="§2.2" />.
+          Each row has three columns: a <code>timestamp</code> t, a foreign key <code>customer_id</code>, and the label{' '}
+          <code>churn</code>. Like RelBench task tables, it has no primary key <Cite kind="spec" ref="§2.1" />. The label summarizes the
+          future window (t, t + Δ], here with Δ = {churn.timedeltaDays} days <Cite kind="spec" ref="§2.2" />.
         </p>
         <Figure
           wide
           title="Building the task table for one customer"
           caption={
             <>
-              Step through the construction, or click a timestamp. Pick any customer: this choice stays in this chapter. Timestamps and
-              stored labels are read from the engine’s task table; the order counts are recomputed from the orders table to show which
-              rows produce each label.
+              Step through the construction, or click a timestamp. Pick any customer (the choice applies only to this chapter).
+              Timestamps and labels come from the engine’s task table, and the order counts are recomputed from the orders table so you
+              can see which orders produce each label.
             </>
           }
         >
           <ChurnBuilder db={shop} task={churn} customer={customer} onCustomerChange={setCustomer} />
         </Figure>
         <p>
-          Where do the timestamps come from? The dataset fixes a validation cutoff and a test cutoff, and training timestamps step back
-          from the validation cutoff in steps of Δ, as in RelBench’s task code{' '}
+          Where do the timestamps come from? The dataset fixes a validation cutoff and a test cutoff, and the training timestamps step
+          back from the validation cutoff in steps of Δ, as in RelBench’s task code{' '}
           <Cite kind="url" ref={RELBENCH_TASK_BASE} label="RelBench task_base.py" title="RelBench BaseTask._get_table (v1.1.0)" />{' '}
           <Cite kind="spec" ref="§2.2" />.
         </p>
         <Callout variant="note" title="What is ours, not RT’s">
           <p>
-            Two details belong to our synthetic ShopDB task, not to RT. RelBench steps back all the way to the database’s first timestamp;
-            our generator stops one step sooner, so the earliest training timestamp ({isoDay(earliestTrain)}) lies at least Δ after the
-            database’s first row ({isoDay(shop.minTimestamp)}), and the first window already has at least Δ of history behind it. And a
-            customer gets a row at time t once they have placed at least one order at or before t, our stand-in for RelBench’s per-task
-            rule for which entities are included. RT itself only ever reads the finished table.
+            Each RelBench task has its own rule for which entities get a row at time t. ShopDB’s rule is simple: a customer gets a row
+            once they have placed at least one order at or before t, which is why the figure shows no row before a customer’s first
+            order. RT never sees the rule, only the finished table.
           </p>
         </Callout>
         <ScaleNote
@@ -409,34 +368,35 @@ export default function TasksChapter() {
         <p>
           RelBench gives every forecasting task three splits <Cite kind="spec" ref="§2.2" />: <strong>Train</strong> rows at the training
           timestamps, <strong>Val</strong> rows at the validation cutoff ({isoDay(churn.valTimestamp!)}) and <strong>Test</strong> rows at
-          the test cutoff ({isoDay(churn.testTimestamp!)}). Each split is a separate file <Cite kind="code" ref="rustler/src/pre.rs:79-92" />,
-          and RT gives each its own block of node indices <Cite kind="code" ref="rustler/src/pre.rs:291-306" />{' '}
-          <Cite kind="spec" ref="§1.5" />. The Test rows keep their labels on disk, as
-          in RelBench’s cached files: the sampler masks only the seed’s own target cell, and evaluation reads the true label from the
-          batch <Cite kind="spec" ref="§2.2" /> <Cite kind="code" ref="rt/main.py:283-288" />.
+          the test cutoff ({isoDay(churn.testTimestamp!)}). Each split is stored as its own file{' '}
+          <Cite kind="code" ref="rustler/src/pre.rs:79-92" />, and RT gives each one its own block of node indices{' '}
+          <Cite kind="code" ref="rustler/src/pre.rs:291-306" /> <Cite kind="spec" ref="§1.5" />. Test rows keep their labels in the file.
+          When a Test row is the seed, its label is masked like any seed’s, and evaluation compares the prediction with the true value{' '}
+          <Cite kind="spec" ref="§2.2" /> <Cite kind="code" ref="rt/main.py:283-288" />.
         </p>
         <Figure
           wide
           caption={
             <>
               Choose where a seed row sits. The sampler skips a task row only if its timestamp is <em>later</em> than the seed’s, so rows at
-              the same timestamp pass <Cite kind="code" ref="rustler/src/fly.rs:421-424" />. The figure shows only this time filter: whether
-              a row that passes it actually lands in the context depends on the search and on L (<Link to="/sampling">chapter 6</Link>).
+              the same timestamp pass <Cite kind="code" ref="rustler/src/fly.rs:421-424" />. Passing this filter does not put a row in the
+              context: that depends on the search and on L (<Link to="/sampling">chapter 6</Link>).
             </>
           }
         >
           <SplitsTimeline db={shop} task={churn} defaultSeedT={liveSeedT} />
         </Figure>
         <p>
-          Move the seed to Test: the Val rows are now earlier than the seed, so they pass the filter too, and a Test prediction can use
-          Val labels as context. The time filter skips only rows that lie in the seed’s future{' '}
-          <Cite kind="code" ref="rustler/src/fly.rs:421-424" />.
+          Move the seed to Test. The Val rows are now earlier than the seed, so they pass the filter, and a Test prediction can use Val
+          labels as context. Rows at the seed’s own timestamp pass as well (the hatched bar), so a Val seed can see other customers’ Val
+          labels, and a Test seed other customers’ Test labels <Cite kind="code" ref="rustler/src/fly.rs:422" />{' '}
+          <Cite kind="spec" ref="§2.5" />.
         </p>
         <p>
-          To RT, the three splits are one logical table. Its name is the task’s directory name and the split only sets the table type{' '}
-          <Cite kind="code" ref="rustler/src/pre.rs:152-174" />. Names are interned once, so all three splits share one table name index
-          and one index per column <Cite kind="code" ref="rustler/src/pre.rs:424-437" /> <Cite kind="spec" ref="§2.2" />. Live from the
-          preprocessed ShopDB:
+          To RT, the three splits are one logical table. All three get the task’s name, and the split only sets a table type{' '}
+          <Cite kind="code" ref="rustler/src/pre.rs:152-174" />. Each name is turned into an index once, so the three splits share one
+          table-name index and one index per column <Cite kind="code" ref="rustler/src/pre.rs:424-437" /> <Cite kind="spec" ref="§2.2" />.
+          Live from the preprocessed ShopDB:
         </p>
         <div ref={idWrapRef} className="scroll-quiet my-5 overflow-x-auto">
           <table className="card w-full border-collapse text-[15.5px]">
@@ -445,7 +405,7 @@ export default function TasksChapter() {
                 <th scope="col" className="px-3 py-2 font-semibold">
                   split
                 </th>
-                <th scope="col" className="px-3 py-2 text-right font-semibold" title="table_name_idx: index of the interned table name">
+                <th scope="col" className="px-3 py-2 text-right font-semibold" title="table_name_idx: the index of the table name">
                   {idNarrow ? 'table idx' : 'table_name_idx'}
                 </th>
                 <th scope="col" className="px-3 py-2 text-right font-semibold" title={`col_name_idx of “timestamp of ${churn.name}”`}>
@@ -500,13 +460,13 @@ export default function TasksChapter() {
             {idNarrow
               ? `Each split also has its own block of node indices, starting at ${splitIds.map(({ s, info }) => `${s} ${info.nodeIdxOffset}`).join(', ')}. `
               : 'Each split has its own block of node indices (offset … offset + rows − 1). '}
-            The blocks follow the file order, test &lt; train &lt; val <Cite kind="code" ref="rustler/src/pre.rs:79-92" />{' '}
+            The blocks are in file order: test, train, val <Cite kind="code" ref="rustler/src/pre.rs:79-92" />{' '}
             <Cite kind="spec" ref="§1.5" />.
           </p>
         </div>
         <p>
-          This is why the past matters. Past rows of the same task, from any split, look to the model like ordinary rows of the same
-          table. The sampler reaches them through the customer, and their label cells stay unmasked. They are the{' '}
+          Because the splits share one table, past rows of the task, from any split, look to the model like ordinary rows of that table.
+          The sampler reaches them through the customer, and their label cells stay unmasked. They are the{' '}
           <Term id="in-context-label">in-context labels</Term> <Cite kind="spec" ref="§2.5" />: “while task rows provide ‘in-context
           labels’, our setting is not few-shot as explicit subgraph-label pairs are not required” <Cite kind="paper" ref="p.2" />.
         </p>
@@ -518,36 +478,9 @@ export default function TasksChapter() {
           {reach.text}
         </p>
         <p>
-          Compare the paper’s counts on RelBench, as mean ± sd per 1024-cell context (target entity / other entities): rel-f1 driver-dnf
-          19 ± 14 / 0 ± 0, and rel-amazon user-churn 4 ± 4 / 1 ± 5 <Cite kind="paper" ref="p.23 Table 12" />. Those counts predate a
-          sampler change that keeps same-timestamp task rows <Cite kind="spec" ref="§11.3" />, which the next note is about.
-        </p>
-        <Callout
-          variant="paper-vs-code"
-          title="Labels at the seed’s own timestamp"
-          paper={
-            <>
-              Not discussed. The leakage rule reads “rows with timestamps later than the seed row are excluded”{' '}
-              <Cite kind="paper" ref="p.4 §3.1" />.
-            </>
-          }
-          code={
-            <>
-              Equal timestamps pass the filter, so a Val seed can reach other customers’ Val rows with their labels visible{' '}
-              <Cite kind="code" ref="rustler/src/fly.rs:422" />.
-            </>
-          }
-        >
-          <p>
-            The ICLR-submission code excluded these same-horizon task rows, and the later RT-J code excludes them again; the paper-era code
-            keeps them <Cite kind="spec" ref="§2.5" /> <Cite kind="spec" ref="§10 #11" />. They are the hatched bar in the figure.
-          </p>
-        </Callout>
-        <p>
-          One more difference concerns time. The paper says it uses “database rows only up to the training cutoff timestamps”{' '}
-          <Cite kind="paper" ref="p.6 §4.1" />, but the paper-era code drops no database row by date; the sampler’s filter on child rows
-          is the only time guard <Cite kind="code" ref="rustler/src/fly.rs:421-424" /> <Cite kind="spec" ref="§10 #10" />. ShopDB keeps
-          every row, as the code does (<Link to="/training">chapter 14</Link> has the details).
+          For comparison, on RelBench the paper counts about 19 past labels of the target entity per 1024-cell context for rel-f1
+          driver-dnf and about 4 for rel-amazon user-churn, with few or none from other entities{' '}
+          <Cite kind="paper" ref="p.23 Table 12" />.
         </p>
         <CodeTabs
           tabs={[
@@ -560,9 +493,9 @@ export default function TasksChapter() {
             },
             {
               id: 'intern',
-              label: 'name interning',
+              label: 'name indices',
               s: PRE_NAME_INTERN,
-              title: 'Names are interned once per string',
+              title: 'Each name string gets one index',
               note: 'Same string, same index: the three splits share table_name_idx and col_name_idx.',
             },
           ]}
@@ -574,46 +507,28 @@ export default function TasksChapter() {
         <h3>A regression task: product-sales</h3>
         <p>
           Forecasting labels need not be booleans. <code>product-sales</code> asks how many units of a product will be ordered in{' '}
-          <span className="whitespace-nowrap">(t, t + {sales.timedeltaDays} d]</span>. The recipe is the same as for churn, with a different aggregation: add up the quantities of the window’s orders instead
-          of checking that there are none. The label is a number, so this is regression: a Number target trained with a Huber loss on its
-          z-score <Cite kind="code" ref="rt/model.py:250-251" /> <Cite kind="spec" ref="§2.6" />. The z-score uses the Train split’s
-          statistics, also for Val and Test rows <Cite kind="spec" ref="§3.3" />.
+          <span className="whitespace-nowrap">(t, t + {sales.timedeltaDays} d]</span>. The recipe is the same as for churn with a
+          different aggregation: add up the quantities of the window’s orders instead of checking that there are none. The label is a
+          number, so this is regression, trained with a Huber loss on the label’s z-score <Cite kind="code" ref="rt/model.py:250-251" />{' '}
+          <Cite kind="spec" ref="§2.6" />. The z-score uses the Train split’s mean and standard deviation for Val and Test rows too{' '}
+          <Cite kind="spec" ref="§3.3" />.
         </p>
-        <Figure wide caption="Hover, tap or focus a bar to see the orders it sums; a click pins it, and arrow keys move between windows. Pick any product: this choice stays in this chapter.">
+        <Figure wide caption="Hover, tap or focus a bar to see the orders it sums. A click pins it, and the arrow keys move between windows. Pick any product (the choice applies only to this chapter).">
           <SalesFigure db={shop} pdb={shopPdb} task={sales} product={product} onProductChange={setProduct} />
         </Figure>
         <p>
-          In the official code, the loss is picked by the type of the target cell, not by a list of task names{' '}
-          <Cite kind="code" ref="rt/model.py:238-258" />. Only evaluation uses a list of task names: it decides which decoder’s output is read
-          and whether the metric is AUROC or R² <Cite kind="code" ref="rt/main.py:228-241" /> <Cite kind="code" ref="rt/main.py:282-287" />. RelBench stores some binary labels as 0/1 integers, so preprocessing casts them
-          to booleans, task by task <Cite kind="code" ref="rustler/src/pre.rs:208-289" /> <Cite kind="spec" ref="§2.6" />.
+          The official code lists each of the paper’s tasks as a tuple of database, table, target column and leakage columns. A
+          forecasting task names its task table, and its leakage list is empty.
         </p>
-        <CodeTabs
-          tabs={[
-            {
-              id: 'fc',
-              label: 'forecasting tasks',
-              s: TASKS_FORECAST,
-              title: 'The paper’s forecasting tasks',
-              note: 'Each tuple is (database, table, target column, leakage columns). For forecasting, the table is the task table and the leakage list is empty.',
-            },
-            {
-              id: 'bool',
-              label: '0/1 labels → Boolean',
-              s: PRE_CAST_BOOL,
-              title: 'Binary labels are cast to Boolean during preprocessing',
-              note: 'rel-amazon user-churn and item-churn: churn becomes a Boolean column, so it gets the BCE loss.',
-            },
-          ]}
-        />
+        <Code s={TASKS_FORECAST} title="The paper’s forecasting tasks" />
 
         <h3>Autocomplete: the target is an existing column</h3>
         <p>
           Autocomplete needs no new table: “sampling starts from the masked database row” <Cite kind="paper" ref="p.19 App. D" />. The
-          seed is a database row and the target is one of its cells. The code looks up the seed table as <code>&lt;table&gt;:Db</code>{' '}
-          whenever such a database table exists, and falls back to a task split only otherwise{' '}
-          <Cite kind="code" ref="rt/data.py:77-81" />. The seeds are all rows whose target cell is present{' '}
-          <Cite kind="code" ref="rustler/src/fly.rs:287-296" />.
+          seed is a database row and the target is one of its cells. Every row whose target cell is present is a seed{' '}
+          <Cite kind="code" ref="rustler/src/fly.rs:287-296" />. An autocomplete task has no Train, Val or Test split: the code always
+          takes its seeds from the whole database table, from every period <Cite kind="code" ref="rt/data.py:77-81" />{' '}
+          <Cite kind="spec" ref="§2.4" />.
         </p>
         <p>
           Autocomplete hides a trap: other columns of the same row can give the answer away.{' '}
@@ -624,42 +539,19 @@ export default function TasksChapter() {
           )}
           So each autocomplete task lists <Term id="leakage-columns">leakage columns</Term>, which the sampler drops on the fly{' '}
           <Cite kind="paper" ref="p.19 App. D" />. For the paper’s rel-amazon rating task they are <code>review_text</code> and{' '}
-          <code>summary</code> <Cite kind="code" ref="rt/tasks.py:67" />; ShopDB’s rating task drops <code>review_text</code>.
+          <code>summary</code> <Cite kind="code" ref="rt/tasks.py:67" />; ShopDB’s rating task drops <code>review_text</code>. The drop
+          applies to the seed row and to any row with exactly the seed’s timestamp. Other reviews in the context keep their text{' '}
+          <Cite kind="code" ref="rustler/src/fly.rs:457-461" /> <Cite kind="spec" ref="§4.9" />.
         </p>
-        <Callout
-          variant="paper-vs-code"
-          title="Which leakage cells are dropped"
-          paper={
-            <>
-              “For each task, we also identify potential sources of information leakage and discard these columns on the fly when
-              building the input sequence” <Cite kind="paper" ref="p.19 App. D" />. This reads as if the whole column disappears.
-            </>
-          }
-          code={
-            <>
-              A leakage cell is skipped only in the seed row and in rows whose timestamp equals the seed’s. Other rows of the table keep it,
-              so other reviews still show their <code>review_text</code> <Cite kind="code" ref="rustler/src/fly.rs:457-461" />{' '}
-              <Cite kind="spec" ref="§4.9" />.
-            </>
-          }
-          verdict="This site follows the code."
-        >
-          <p>
-            “Equal” means the same second, not the same day <Cite kind="spec" ref="§1.4" />.{' '}
-            {reviewTimeDupes === 0
-              ? `In ShopDB no two of the ${reviewCount} reviews share a timestamp, so only the seed’s own review_text is ever dropped. In a dataset with coarser timestamps, such as dates only, every review on the seed’s day would lose its text too.`
-              : `In ShopDB, ${reviewTimeDupes} group${reviewTimeDupes === 1 ? '' : 's'} of reviews share a timestamp; a seed in such a group also drops the others’ review_text.`}
-          </p>
-        </Callout>
         <Figure
           wide
           title="An autocomplete seed: which cells become tokens"
           caption={
             <>
               Pick a review and a task. The right side samples a real context with your L, w and RNG seed, then shows the seed row’s tokens.
-              With <CapCode>reviews.rating</CapCode> the seed’s own <CapCode>review_text</CapCode> never enters; other reviews keep theirs
-              unless they share the seed’s timestamp. With <CapCode>reviews.verified</CapCode> nothing is dropped, like the paper’s
-              rel-amazon <CapCode>review.verified</CapCode> task <Cite kind="code" ref="rt/tasks.py:33" />.
+              With <CapCode>reviews.rating</CapCode> the seed’s own <CapCode>review_text</CapCode> never enters the context. With{' '}
+              <CapCode>reviews.verified</CapCode> nothing is dropped, as in the paper’s rel-amazon <CapCode>review.verified</CapCode> task{' '}
+              <Cite kind="code" ref="rt/tasks.py:33" />.
             </>
           }
         >
@@ -675,40 +567,10 @@ export default function TasksChapter() {
           />
         </Figure>
         <p>
-          No task rows appear in an autocomplete context, because the sampler follows task-table children only from a seed of that same
-          task table <Cite kind="code" ref="rustler/src/fly.rs:415-419" /> <Cite kind="spec" ref="§2.4" />. The in-context labels are the
-          visible target values of other rows of the same table, such as other reviews of the same product. <ScaleNote inline />
+          No task rows appear in an autocomplete context, because the sampler enters a task table only from a seed of that same table
+          (section 5) <Cite kind="code" ref="rustler/src/fly.rs:415-419" /> <Cite kind="spec" ref="§2.4" />. The in-context labels are
+          the visible target values of other rows in the same table, such as other reviews of the same product. <ScaleNote inline />
         </p>
-        <Callout
-          variant="paper-vs-code"
-          title="Autocomplete ignores the split"
-          paper={
-            <>
-              “We pretrain and fine-tune only on the training splits of the tasks” <Cite kind="paper" ref="p.6 §4.1" />, and autocomplete
-              inputs are built “in the same way as for forecasting tasks, preserving the relational structure and temporal{' '}
-              <span className="whitespace-nowrap">
-                order” <Cite kind="paper" ref="p.19 App. D" />.
-              </span>
-            </>
-          }
-          code={
-            <>
-              For an autocomplete task, data.py always picks <code>&lt;table&gt;:Db</code>, so the requested split is ignored: the seeds are
-              every row of the table, from every period, and no cutoff applies <Cite kind="code" ref="rt/data.py:77-81" />.
-            </>
-          }
-        >
-          <p>
-            So here too the split setting has no effect on autocomplete tasks. The engine’s seed lists for {rating.table}.{rating.targetCol}:{' '}
-            {SPLITS.map((sp, k) => (
-              <span key={sp} className="whitespace-nowrap">
-                {k > 0 ? ' · ' : ''}
-                {sp} <strong className="num">{acSeedCounts[sp]}</strong>
-              </span>
-            ))}{' '}
-            <Cite kind="spec" ref="§2.4" /> <Cite kind="spec" ref="§10 #10" />.
-          </p>
-        </Callout>
         <CodeTabs
           tabs={[
             {
@@ -741,12 +603,12 @@ export default function TasksChapter() {
       {/* ───────────────────────────── 5 ───────────────────────────── */}
       <Section id="prompting" title="Task-table prompting">
         <p>
-          This is the first of RT’s two innovations in input representation; the second, cell-level tokenization, is the subject of{' '}
-          <Link to="/tokens">chapter 7</Link> <Cite kind="paper" ref="p.4 §3.1" />. “For each task, we attach a dedicated task table to the
-          database. Only one task table
-          is active at a time, ensuring that sampling is task-specific. Rows from the task table serve as seed rows for context
-          construction, and from the model’s perspective task tables are treated as ordinary relational tables”{' '}
-          <Cite kind="paper" ref="p.4 §3.1" />. The paper calls it <Term id="task-table-prompting">task-table prompting</Term>.
+          How does the model know which task it is solving? Through <Term id="task-table-prompting">task-table prompting</Term>, the
+          first of RT’s two innovations in input representation (the second, cell-level tokenization, is the subject of{' '}
+          <Link to="/tokens">chapter 7</Link>) <Cite kind="paper" ref="p.4 §3.1" />. “For each task,” the paper writes, “we attach a
+          dedicated task table to the database. Only one task table is active at a time, ensuring that sampling is task-specific. Rows
+          from the task table serve as seed rows for context construction, and from the model’s perspective task tables are treated as
+          ordinary relational tables” <Cite kind="paper" ref="p.4 §3.1" />.
         </p>
         <Figure
           wide
@@ -756,18 +618,18 @@ export default function TasksChapter() {
           <PromptingFigure db={shop} pdb={shopPdb} tasks={shop.tasks} slots={shopSlots} customer={customer} product={product} />
         </Figure>
         <p>
-          Why a table and not a special input? Because then a task lives in the same input space as pretraining: the model reads it
+          Why a table and not a special input? Because a table puts the task in the same input space as pretraining: the model reads it
           through the same cells, column names and links as the rest of the database. In the paper’s words, task-table prompting
           “augments the database input with task-specific context, enabling zero-shot predictions across diverse schemas”{' '}
           <Cite kind="paper" ref="p.4 §3.1" />, that is, predictions on a new database without weight updates{' '}
-          <Cite kind="paper" ref="p.4 §2.3" />. And since the task’s past rows carry their labels, the table also shows the
-          model what answers look like for this entity and its neighbors <Cite kind="spec" ref="§2.5" />.
+          <Cite kind="paper" ref="p.4 §2.3" />. And since the task’s past rows carry their labels, the table also shows the model what
+          answers look like for this entity and its neighbors <Cite kind="spec" ref="§2.5" />.
         </p>
         <p>
-          In the code, “only one task table is active” works like this. Preprocessing indexes every task table of the database{' '}
-          <Cite kind="code" ref="rustler/src/pre.rs:79-92" />. The sampler then follows a link into a task table only when the seed belongs
-          to that same table <Cite kind="code" ref="rustler/src/fly.rs:415-419" />. A customer-churn seed never pulls in product-sales rows,
-          and an autocomplete seed, being a database row, pulls in no task rows at all.
+          In the code, “only one task table is active” is a rule in the sampler. Preprocessing indexes every task table of the database{' '}
+          <Cite kind="code" ref="rustler/src/pre.rs:79-92" />, but the sampler follows a link into a task table only when the seed belongs
+          to that same table <Cite kind="code" ref="rustler/src/fly.rs:415-419" />. A customer-churn seed never pulls in product-sales
+          rows, and an autocomplete seed, being a database row, pulls in no task rows at all.
         </p>
         <Code
           s={FLY_TASK_TABLE_SKIP}
@@ -781,8 +643,8 @@ export default function TasksChapter() {
       <Section id="task-row-tokens" title="What the model sees of a task row">
         <p>
           Strip away the table and a task row is small. After preprocessing it has exactly two tokens: the timestamp cell (a datetime) and
-          the label cell (a boolean or a number). The foreign key becomes a link, not a token: the entity’s node index goes into the row’s{' '}
-          <code>f2p_nbr_idxs</code> list <Cite kind="spec" ref="§2.1" /> <Cite kind="code" ref="rustler/src/pre.rs:444-613" />.
+          the label cell (a boolean or a number). The foreign key makes no token. It becomes a link: the entity’s node index goes into
+          the row’s <code>f2p_nbr_idxs</code> list <Cite kind="spec" ref="§2.1" /> <Cite kind="code" ref="rustler/src/pre.rs:444-613" />.
         </p>
         <Figure
           wide
@@ -798,8 +660,7 @@ export default function TasksChapter() {
           <TaskRowTokens db={rowDb} pdb={rowPdb} ctx={rowCtx} slots={rowSlots} pastNode={pastNode} />
         </Figure>
         <p>
-          Nothing tells the model which row holds the question. Every task row carries an <code>is_task_node</code> flag, but the model
-          never reads it <Cite kind="spec" ref="§2.1" />. The seed is special only because its label cell is the one masked token{' '}
+          The seed row carries no marker of its own. It is special only because its label cell is the one masked token{' '}
           <Cite kind="code" ref="rustler/src/fly.rs:492-496" />. The next chapter turns all these rows into numbers: which cells become
           tokens, and how each value is normalized (<Link to="/preprocessing">chapter 4</Link>).
         </p>
@@ -892,8 +753,8 @@ export default function TasksChapter() {
               ],
               explanation: (
                 <>
-                  The sampler never looks at the split: it compares table names (all three splits share one) and timestamps. That is the
-                  hatched bar in the splits figure, and the paper-vs-code note on same-timestamp labels.
+                  The sampler never looks at the split. It compares table names, which all three splits share, and skips only rows
+                  later than the seed. Rows at the seed’s own timestamp get through: they are the hatched bar in the splits figure.
                 </>
               ),
             },

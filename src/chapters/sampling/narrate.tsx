@@ -30,7 +30,6 @@ export const ALG1: { id: string; indent: number; text: string; comment?: string 
 /** The released loop, condensed from fly.rs:357-511 (spec §4.3). Not verbatim: see the CodeRefs. */
 export const CODE_LINES: { id: string; indent: number; text: string; lines: string }[] = [
   { id: 'init', indent: 0, text: 'stack ← [(0, seed)];  buckets ← [];  visited ← ∅', lines: '364-368' },
-  { id: 'rng', indent: 0, text: 'rng ← StdRng(epoch + seed_row + seed)', lines: '371-375' },
   { id: 'loop', indent: 0, text: 'loop:', lines: '376' },
   { id: 'pop', indent: 1, text: 'if stack ≠ ∅:  (d, r) ← stack.pop()   // LIFO, no randomness', lines: '378-379' },
   { id: 'bucket', indent: 1, text: 'else:  d ← lowest non-empty bucket (none left → return)', lines: '381-390' },
@@ -81,12 +80,12 @@ export function narrate({ step, iters, ctx, pdb, db, task, before, state }: Narr
     return {
       text: (
         <>
-          The frontier starts with one entry: the <B>seed row</B> {name(seed.nodeIdx).long}, on the F→P stack at depth 0. The PRNG is seeded
-          with <span className="num">epoch + seed row + seed</span>. Press play to run the loop one decision at a time.
+          The frontier starts with one entry: the <B>seed row</B> {name(seed.nodeIdx).long}, on the F→P stack at depth 0. Press play to run the loop one
+          decision at a time.
         </>
       ),
       alg: ['init'],
-      code: ['init', 'rng'],
+      code: ['init'],
     };
   }
 
@@ -143,8 +142,7 @@ export function narrate({ step, iters, ctx, pdb, db, task, before, state }: Narr
   const skipText = (): ReactNode => (
     <>
       {' '}
-      It was already visited, so it is skipped: no cells, no expansion
-      {ie.pop.from === 'bucket' ? ' (the random draw has still been consumed)' : ''}.
+      It was already visited, so the loop skips it: it adds no cells and pushes nothing.
     </>
   );
 

@@ -267,8 +267,8 @@ export function AttentionKernels() {
           {isEmpty ? (
             <p className="mt-1 mb-0 text-[15.5px] leading-snug text-ink-2">
               No key is allowed, so every score is −∞. A naive softmax divides 0 by 0 and returns{' '}
-              <strong className="text-ink">NaN</strong> (the red strip). The engine skips the row and outputs exactly 0, like FlexAttention’s
-              compiled kernel and the port <Cite kind="spec" ref="§6.1" />.
+              <strong className="text-ink">NaN</strong> (the red strip). The engine skips the row and outputs exactly 0, as FlexAttention’s
+              compiled kernel and the port do <Cite kind="spec" ref="§6.1" />.
             </p>
           ) : (
             <p className="mt-1 mb-0 text-[15.5px] leading-snug text-ink-2">

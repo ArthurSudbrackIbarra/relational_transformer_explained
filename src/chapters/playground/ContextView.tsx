@@ -106,7 +106,7 @@ function LabelCell({ row }: { row: LabelRow }) {
     return (
       <span
         className="target-outline num inline-flex h-8 min-w-[52px] items-center justify-center rounded-md bg-surface px-2 text-[15px] font-semibold text-accent-text"
-        title="The masked target: its value is hidden from the model (fly.rs:492-496)"
+        title="The masked target: its value is hidden from the model"
       >
         ?
       </span>

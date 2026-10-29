@@ -152,7 +152,7 @@ export function AblationPanel() {
             ? nEdits > 0
               ? undefined
               : "Tip: click a label in the context to flip or edit it."
-            : "Autocomplete has no task rows, so the self / other split of Table 4 does not apply. You can still edit the other rows’ values."
+            : "Autocomplete has no task rows, so there is no self / other split. You can still edit the other rows’ values."
         }
       >
         <div className="flex items-center justify-between gap-2">
@@ -203,12 +203,12 @@ export function AblationPanel() {
                 {
                   value: "cells",
                   label: "label cells",
-                  title: "Only the target-column cells (Table 11/12 wording)",
+                  title: "Only the label cells (the target column)",
                 },
                 {
                   value: "rows",
                   label: "whole rows",
-                  title: "Every cell of those task rows (§5.1 wording)",
+                  title: "Every cell of those task rows",
                 },
               ]}
             />

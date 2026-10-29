@@ -81,8 +81,9 @@ export function SourceCards() {
           </>
         }
       >
-        The frozen 384-d encoder of the official preprocessing <Cite kind="spec" ref="§3.6" />. This site ships only its output vectors for the
-        strings of the four databases, computed once by <span className="font-mono text-[15px]">python/embed.py</span>.
+        The frozen 384-d encoder that the official preprocessing loads <Cite kind="code" ref="rt/embed.py:14-15" /> <Cite kind="spec" ref="§3.6" />.
+        This site ships only its output vectors for the strings of the four databases, computed once by{' '}
+        <span className="font-mono text-[15px]">python/embed.py</span>.
       </SourceCard>
       <SourceCard
         kind="Data"

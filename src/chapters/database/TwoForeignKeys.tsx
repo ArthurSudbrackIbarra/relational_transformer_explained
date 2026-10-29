@@ -58,9 +58,9 @@ export function TwoForeignKeys() {
           <span className="text-muted">]</span>
         </div>
         <div className="mt-1.5 text-[15px] leading-snug text-ink-2">
-          The list holds the two parents’ node indices, offset(user) + 7 and offset(user) + 12 (shown here as user[7] and user[12]), in
-          foreign-key-column order, and no column name. The attention masks only ask whether a row is in the list{' '}
-          <Cite kind="code" ref="rt/model.py:171-178" />, so the model cannot tell the buyer from the seller.
+          The list holds the two parents’ node indices (shown here as user[7] and user[12]) in foreign-key-column order, but no column name.
+          The attention masks only ask whether a row is in the list <Cite kind="code" ref="rt/model.py:171-178" />, so the order is lost and the
+          model cannot tell the buyer from the seller.
         </div>
       </div>
     </div>

@@ -233,7 +233,7 @@ export function LSweepFigure() {
         <>
           <LineChart
             title={`${phrase.short} of the live seed as the context grows`}
-            subtitle="Same seed, same sampler and RNG seed, only L changes. Each context is a prefix-growing BFS, so a longer one adds rows."
+            subtitle="Same seed row and sampler; only L changes. A longer context keeps every row of a shorter one and adds more."
             series={[{ id: 'pred', label: phrase.short, slot: 7, points: r.map((p) => ({ x: p.L, y: readout(p.output, task, stats).display })) }]}
             xLabel="context length L (cells)"
             yLabel={binary ? 'P (%)' : phrase.unit || phrase.short}

@@ -96,8 +96,8 @@ const CodeHeader = memo(function CodeHeader() {
 const CodeFooter = memo(function CodeFooter() {
   return (
     <p className="mt-2 text-[14.5px] leading-snug text-ink-2">
-      Line numbers are fly.rs lines. The verbatim Rust is in the three excerpts at the end of the chapter. One harmless reordering: the code expands the
-      frontier before it emits the row’s cells; this only changes when random numbers are drawn <Cite kind="spec" ref="§4.8" />.
+      Line numbers are fly.rs lines, and the verbatim Rust is in the three excerpts at the end of the chapter. The code expands the frontier before it emits
+      the row’s cells, the reverse of Algorithm 1’s order; the sampled context is the same either way <Cite kind="spec" ref="§4.8" />.
     </p>
   );
 });
