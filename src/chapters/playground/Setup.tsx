@@ -201,8 +201,8 @@ export function SetupPanel() {
             </div>
           ) : (
             <p className="!m-0 text-[14.5px] leading-snug text-muted">
-              Autocomplete seeds are all rows of the table, so there is no split
-              (spec §2.4).
+              Autocomplete seeds are all rows of the table, so there is no
+              split.
             </p>
           )}
         </div>

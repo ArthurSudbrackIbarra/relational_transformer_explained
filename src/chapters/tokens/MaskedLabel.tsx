@@ -457,7 +457,7 @@ function GateFlow({
           x₀[{pos}] = column-name term + <ZeroVec /> + m<sub className="text-[13px] leading-none">{semKey}</sub>, whatever the stored value.
         </span>
         <StatusBadge status={diff === 0 ? 'good' : 'warning'}>
-          {diff === 0 ? 'same x₀ as the engine’s forward pass, bit for bit' : `differs from the engine by ${diff.toExponential(1)}`}
+          {diff === 0 ? 'same x₀ as the site’s forward pass, bit for bit' : `differs from the site’s forward pass by ${diff.toExponential(1)}`}
         </StatusBadge>
       </div>
     </div>
@@ -494,7 +494,7 @@ export function HiddenLabelDemo({ live }: { live: TokensLive }) {
       return [
         { key: 'stored', z: storedZ, label: `stored: ${isTrue ? 'true' : 'false'}`, hint: 'what the sampler wrote' },
         { key: 'flip', z: isTrue ? zFalse : zTrue, label: `flipped: ${isTrue ? 'false' : 'true'}`, hint: 'the other class, z-scored the same way' },
-        { key: 'any', z: 1000, label: 'any number: 1000', hint: 'an absurd but finite value' },
+        { key: 'any', z: 1000, label: 'any number: 1000', hint: 'a value no real label would have' },
       ];
     }
     return [
@@ -505,7 +505,7 @@ export function HiddenLabelDemo({ live }: { live: TokensLive }) {
         label: task.kind === 'forecast' ? 'z = 0 (the Train mean)' : 'z = 0 (the column mean)',
         hint: task.kind === 'forecast' ? 'the mean of the Train labels' : 'the mean over all rows of the column (spec §3.4)',
       },
-      { key: 'any', z: 1000, label: 'any number: 1000', hint: 'an absurd but finite value' },
+      { key: 'any', z: 1000, label: 'any number: 1000', hint: 'a value no real label would have' },
     ];
   }, [target, binary, stats, storedZ, task.kind]);
 
@@ -579,15 +579,11 @@ export function HiddenLabelDemo({ live }: { live: TokensLive }) {
       }
       caption={
         <>
-          The forward pass runs again in your browser on the same {ctx.tokens.length} tokens, with only the target’s stored value replaced. This
-          rerun evaluates the input embedding literally, the way <Cite kind="code" ref="rt/model.py:216-224" /> writes it: at every position the value
-          term of every type is computed from its slot, the replaced label included, multiplied by its gate and added up. That input then passes
-          through the four blocks. The prediction is read at the masked position, as evaluation does{' '}
-          <span className="whitespace-nowrap"><Cite kind="code" ref="rt/main.py:283-288" />,</span> and the loss uses the stored value as its target{' '}
-          <span className="whitespace-nowrap">
-            <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:240" />.</span>
-          </span>{' '}
-          The bottom panel opens the gate for the target alone.
+          The forward pass runs again in your browser on the same {ctx.tokens.length} tokens, with only the target’s stored value replaced. At
+          every position, the value term of every type is computed from its slot (the replaced label included), multiplied by its gate and added up{' '}
+          <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:216-224" />,</span> and the result passes through the four blocks. The prediction is read at the masked
+          position <span className="whitespace-nowrap"><Cite kind="code" ref="rt/main.py:283-288" />,</span> and the loss takes the stored value as its target{' '}
+          <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:240" />.</span> The bottom panel opens up the target’s input embedding.
         </>
       }
     >
@@ -656,14 +652,14 @@ export function HiddenLabelDemo({ live }: { live: TokensLive }) {
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14.5px] text-ink-2">
         {checked === null ? (
-          <StatusBadge status="info">checking the literal path against the engine…</StatusBadge>
+          <StatusBadge status="info">checking against the site’s forward pass…</StatusBadge>
         ) : checked ? (
-          <StatusBadge status="good">literal path = the engine’s forward pass, bit for bit</StatusBadge>
+          <StatusBadge status="good">same as the site’s forward pass, bit for bit</StatusBadge>
         ) : (
-          <StatusBadge status="warning">literal path differs from the engine</StatusBadge>
+          <StatusBadge status="warning">differs from the site’s forward pass</StatusBadge>
         )}
         <span>
-          On the sampler’s own tokens, the literal evaluation gives the same x₀, final states, prediction and loss as the engine.
+          With the stored label, this rerun gives the same x₀, final states, prediction and loss as the forward pass behind the other figures.
           {cur ? ` This rerun: ${formatNumber(cur.ms, 0)} ms.` : ''}
         </span>
       </div>

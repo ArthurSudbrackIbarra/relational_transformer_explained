@@ -206,7 +206,7 @@ export function PromptingFigure({
         <div className="text-[15.5px] text-ink-2">
           Children of <span className="text-ink">{entityTable}[{entityRow}]</span> ({entityName(db, entityTable, entityRow)}) that pass
           the sampler’s table test for {task ? <>a <span className="text-ink">{task.name}</span> seed</> : 'a seed in a database table'}{' '}
-          <Cite kind="code" ref="rustler/src/fly.rs:415-419" /> (the temporal filter and the width bound come after it):
+          <Cite kind="code" ref="rustler/src/fly.rs:415-419" /> (the time filter and the width w apply after it):
         </div>
         <ul className="mt-2 flex flex-wrap gap-2" aria-label="Child rows by table">
           {children.map((c) => (
@@ -226,8 +226,8 @@ export function PromptingFigure({
           {task
             ? `The ${task.name} rows hang off the ${task.entityTable!.replace(/s$/, '')} through one foreign key, just like its other child rows. `
             : 'With no task table attached, the entity keeps only its database children; this is also what an autocomplete seed (a database row) gets. '}
-          The stored P→F list of {entityTable}[{entityRow}] holds <span className="num text-ink">{stored}</span> children, because
-          preprocessing indexes every task table <Cite kind="code" ref="rustler/src/pre.rs:79-92" />; the sampler skips the{' '}
+          Preprocessing links {entityTable}[{entityRow}] to all <span className="num text-ink">{stored}</span> of its children, rows of
+          every task table included <Cite kind="code" ref="rustler/src/pre.rs:79-92" />. The sampler skips the{' '}
           <span className="num text-ink">{skipped}</span> that belong to {task ? 'other task tables' : 'task tables'}.
         </p>
       </div>

@@ -107,7 +107,7 @@ export function TwoForeignKeys() {
           An illustration of the example on p.10 (row ids are made up). The preprocessor turns each foreign-key value into a parent row id and pushes
           it onto <code>f2p_nbr_idxs</code>; the column name is dropped <Cite kind="code" ref="rustler/src/pre.rs:472-479" />. The feature and
           neighbor masks then only ask whether a row is in that list <Cite kind="code" ref="rt/model.py:170-178" />. Swapping the two values reorders
-          the list, and nothing else the masks see.
+          the list and changes nothing else the masks see.
         </>
       }
     >
@@ -150,7 +150,7 @@ export function TwoForeignKeys() {
             </div>
           </div>
           <p className="!mt-2 !mb-0 text-[15.5px] text-ink-2">
-            Only <code>price</code> becomes a token. The three key columns are structure, not cells.
+            Only <code>price</code> becomes a token. The three key columns define the structure and never become cells.
           </p>
         </div>
         <div className="min-w-0">

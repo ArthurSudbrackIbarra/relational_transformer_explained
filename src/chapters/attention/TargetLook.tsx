@@ -95,7 +95,7 @@ export function TargetLook({ live }: { live: AttnLive }) {
             options={[{ value: 'mean' as HeadSel, label: 'mean of heads' }, ...Array.from({ length: H }, (_, h) => ({ value: h as HeadSel, label: `head ${h + 1}` }))]}
           />
         </div>
-        <p className="!mb-4 text-[14.5px] text-muted">The block is shared with the figures above; the head choice here is local to this card.</p>
+        <p className="!mb-4 text-[14.5px] text-muted">The block is shared with the figures above. The head choice applies to this card only.</p>
         {!fr ? (
           <p className="text-[16.5px] text-ink-2">{assets.status === 'error' ? `The forward pass is unavailable: ${assets.error}` : 'Running the forward pass…'}</p>
         ) : (
@@ -185,7 +185,7 @@ export function InterpretationBadge() {
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2.5 py-0.5 text-[14px] font-medium text-ink-2"
-      title="The weights are real outputs of the mini model; what they mean is our reading, not a claim of the paper."
+      title="The weights are real outputs of the mini model. What they mean is this site’s reading; the paper makes no such claim."
     >
       <Lightbulb aria-hidden="true" size={14} /> interpretation
     </span>
@@ -572,8 +572,8 @@ export function LabelShare({ live }: { live: AttnLive }) {
                   <p className="!mb-0 text-muted">Running its forward pass…</p>
                 )}
                 <p className="!mb-2 mt-2 text-[14.5px] text-muted">
-                  {int(scan.hits.length)} of {int(scan.total)} seeds of this split have another {entity}’s label in their window. This panel runs one
-                  extra forward pass and leaves the course’s seed unchanged.
+                  {int(scan.hits.length)} of {int(scan.total)} seeds of this split have another {entity}’s label in their window. Showing this
+                  comparison leaves the course’s seed unchanged.
                 </p>
                 <Button size="sm" variant="secondary" className="h-auto min-h-8 max-w-full py-1 text-left whitespace-normal" onClick={() => setSeedNode(best.seed)}>
                   Switch the course to this seed

@@ -44,20 +44,20 @@ export function HyperTable({ curves, results, dataset }: { curves: Curves | null
       what: 'Optimizer',
       paper: (
         <>
-          AdamW, β = (0.9, 0.999), ε = 10⁻⁸ <Cite kind="code" ref="rt/main.py:188-195" />
+          AdamW, β2 = 0.999, ε = 10⁻⁸, β1 set by the schedule <Cite kind="code" ref="rt/main.py:188-195" />
         </>
       ),
-      ours: <>AdamW, β = (0.9, 0.999), ε = 10⁻⁸</>,
+      ours: <>AdamW, β2 = 0.999, ε = 10⁻⁸, β1 set by the schedule</>,
       same: true,
     },
     {
       what: 'Weight decay',
       paper: (
         <>
-          0.1 on every parameter, one group (norms, biases, mask vectors included) <Cite kind="code" ref="rt/main.py:188-191" />
+          0.1 on every parameter <Cite kind="code" ref="rt/main.py:188-191" />
         </>
       ),
-      ours: <>{hp?.wd ?? '–'}, one group</>,
+      ours: <>{hp?.wd ?? '–'} on every parameter</>,
       same: hp?.wd === 0.1,
     },
     {
@@ -132,7 +132,7 @@ export function HyperTable({ curves, results, dataset }: { curves: Curves | null
       what: 'Precision',
       paper: (
         <>
-          the whole model in bfloat16, optimizer state too; no fp32 master copy <Cite kind="code" ref="rt/main.py:186-187" />
+          bfloat16 <Cite kind="code" ref="rt/main.py:186-187" />
         </>
       ),
       ours: <>{cfg?.dtype ?? 'float32'}</>,
@@ -141,10 +141,10 @@ export function HyperTable({ curves, results, dataset }: { curves: Curves | null
       what: 'Evaluation',
       paper: (
         <>
-          step 0, every 1,000 steps and powers of two; at most 40 batches per GPU <Cite kind="code" ref="scripts/example_pretrain.py:9-11" />
+          step 0, every 1,000 steps and powers of two <Cite kind="code" ref="scripts/example_pretrain.py:9-11" />
         </>
       ),
-      ours: <>step 0, every {int(hp?.eval_freq)} steps and powers of two; every seed</>,
+      ours: <>step 0, every {int(hp?.eval_freq)} steps and powers of two</>,
     },
     {
       what: 'Tokens seen',
@@ -240,8 +240,7 @@ export function HyperTable({ curves, results, dataset }: { curves: Curves | null
         ))}
       </ul>
       <p className="mt-2 text-[15px] text-ink-2">
-        Rows marked “same as paper” run the identical setting. Every other row differs only in size, data, precision or hardware, never in what an
-        operation computes.
+        Rows marked “same as paper” use the identical setting.
       </p>
     </div>
   );

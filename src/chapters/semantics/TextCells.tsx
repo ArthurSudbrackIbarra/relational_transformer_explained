@@ -231,9 +231,9 @@ export function SharedValues({ catalog, store }: { catalog: Catalog; store: Embe
     <div className="rounded-lg border border-border bg-surface px-4 py-3">
       <div className="mb-1.5 text-[15.5px] font-semibold text-ink">One string, one index, in every column</div>
       <p className="!mb-2 text-[15.5px] leading-snug text-ink-2">
-        In {DB_SHORT[first.db]}, <Quoted text={first.value} /> is a value of both <Phrase text={pa} /> and <Phrase text={pb} />. pre.rs interns it
-        once, as <span className="font-mono text-ink">text[{first.idx ?? '?'}]</span>, so both cells carry the very same value vector. Only their
-        column vectors differ (cosine <span className="num text-ink">{f3(cosPhr)}</span>).
+        In {DB_SHORT[first.db]}, <Quoted text={first.value} /> is a value of both <Phrase text={pa} /> and <Phrase text={pb} />. The string
+        table holds it once, as <span className="font-mono text-ink">text[{first.idx ?? '?'}]</span>, so both cells carry the same value vector
+        and differ only in their column vectors (cosine <span className="num text-ink">{f3(cosPhr)}</span>).
       </p>
       <p className="!mb-0 text-[14.5px] text-muted">
         {items.length} such strings across the four databases:{' '}

@@ -294,19 +294,6 @@ export function masksWithoutPad(tokens: readonly Token[]): { feat: Uint8Array; n
   return { feat, nbr };
 }
 
-/** Pairs with the same col_name_idx but a different table_name_idx (the extra table test, model.py:181-183). */
-export function sameColumnOtherTable(tokens: readonly Token[]): number {
-  let n = 0;
-  for (const a of tokens) {
-    if (a.isPadding) continue;
-    for (const b of tokens) {
-      if (b.isPadding) continue;
-      if (a.colNameIdx === b.colNameIdx && a.tableNameIdx !== b.tableNameIdx) n++;
-    }
-  }
-  return n;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Presets for "Who can I see?"
 // ─────────────────────────────────────────────────────────────────────────────

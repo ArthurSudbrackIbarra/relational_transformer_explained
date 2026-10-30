@@ -1,21 +1,17 @@
 /**
- * Section 1 figure: why masking means "−∞ before the softmax" and not "multiply the scores by M".
+ * Section 1 figure: masking means "−∞ before the softmax".
  * Uses the REAL scaled scores q·k/√d_head of the trained mini model at the masked target (captured by
- * the engine's forward pass, before masking) and the engine's softmax probabilities. The "⊙ M read
- * literally" view is a clearly labeled counterfactual: softmax(score · M), which is what the v1/v2
- * formula says on paper. A per-key strip shows the mechanism for every key: raw score → logit after
- * masking → softmax weight.
+ * the engine's forward pass, before masking) and the engine's softmax probabilities. A per-key strip
+ * shows the mechanism for every key: raw score → logit after masking → softmax weight.
  */
 import { useMemo, useState } from 'react';
 import { Cite, Figure, LayerLabel, ScaleNote, Segmented, StatusBadge, cx, divergingCss, formatPct, sequentialCss } from '@/components';
 import type { AttnLayer } from '@/engine/types';
 import { useAssets, useForward } from '@/state/hooks';
 import { useResolvedTheme } from '@/styles/theme';
-import { int } from './maskUtils';
 import type { LiveMasks } from './useLiveMasks';
 
 type DemoLayer = Exclude<AttnLayer, 'full'>;
-type Reading = 'code' | 'literal';
 
 const signed = (x: number, d = 3) => x.toFixed(d).replace('-', '−');
 const HATCH = 'repeating-linear-gradient(135deg, var(--axis) 0 1.5px, transparent 1.5px 5px)';
@@ -28,7 +24,6 @@ export function SoftmaxDemo({ live }: { live: LiveMasks }) {
   const [layer, setLayer] = useState<DemoLayer>('feat');
   const [block, setBlock] = useState(0);
   const [head, setHead] = useState(0);
-  const [reading, setReading] = useState<Reading>('code');
   const [hoverK, setHoverK] = useState<number | null>(null);
   const nBlocks = fr?.blocks.length ?? 4;
   const H = assets.weights?.config.nHeads ?? 4;
@@ -47,36 +42,19 @@ export function SoftmaxDemo({ live }: { live: LiveMasks }) {
     for (let k = 0; k < S; k++) if (m[k]) allowed.push(k);
     let massCode = 0;
     for (const k of allowed) massCode += pCode[k];
-    // counterfactual: softmax(score ⊙ M), blocked keys get logit 0
-    let mx = -Infinity;
-    for (let k = 0; k < S; k++) mx = Math.max(mx, score[k] * m[k]);
-    const pLit = new Float64Array(S);
-    let sum = 0;
-    for (let k = 0; k < S; k++) sum += pLit[k] = Math.exp(score[k] * m[k] - mx);
-    let massLit = 0;
-    for (let k = 0; k < S; k++) {
-      pLit[k] /= sum;
-      if (m[k]) massLit += pLit[k];
-    }
-    // the two terms of the literal softmax denominator (without the max shift): Σ_allowed e^score and n_blocked · e^0
-    let expAllowed = 0;
-    for (const k of allowed) expAllowed += Math.exp(score[k]);
     let maxAbsScore = 0;
     for (let k = 0; k < S; k++) if (!live.ctx.tokens[k].isPadding) maxAbsScore = Math.max(maxAbsScore, Math.abs(score[k]));
     const top = [...allowed]
       .sort((a, b) => pCode[b] - pCode[a])
       .slice(0, 5)
-      .map((k) => ({ k, code: pCode[k], lit: pLit[k], score: score[k] }));
+      .map((k) => ({ k, code: pCode[k], score: score[k] }));
     return {
       skipped: false as const,
       m,
       score,
       pCode,
-      pLit,
       allowed: allowed.length,
       massCode,
-      massLit,
-      expAllowed,
       maxAbsScore,
       top,
       blocked: S - allowed.length,
@@ -108,11 +86,10 @@ export function SoftmaxDemo({ live }: { live: LiveMasks }) {
       }
       caption={
         <>
-          Query: the masked target (token #{q}, {labels[q]}). Both readings use the same raw scores q·k/√d_head{' '}
-          (d_head = {dHead} here, 32 in the paper) <Cite kind="spec" ref="§6.1" />. The block and head
-          controls change which allowed keys win, never the 100%: the mask is the same in every block and every head{' '}
-          <Cite kind="code" ref="rt/model.py:89-101" />. The literal ⊙ M reading is shown only to explain the correction; the code does not
-          compute it.
+          Query: the masked target (token #{q}, {labels[q]}). The raw scores are q·k/√d_head, with d_head = {dHead} here and 32 in the paper{' '}
+          <Cite kind="spec" ref="§6.1" />. Switching block or head changes how the weight is split among the allowed keys, but not which keys are
+          allowed: every block and every head uses the same mask <Cite kind="code" ref="rt/model.py:89-101" />. Those keys always get 100% of the
+          weight.
         </>
       }
     >
@@ -126,7 +103,7 @@ export function SoftmaxDemo({ live }: { live: LiveMasks }) {
           <MassBar
             title={
               <>
-                <strong className="font-semibold text-ink">−∞ masking</strong> <span className="text-muted">(paper v3, and the code)</span>
+                <strong className="font-semibold text-ink">Attention weight after −∞ masking</strong>
               </>
             }
             allowed={data.allowed}
@@ -135,43 +112,14 @@ export function SoftmaxDemo({ live }: { live: LiveMasks }) {
             fill={fill}
             empty={data.allowed === 0}
           />
-          <MassBar
-            title={
-              <>
-                <strong className="font-semibold text-ink">QKᵀ ⊙ M read literally</strong> <span className="text-muted">(v1/v2 notation, counterfactual)</span>
-              </>
-            }
-            allowed={data.allowed}
-            blocked={data.blocked}
-            mass={data.massLit}
-            fill={fill}
-            empty={false}
-          />
-          {data.allowed > 0 && (
-            <p className="text-[16.5px] leading-snug text-ink-2">
-              Why: read literally, ⊙ M gives each of the {int(data.blocked)} blocked keys the logit 0, and{' '}
-              <span className="whitespace-nowrap">exp(0) = 1</span>. In the softmax denominator they add{' '}
-              <span className="whitespace-nowrap">
-                {int(data.blocked)} × 1 = {int(data.blocked)}
-              </span>
-              ,
-              against <span className="whitespace-nowrap">Σ exp(score) = {data.expAllowed.toFixed(1)}</span> from the {data.allowed} allowed keys, so the allowed keys keep only{' '}
-              <span className="whitespace-nowrap">
-                {data.expAllowed.toFixed(1)} / ({data.expAllowed.toFixed(1)} + {int(data.blocked)}) = <strong className="text-ink">{formatPct(data.massLit, 1)}</strong>
-              </span>
-              . With −∞, <span className="whitespace-nowrap">exp(−∞) = 0</span> and the blocked keys add nothing.
-            </p>
-          )}
 
           <KeyStrips
             S={S}
             labels={labels}
             m={data.m}
             score={data.score}
-            weights={reading === 'code' ? data.pCode : data.pLit}
+            weights={data.pCode}
             maxAbsScore={data.maxAbsScore}
-            reading={reading}
-            setReading={setReading}
             hoverK={hoverK}
             setHoverK={setHoverK}
             padding={live.ctx.tokens.map((t) => t.isPadding)}
@@ -188,11 +136,8 @@ export function SoftmaxDemo({ live }: { live: LiveMasks }) {
                     <th scope="col" className="py-1 pr-3 text-right font-medium">
                       score
                     </th>
-                    <th scope="col" className="py-1 pr-3 text-right font-medium whitespace-nowrap">
-                      −∞ mask
-                    </th>
                     <th scope="col" className="py-1 text-right font-medium whitespace-nowrap">
-                      ⊙ M
+                      weight
                     </th>
                   </tr>
                 </thead>
@@ -208,8 +153,7 @@ export function SoftmaxDemo({ live }: { live: LiveMasks }) {
                         #{r.k} <BreakAtDot text={labels[r.k]} />
                       </td>
                       <td className="num py-1 pr-3 text-right text-ink-2">{signed(r.score)}</td>
-                      <td className="num py-1 pr-3 text-right text-ink">{formatPct(r.code, 1)}</td>
-                      <td className="num py-1 text-right text-ink-2">{formatPct(r.lit, 1)}</td>
+                      <td className="num py-1 text-right text-ink">{formatPct(r.code, 1)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -217,8 +161,7 @@ export function SoftmaxDemo({ live }: { live: LiveMasks }) {
             </div>
           ) : (
             <p className="text-[16px] text-ink-2">
-              The target’s neighbor row has no allowed key. With −∞ masking every weight is 0 and the sublayer outputs exactly 0. Read literally,
-              ⊙ M would instead give every one of the {int(S)} keys the same logit 0, so the weight would spread evenly over all of them.
+              The target’s neighbor row has no allowed key, so every weight is 0 and the sublayer outputs exactly 0.
             </p>
           )}
         </div>
@@ -235,8 +178,6 @@ function KeyStrips({
   score,
   weights,
   maxAbsScore,
-  reading,
-  setReading,
   hoverK,
   setHoverK,
   padding,
@@ -247,8 +188,6 @@ function KeyStrips({
   score: Float64Array;
   weights: Float64Array;
   maxAbsScore: number;
-  reading: Reading;
-  setReading: (r: Reading) => void;
   hoverK: number | null;
   setHoverK: (k: number | null) => void;
   padding: boolean[];
@@ -256,13 +195,12 @@ function KeyStrips({
   const mode = useResolvedTheme();
   let maxW = 0;
   for (let k = 0; k < S; k++) maxW = Math.max(maxW, weights[k]);
-  const literal = reading === 'literal';
-  const logit = (k: number) => (m[k] ? score[k] : literal ? 0 : -Infinity);
+  const logit = (k: number) => (m[k] ? score[k] : -Infinity);
   const rows: { id: string; title: string; cell: (k: number) => { bg: string; hatch?: boolean } }[] = [
     { id: 'score', title: 'raw score q·k/√d_head', cell: (k) => ({ bg: divergingCss(score[k], maxAbsScore, mode) }) },
     {
       id: 'logit',
-      title: literal ? 'logit = score × M (blocked → 0)' : 'logit after Mask(·; M) (blocked → −∞)',
+      title: 'logit after Mask(·; M) (blocked → −∞)',
       cell: (k) => (Number.isFinite(logit(k)) ? { bg: divergingCss(logit(k), maxAbsScore, mode) } : { bg: 'transparent', hatch: true }),
     },
     { id: 'weight', title: 'softmax weight', cell: (k) => ({ bg: weights[k] > 0 ? sequentialCss(maxW > 0 ? weights[k] / maxW : 0, mode) : 'var(--surface-2)' }) },
@@ -270,17 +208,8 @@ function KeyStrips({
   const hk = hoverK;
   return (
     <div className="min-w-0 rounded-lg border border-border px-3 pt-2.5 pb-3">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="mb-2">
         <span className="text-[16px] font-medium text-ink">All {S} keys of the target’s row, in emission order</span>
-        <Segmented
-          label="How the mask is applied"
-          value={reading}
-          onChange={setReading}
-          options={[
-            { value: 'code', label: '−∞ (the code)' },
-            { value: 'literal', label: '⊙ M read literally' },
-          ]}
-        />
       </div>
       <div className="grid gap-1.5" onPointerLeave={() => setHoverK(null)}>
         {rows.map((r) => (
@@ -316,7 +245,6 @@ function KeyStrips({
         ) : (
           <span className="text-muted">
             Hover a key. Hatched = −∞. Scores: blue negative, red positive; weights: {mode === 'dark' ? 'lighter' : 'darker'} = more of the attention.
-            {literal ? ' Under ⊙ M every blocked key gets the same logit 0, so they all light up in the weight row.' : ''}
           </span>
         )}
       </div>

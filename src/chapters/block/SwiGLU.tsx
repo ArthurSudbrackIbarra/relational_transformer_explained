@@ -173,8 +173,8 @@ function GateReadout({ za, zb, unit }: { za: number; zb: number; unit: number | 
         <Row k="SiLU(z) · g" v={formatSigned(prod, 3)} strong />
       </dl>
       <p className="!mb-0 mt-2 text-[15px] leading-snug text-ink-2">
-        For large z, SiLU(z) ≈ z; for very negative z it fades to 0. The gate g, a second linear map of the same h, scales the result and can flip
-        its sign: a product of two learned paths, not one activation alone.
+        For large z, SiLU(z) ≈ z, and for very negative z it fades to 0. The gate g, a second linear map of the same h, scales the result and
+        can flip its sign, so each hidden unit is the product of two learned paths.
       </p>
     </div>
   );

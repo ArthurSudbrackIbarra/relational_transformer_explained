@@ -37,10 +37,10 @@ export const ATTENTION_SPEC: AblationSpec = {
 export const ORDER_SPEC: AblationSpec = {
   table: TABLE15,
   variants: [
-    { id: 'CFN', label: 'CFN (released)', short: 'CFN' },
+    { id: 'CFN', label: 'CFN (RT’s order)', short: 'CFN' },
     { id: 'CNF', label: 'CNF', short: 'CNF' },
     { id: 'FCN', label: 'FCN', short: 'FCN' },
-    { id: 'FNC', label: 'FNC (ICLR submission)', short: 'FNC' },
+    { id: 'FNC', label: 'FNC', short: 'FNC' },
     { id: 'NCF', label: 'NCF', short: 'NCF' },
     { id: 'NFC', label: 'NFC', short: 'NFC' },
     { id: 'Parallel', label: 'parallel (outputs summed)', short: 'Parallel' },

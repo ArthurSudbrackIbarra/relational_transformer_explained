@@ -13,6 +13,7 @@ Companion to `docs/BUILD_PLAN.md`. Each brief tells a chapter author what to tea
   - Clear, concrete, warm, precise. Short paragraphs. Define every term on first use (`<Term>`).
   - Avoid hype and filler ("delve", "crucial", "seamlessly", "it's worth noting"). Avoid em-dash chains.
   - Explain *why* a design choice exists, citing the paper's stated rationale.
+  - Teach the latest correct version and skip the rest: no paper errata, arXiv version history, provenance of numbers (which run or version produced a table) or numerical edge cases that never arise in normal use (NaN, σ = 0, bf16 rounding, kernel internals). Mention a paper-vs-code difference only when it changes how RT behaves, in one or two plain sentences.
 - **Interactivity.** At least one hands-on figure per chapter. Hover cross-highlighting between views where it makes sense. Animations use `motion/react`, respect reduced motion and expose a `StepPlayer` when an algorithm runs.
 - **Files.**
   - A chapter lives in `src/chapters/<slug>/`: `index.tsx` plus local components.
@@ -130,12 +131,11 @@ Companion to `docs/BUILD_PLAN.md`. Each brief tells a chapter author what to tea
    - dtype → sem type table with glyphs; codes Number=0, Text=1, DateTime=2, Boolean=3 (`common.rs:38-44`).
    - No semantic inference: strings are Text; non-key integer ids would be Numbers.
 4. *Normalization, interactively.*
-   - Pick a column → histogram of raw values and z-scores, with live μ and σ (sample std, ddof=1).
+   - Pick a column → histogram of raw values and z-scores, with live μ and σ.
    - **Booleans.** Show the computed true/false z values for `is_premium` and the churn label, and explain why "true ⇔ z > 0" (spec §3.3).
-   - **Datetimes.** One global μ_T and σ_T (population std) shared by every datetime column of every table. Show three datetime columns on one axis.
+   - **Datetimes.** One global μ_T and σ_T shared by every datetime column of every table. Show three datetime columns on one axis.
    - Task labels use **Train** statistics for all splits.
 5. *Pick a cell, see its encoding.* Click a cell anywhere → panel: raw value → sem type → stored value(s) → which embedding slot it will use.
-6. *Precision note.* The official batch stores values as bf16; we use float32 (ScaleNote).
 
 **Spec.** §1.5, §3 (all), §10 #3, #4. **CodeRef.**
 - `PE/rustler/src/pre.rs:316-341` (number/boolean stats);
@@ -145,8 +145,7 @@ Companion to `docs/BUILD_PLAN.md`. Each brief tells a chapter author what to tea
 - `PE/rustler/src/common.rs:38-44`.
 
 **Callouts.**
-- paper-vs-code (§3.4): paper says "training split"; code uses all DB rows for DB-table stats; task labels use Train; RT-J later fixed it.
-- warning: a constant boolean column would give 0/0 = NaN (σ has no guard) and poison the batch (spec §3.3). That is why our dummy data never has one.
+- paper-vs-code (§3.4): paper says "training split"; code uses all DB rows for DB-table stats; task labels use Train.
 
 **Quiz.** What is the z-value of `true` if 25% are true (≈ +1.73)? Do datetime columns get per-column statistics?
 
@@ -176,7 +175,7 @@ Companion to `docs/BUILD_PLAN.md`. Each brief tells a chapter author what to tea
 - `pre.rs:424-437` (interning table names and column phrases);
 - `PE/rt/data.py:31-43` (`"<col> of <table>"` lookup).
 
-**Callouts.** paper-vs-code: the paper says "MiniLMv2"; the code uses `sentence-transformers/all-MiniLM-L12-v2` (spec §10 #16).
+**Callouts.** none required. Name the encoder as the code loads it, `sentence-transformers/all-MiniLM-L12-v2`.
 
 **Quiz.** Does the model see FK column names? (no) What text is embedded for a text cell? (the raw value only)
 
@@ -229,8 +228,6 @@ Companion to `docs/BUILD_PLAN.md`. Each brief tells a chapter author what to tea
 - a row can be cut at L;
 - same-horizon labels of other entities are visible in the released code (spec §10 #5, #7, #8, #11).
 
-Also a note that our PRNG is not Rust's ChaCha12 (same distribution).
-
 **Quiz.** Which rows are never subjected to the time filter? If a customer has 40 past orders and w=16, how many orders can enter via that customer?
 
 ---
@@ -281,7 +278,7 @@ Also a note that our PRNG is not Rust's ChaCha12 (same distribution).
    - (4) the value path for its type: a scalar z → W_t·z + b → RMSNorm; or text: 384-d → Linear → RMSNorm; or masked: m_t;
    - (5) sum = x₀.
    - All as `VectorStrip`s with live numbers from the trained mini model.
-3. *RMSNorm explained* (spec §7.2): y = x / √(mean(x²)+ε) · γ, with ε = 2⁻⁷ (the paper's torch 2.6 bf16 environment). Interactive: drag a 2-D vector and see its RMS normalization. Note RMSNorm(0) = 0.
+3. *RMSNorm explained* (spec §7.2): y = x / √(mean(x²)+ε) · γ, with ε = 2⁻⁷. Interactive: drag a 2-D vector and see its RMS normalization. Note RMSNorm(0) = 0.
 4. *One encoder per type.*
    - Numbers of all columns share W_number. Column identity comes only from the column term (and from the column mask later).
    - Figure: sweep z from −3 to 3 for the number encoder and plot the value term's trajectory (2-D PCA of the 64-d outputs). It is a 1-D curve, approximately on a sphere (spec §5.2 teaching note).
@@ -301,7 +298,6 @@ Also a note that our PRNG is not Rust's ChaCha12 (same distribution).
 **Sections and figures.**
 1. *Attention with a mask.*
    - SDPA formula with −∞ masking (paper p.5; MathBlock).
-   - Note that v1/v2 of the paper wrote QKᵀ ⊙ M; v3 corrected it (§6.6).
 2. *The four masks side by side.*
    - Four `MaskMatrix` views (S×S) of the live context, with axes grouped by row/table colour bands.
    - Definitions in paper notation and code form (spec §6.2 table).
@@ -471,7 +467,6 @@ Also a note that our PRNG is not Rust's ChaCha12 (same distribution).
 - `PE/scripts/example_pretrain.py` (whole file; it is short).
 
 **Callouts.**
-- paper-vs-code: "warmup from zero / decay to zero" vs OneCycle's 4e-5 → 1e-3 → 4e-9 and the β1 cycling (spec §10 #13);
 - note: the paper's multi-cell masking P(mask) is an ablation not in the released code (Table 14).
 
 **Quiz.** Which DB is never seen during pretraining in our run? Why is selection by target-task val labels still "zero-shot" in the paper's sense?
@@ -514,9 +509,8 @@ Also a note that our PRNG is not Rust's ChaCha12 (same distribution).
 4. *Context ablations* (Table 4/11) and *attention ablations* (Table 5/13), *attention order* (Table 15), *multi-cell masking* (Table 14), *feature extraction* (Table 3, with the 5/4-task subset caveat), *cost-quality* (Fig. 4 numbers).
 5. *The ranked drivers of zero-shot transfer* (p.10 §7).
 6. *Limitations* (p.10): no link prediction/recommendation; ignores PK/FK names; cannot disambiguate multiple FKs to the same table; future: better cell encoders.
-7. *Paper vs code: every discrepancy* (spec §10 table), filterable, each with citation.
-8. *Provenance note* (spec §11 intro / §13 #1): which tables predate the released sampler.
-9. *Glossary* (all terms) and *References* (paper, code, RelBench, FlexAttention, LLaMA, MiniLM).
+7. *Where the code differs from the paper*: only the few differences that change what RT computes or what its context holds (spec §10), one card each with citations and a link to the chapter that shows it.
+8. *Glossary* (all terms) and *References* (paper, code, RelBench, FlexAttention, LLaMA, MiniLM).
 
 **Spec.** §10, §11, §13.
 

@@ -112,7 +112,7 @@ export const RowTokens = memo(function RowTokens({ db, idx, slots, focus }: RowT
             .
           </>
         ) : (
-          'Press the button to split the row the way pre.rs does.'
+          'Press the button to split the row the way RT’s preprocessing does.'
         )}
       </p>
     </div>

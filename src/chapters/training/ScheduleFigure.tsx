@@ -200,9 +200,8 @@ export function ScheduleFigure({ schedule }: { schedule: Schedule | null }) {
           <MathBlock tex={B1_TEX} className="my-3 hidden min-w-0 sm:block" />
         </div>
         <p className="mt-2 text-[14.5px] leading-snug text-muted">
-          torch’s linear OneCycleLR with the defaults the code leaves untouched
-          (div_factor 25, final_div_factor 10⁴, cycle_momentum, β1 between 0.95
-          and 0.85){" "}
+          PyTorch’s OneCycleLR with linear annealing and the default settings
+          the code leaves unchanged{" "}
           <Cite
             kind="url"
             ref="https://pytorch.org/docs/2.6/generated/torch.optim.lr_scheduler.OneCycleLR.html"
@@ -211,15 +210,14 @@ export function ScheduleFigure({ schedule }: { schedule: Schedule | null }) {
           . These formulas reproduce every value of{" "}
           {which === "mini"
             ? "η and β1 logged by our run"
-            : "the sampled 50,001-step schedule"}{" "}
-          to within {data.maxErr < 1e-6 ? "10⁻⁶" : sci(data.maxErr, 1)} (checked
-          in your browser; η relative to the peak).
+            : "the sampled 50,001-step schedule"}
+          {data.maxErr < 1e-6 ? "" : ` to within ${sci(data.maxErr, 1)}`}.
         </p>
       </div>
       <figcaption className="mx-auto mt-3 max-w-[var(--prose-max)] text-[16px] leading-snug text-ink-2">
-        Both runs use the same scheduler with T = total steps, so their shapes
-        match and only the step axis stretches. The paper’s curve is sampled
-        every{" "}
+        Both runs use the same scheduler with T = total steps, so the curves
+        have the same shape and only the step axis stretches. The paper’s
+        curve is sampled every{" "}
         {int((schedule?.paper?.step[1] ?? 0) - (schedule?.paper?.step[0] ?? 0))}{" "}
         steps; ours is logged at every update <Cite kind="spec" ref="§9.2" />.
       </figcaption>

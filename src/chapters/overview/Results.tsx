@@ -46,7 +46,7 @@ export function PaperHeadline() {
           value="22.3M"
           caption={
             <>
-              {int(paramCount(PAPER_CONFIG))} by module count; “about 22M” in the paper <Cite kind="paper" ref="p.6 §4.1" />
+              {int(paramCount(PAPER_CONFIG))} counted module by module; “about 22M” in the paper <Cite kind="paper" ref="p.6 §4.1" />
               <Cite kind="spec" ref="§7.3" />
             </>
           }
@@ -100,13 +100,13 @@ export function PaperHeadline() {
           subtitle={
             metric === 'auroc' ? (
               <>
-                “seen”: the target database (not the task) was in pretraining; all others never saw it, except Gemma3, whose pretraining data is
-                unknown <Cite kind="paper" ref="p.7 §4.3" />.
+                “seen”: the target database (not the task) was in pretraining. The other models never saw it (for Gemma3 this cannot be checked,
+                since its pretraining data is unknown) <Cite kind="paper" ref="p.7 §4.3" />.
               </>
             ) : (
               <>
-                “seen”: the target database (not the task) was in pretraining. The Gemma3 models score below −9 on most regression tasks and are left
-                out <Cite kind="paper" ref="p.26 Table 16" />.
+                “seen”: the target database (not the task) was in pretraining. The Gemma3 models score far below zero on most regression tasks, so
+                they are left out <Cite kind="paper" ref="p.26 Table 16" />.
               </>
             )
           }
@@ -238,10 +238,10 @@ export function MiniResults() {
         </table>
       </div>
       <p className="!m-0 border-t border-grid px-4 py-3 text-[15px] leading-snug text-ink-2">
-        Checkpoint chosen per task on ShopDB’s validation split, then scored on its test split, as in the paper <Cite kind="spec" ref="§9.1" />. One
-        training run and this few test rows make the scores noisy. They show that the miniature runs the paper’s protocol, not that it reproduces the
-        paper’s numbers. EntityMean winning a regression task happens in the paper too: it beats RT on item-ltv and post-votes{' '}
-        <Cite kind="paper" ref="p.8 Table 2" />. Chapter 14 has the training curves.
+        As in the paper, the checkpoint is chosen per task on ShopDB’s validation split and then scored on its test split{' '}
+        <Cite kind="spec" ref="§9.1" />. One training run and so few test rows make the scores noisy. They show the paper’s protocol running at a
+        small scale and are not meant to match its numbers. EntityMean can win a regression task in the paper too: it beats RT on item-ltv and
+        post-votes <Cite kind="paper" ref="p.8 Table 2" />. Chapter 14 has the training curves.
       </p>
     </div>
   );

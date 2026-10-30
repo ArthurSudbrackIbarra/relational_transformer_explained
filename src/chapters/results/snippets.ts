@@ -3,16 +3,6 @@
  * reading the exact line ranges from the local snapshot. Do not edit by hand.
  */
 
-/** rustler/src/pre.rs:472-479 */
-export const PRE_FK_PARENT_472_479 = `                    let AnyValue::Int64(val) = val else {
-                        dbg!(val);
-                        dbg!(col.name());
-                        panic!()
-                    };
-                    let pnode_idx = ptable_offset + val as i32;
-
-                    node.f2p_nbr_idxs.push(pnode_idx);`;
-
 /** rt/model.py:170-178 */
 export const MODEL_F2P_MASKS_170_178 = `        # kv index is among q's foreign -> primary neighbors
         kv_in_f2p = (node_idxs[:, None, :, None] == f2p_nbr_idxs[:, :, None, :]).any(
@@ -23,32 +13,3 @@ export const MODEL_F2P_MASKS_170_178 = `        # kv index is among q's foreign 
         q_in_f2p = (node_idxs[:, :, None, None] == f2p_nbr_idxs[:, None, :, :]).any(
             -1
         )  # (B, S, S)`;
-
-/** rt/main.py:373-392 */
-export const MAIN_EVAL_SELECT_373_392 = `            if (eval_freq is not None and steps % eval_freq == 0) or (
-                eval_pow2 and steps & (steps - 1) == 0
-            ):
-                metrics = evaluate(net)
-                if save_ckpt_dir is not None:
-                    for (db_name, table_name), metric in metrics["val"].items():
-                        # Eval metric is always higher is better (auc, r2)
-                        best_metric = best_val_metrics.get(
-                            (db_name, table_name), -float("inf")
-                        )
-                        if metric > best_metric:
-                            best_val_metrics[(db_name, table_name)] = metric
-                            best_test_metrics[(db_name, table_name)] = metrics["test"][(db_name, table_name)]
-                            checkpoint(
-                                best=True,
-                                db_name=db_name,
-                                table_name=table_name
-                            )
-                        else:
-                            checkpoint()`;
-
-/** rustler/src/fly.rs:492-496 */
-export const FLY_TARGET_MASK_492_496 = `                let is_target = seed_node_idx == node.node_idx
-                    && node.col_name_idxs[cell_i] == target_column;
-                slices.is_targets[seq_i] = is_target;
-
-                slices.masks[seq_i] = is_target;`;

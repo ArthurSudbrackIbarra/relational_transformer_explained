@@ -1,94 +1,15 @@
 /**
- * Figure 2: where the norm sits. Paper Algorithm 2 (p.26) prints X ← X + Norm(MHA(X; M)); the code is
- * pre-norm, x ← x + MHA(RMSNorm(x); M) (rt/model.py:84-85; spec §7.1, §10 #1). The live chart shows the
+ * Figure 2: pre-norm, x ← x + MHA(RMSNorm(x); M) (rt/model.py:84-85; spec §7.1). The live chart shows the
  * consequence in the trained mini model: the residual stream is never rescaled inside the stack, only the
  * copy each sublayer reads, until norm_out.
  */
 import { scaleLinear } from 'd3';
 import { useMemo, useState } from 'react';
-import { ChartFrame, DataTable, Legend, cx } from '@/components';
+import { ChartFrame, DataTable, Legend } from '@/components';
 import { TooltipBox } from '@/components/viz/chartParts';
 import { useElementSize } from '@/components/viz/useSize';
 import type { ForwardResult } from '@/engine/types';
 import { fx, streamStages, SUB_SHORT, type Stage } from './utils';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Two wirings
-// ─────────────────────────────────────────────────────────────────────────────
-
-function Wiring({ variant }: { variant: 'paper' | 'code' }) {
-  const first = variant === 'paper' ? 'MHA(·; M)' : 'RMSNorm';
-  const second = variant === 'paper' ? 'Norm' : 'MHA(·; M)';
-  const W = 312;
-  const H = 128;
-  const y = 104;
-  const by = 22;
-  const bh = 38;
-  const b1 = { x: 46, w: 104 };
-  const b2 = { x: 168, w: 104 };
-  const plusX = 290;
-  const id = `wire-${variant}`;
-  return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={variant === 'paper' ? 'Algorithm 2: the sublayer output is normalized, then added to X' : 'Code: a normalized copy of x goes into the sublayer, whose output is added to x'} className="block max-w-full">
-      <defs>
-        <marker id={id} viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M0,0 L10,5 L0,10 z" style={{ fill: 'var(--ink-2)' }} />
-        </marker>
-      </defs>
-      {/* identity path */}
-      <line x1={6} y1={y} x2={W - 4} y2={y} style={{ stroke: 'var(--muted)', opacity: 0.45 }} strokeWidth={5} strokeLinecap="round" />
-      <text x={8} y={y - 10} fontSize={15} fontStyle="italic" fontWeight={600} style={{ fill: 'var(--ink)' }}>
-        x
-      </text>
-      <path d={`M24,${y - 4}V${by + bh / 2}H${b1.x - 3}`} fill="none" style={{ stroke: 'var(--ink-2)' }} strokeWidth={2} markerEnd={`url(#${id})`} />
-      <path d={`M${b1.x + b1.w},${by + bh / 2}H${b2.x - 3}`} fill="none" style={{ stroke: 'var(--ink-2)' }} strokeWidth={2} markerEnd={`url(#${id})`} />
-      <path d={`M${b2.x + b2.w},${by + bh / 2}H${plusX}V${y - 12}`} fill="none" style={{ stroke: 'var(--ink-2)' }} strokeWidth={2} markerEnd={`url(#${id})`} />
-      {[
-        { b: b1, t: first },
-        { b: b2, t: second },
-      ].map(({ b, t }) => {
-        const isNorm = t === 'Norm' || t === 'RMSNorm';
-        return (
-          <g key={t}>
-            <rect x={b.x} y={by} width={b.w} height={bh} rx={8} style={{ fill: isNorm ? 'var(--accent-soft)' : 'var(--surface)', stroke: isNorm ? 'var(--accent)' : 'var(--border-strong)' }} strokeWidth={isNorm ? 2 : 1.5} />
-            <text x={b.x + b.w / 2} y={by + bh / 2 + 5} textAnchor="middle" fontSize={15} fontWeight={isNorm ? 600 : 500} style={{ fill: 'var(--ink)' }}>
-              {t}
-            </text>
-          </g>
-        );
-      })}
-      <circle cx={plusX} cy={y} r={10} style={{ fill: 'var(--surface)', stroke: 'var(--ink-2)' }} strokeWidth={2} />
-      <path d={`M${plusX - 5},${y}H${plusX + 5}M${plusX},${y - 5}V${y + 5}`} style={{ stroke: 'var(--ink-2)' }} strokeWidth={2} />
-    </svg>
-  );
-}
-
-export function WiringCompare() {
-  return (
-    <div className="wide my-7 grid gap-4 md:grid-cols-2">
-      {(['paper', 'code'] as const).map((v) => (
-        <div key={v} className={cx('card min-w-0 px-4 py-3.5', v === 'code' && 'border-accent/40')}>
-          <div className="eyebrow mb-1">{v === 'paper' ? 'Paper, Algorithm 2 as printed' : 'Code, rt/model.py:84-85 (this site)'}</div>
-          <div className="mb-2 text-[17px] text-ink">
-            {v === 'paper' ? (
-              <span className="text-[16px]">X ← X + Norm(MHA(X; M))</span>
-            ) : (
-              <span className="font-mono text-[16px]">x = x + attns[l](norms[l](x), …)</span>
-            )}
-          </div>
-          <div className="flex justify-center">
-            <Wiring variant={v} />
-          </div>
-          <p className="!mb-0 mt-2 text-[15.5px] leading-snug text-ink-2">
-            {v === 'paper'
-              ? 'The sublayer reads the raw stream and its output is normalized before the add.'
-              : 'The sublayer reads a normalized copy; its raw output is added. The stream itself is never normalized inside the block.'}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Live chart: ‖x‖ of the residual stream vs ‖RMSNorm(x)‖ read by each sublayer

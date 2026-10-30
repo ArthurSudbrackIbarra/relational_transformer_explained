@@ -81,7 +81,7 @@ export const METHODS: Record<string, MethodStyle> = {
   rdlGnn: M('rdlGnn', 'RDL-GNN', 4, 'triangle', true, 'Schema-specific GNN over rows (cannot be pretrained).'),
   relGnn: M('relGnn', 'RelGNN', 6, 'triangle-down', true, 'Schema-specific GNN with composite message passing (cannot be pretrained).'),
   relGt: M('relGt', 'RelGT', 8, 'cross', true, 'Relational graph transformer, schema-specific (cannot be pretrained).'),
-  relllm: M('relllm', 'RelLLM', 1, 'circle', false, 'GNN encoders + LLM. Table 10 marks it “pretrained? Yes” and prints “nan” for R².'),
+  relllm: M('relllm', 'RelLLM', 1, 'circle', false, 'GNN encoders + LLM. No regression results.'),
   griffinU: M('griffinU', 'Griffin, untrained', 2, 'circle', true, 'Griffin fine-tuned from random initialization.'),
   griffinP: M('griffinP', 'Griffin, pretrained', 2, 'circle', false, 'Griffin fine-tuned from its pretrained checkpoint.'),
   rtU: M('rtU', 'RT, untrained', 7, 'circle', true, 'RT fine-tuned from random initialization.'),

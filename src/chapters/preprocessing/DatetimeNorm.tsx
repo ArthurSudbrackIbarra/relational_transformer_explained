@@ -107,10 +107,15 @@ export function DatetimeNormFigure({ data }: { data: ChapterData }) {
         <Readout label={<>global mean μ<Sub>T</Sub></>} hint={new Date(mean).toISOString().slice(11, 19) + ' UTC'}>
           {isoDay(mean)}
         </Readout>
-        <Readout label={<>population std σ<Sub>T</Sub></>} hint="ddof = 0 (divide by n)">
-          {(std / DAY_MS).toFixed(1)} days
-        </Readout>
-        <Readout label="statistics per column" hint="pre.rs stores only a placeholder (0, 0), never used">
+        <Readout label={<>standard deviation σ<Sub>T</Sub></>}>{(std / DAY_MS).toFixed(1)} days</Readout>
+        <Readout
+          label="statistics per column"
+          hint={
+            <>
+              every column shares μ<Sub>T</Sub> and σ<Sub>T</Sub>
+            </>
+          }
+        >
           none
         </Readout>
       </div>

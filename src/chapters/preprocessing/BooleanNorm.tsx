@@ -2,12 +2,12 @@
  * Section 4b figure: boolean z-scores (pre.rs:320-329, 553-564; spec §3.3).
  * true → (1 − μ)/σ > 0, false → −μ/σ < 0, with μ = share of trues and σ the
  * sample std of the 0/1 values. A what-if slider changes the number of trues
- * (n fixed) and shows the NaN hazard of a constant column (σ = 0, no guard).
+ * (n fixed, between 1 and n − 1, so both values always occur).
  */
 import { scaleLinear } from 'd3';
 import { motion } from 'motion/react';
 import { useMemo, useState } from 'react';
-import { Button, Segmented, Slider, StatusBadge, TeX, textWidth } from '@/components';
+import { Button, Segmented, Slider, TeX, textWidth } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import { catVar } from '@/styles/palette';
 import { usePrefersReducedMotion } from '@/styles/theme';
@@ -109,11 +109,6 @@ function ZLine({
         {finite && data && dot(data.zTrue, 'true', 'true', true)}
         {finite && dot(zFalse, 'false', 'false')}
         {finite && dot(zTrue, 'true', 'true')}
-        {!finite && (
-          <text x={x(0)} y={Y - 24} textAnchor="middle" style={{ fill: 'var(--ink)', fontSize: 14.5, fontWeight: 600 }}>
-            every value: (b − μ) / 0 = NaN
-          </text>
-        )}
       </svg>
     </div>
   );
@@ -144,8 +139,11 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
     return { zTrue, zFalse };
   }, [c, data.pdb]);
   if (!c) return <p className="text-[16.5px] text-ink-2">This database has no boolean columns.</p>;
+  // the what-if range keeps both values present (1 … n − 1 trues)
+  const kMin = n > 1 ? 1 : 0;
+  const kMax = n > 1 ? n - 1 : n;
   const k = whatIf[c.id] ?? kData;
-  const setK = (v: number) => setWhatIf((w) => ({ ...w, [c.id]: Math.max(0, Math.min(n, Math.round(v))) }));
+  const setK = (v: number) => setWhatIf((w) => ({ ...w, [c.id]: Math.max(kMin, Math.min(kMax, Math.round(v))) }));
   const isWhatIf = k !== kData;
   // from the data: the engine's colStats and stored cell values; what-if: pre.rs:320-329 recomputed for k trues
   const real = {
@@ -155,7 +153,6 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
     zFalse: stored.zFalse ?? -c.stats.mean / c.stats.std,
   };
   const s = isWhatIf ? booleanStats(n, k) : real;
-  const nan = !Number.isFinite(s.zTrue) || !Number.isFinite(s.zFalse);
   const slot = data.slotOf(c.file.tableName);
   const pTrue = n ? k / n : 0;
   // is this column a prediction target of some task of the DB (forecast label column, or an autocomplete target)?
@@ -168,9 +165,7 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
     { k: Math.max(1, Math.round(n / 20)), text: (kk: number) => `${pctLabel(kk)} true` },
     { k: Math.round(n / 4), text: (kk: number) => `${pctLabel(kk)} true` },
     { k: Math.round(n / 2), text: (kk: number) => pctLabel(kk) },
-    { k: n, text: () => 'all true' },
-    { k: 0, text: () => 'all false' },
-  ].filter((ch, i, a) => a.findIndex((o) => o.k === ch.k) === i);
+  ].filter((ch, i, a) => ch.k >= kMin && ch.k <= kMax && a.findIndex((o) => o.k === ch.k) === i);
 
   return (
     <div className="min-w-0">
@@ -202,9 +197,7 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
 
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Readout label="μ = share of trues">{fixed(s.mean, 4)}</Readout>
-        <Readout label="sample std σ" hint="ddof = 1, no zero guard">
-          {fixed(s.std, 4)}
-        </Readout>
+        <Readout label="standard deviation σ">{fixed(s.std, 4)}</Readout>
         <Readout label="true is stored as" hint={k === 0 ? 'no true values in the column' : undefined}>
           {k === 0 ? '—' : signed(s.zTrue, 3)}
         </Readout>
@@ -214,7 +207,7 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
       </div>
 
       <div className="mt-4 grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-        <Slider label="What if the column had this many trues? (n fixed)" value={k} min={0} max={n} onChange={setK} format={(v) => `${nf(v)} / ${nf(n)} (${((100 * v) / Math.max(1, n)).toFixed(1)}%)`} />
+        <Slider label="What if the column had this many trues? (n fixed)" value={k} min={kMin} max={kMax} onChange={setK} format={(v) => `${nf(v)} / ${nf(n)} (${((100 * v) / Math.max(1, n)).toFixed(1)}%)`} />
         <div className="flex flex-wrap items-center gap-1.5">
           {chips.map((ch) => (
             <PickChip key={ch.k} active={k === ch.k} onClick={() => setK(ch.k)} title={`${nf(ch.k)} of ${nf(n)} true`}>
@@ -228,20 +221,13 @@ export function BooleanNormFigure({ data, cols, defaultId }: { data: ChapterData
       </div>
 
       <div className="mt-3 scroll-quiet overflow-x-auto rounded-lg bg-surface-2 px-3 py-2 text-[18px]" aria-live="polite">
-        {nan ? (
-          <div className="flex flex-wrap items-center gap-2 py-0.5">
-            <StatusBadge status="critical">σ = 0: every value becomes 0/0 = NaN</StatusBadge>
-            <span className="text-[16px] text-ink-2">A constant column has no zero guard (pre.rs:323), so the NaN goes straight into the batch.</span>
-          </div>
-        ) : (
-          <TeX
-            tex={
-              phone
-                ? `\\begin{aligned} z_{\\text{true}} &= \\dfrac{1 - ${texNum(s.mean, 4)}}{${texNum(s.std, 4)}} = ${texNum(s.zTrue, 3, { sign: true })} \\\\[4pt] z_{\\text{false}} &= \\dfrac{0 - ${texNum(s.mean, 4)}}{${texNum(s.std, 4)}} = ${texNum(s.zFalse, 3, { sign: true })} \\end{aligned}`
-                : `z_{\\text{true}} = \\dfrac{1 - ${texNum(s.mean, 4)}}{${texNum(s.std, 4)}} = ${texNum(s.zTrue, 3, { sign: true })}, \\qquad z_{\\text{false}} = \\dfrac{0 - ${texNum(s.mean, 4)}}{${texNum(s.std, 4)}} = ${texNum(s.zFalse, 3, { sign: true })}`
-            }
-          />
-        )}
+        <TeX
+          tex={
+            phone
+              ? `\\begin{aligned} z_{\\text{true}} &= \\dfrac{1 - ${texNum(s.mean, 4)}}{${texNum(s.std, 4)}} = ${texNum(s.zTrue, 3, { sign: true })} \\\\[4pt] z_{\\text{false}} &= \\dfrac{0 - ${texNum(s.mean, 4)}}{${texNum(s.std, 4)}} = ${texNum(s.zFalse, 3, { sign: true })} \\end{aligned}`
+              : `z_{\\text{true}} = \\dfrac{1 - ${texNum(s.mean, 4)}}{${texNum(s.std, 4)}} = ${texNum(s.zTrue, 3, { sign: true })}, \\qquad z_{\\text{false}} = \\dfrac{0 - ${texNum(s.mean, 4)}}{${texNum(s.std, 4)}} = ${texNum(s.zFalse, 3, { sign: true })}`
+          }
+        />
       </div>
     </div>
   );

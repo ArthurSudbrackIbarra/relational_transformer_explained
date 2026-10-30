@@ -7,8 +7,8 @@
  * "focus row" (local state): by default the entity of the simulation's seed row;
  * clicking rows in any figure moves it without touching the global seed.
  *
- * The main text stays on concepts; code-level detail (most CodeRefs, edge cases,
- * the timestamp table) sits in collapsed "In the code" boxes.
+ * The main text stays on concepts; code-level detail (most CodeRefs) sits in
+ * collapsed "In the code" boxes.
  */
 import { ArrowRightLeft, Crosshair } from 'lucide-react';
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -19,7 +19,6 @@ import {
   ChapterNav,
   ChapterPage,
   Cite,
-  CodeRef,
   Figure,
   Quiz,
   ScaleNote,
@@ -32,15 +31,13 @@ import {
   type QuizQuestion,
   type SchemaTableSpec,
 } from '@/components';
-import { getDatabase, listDatabases } from '@/engine/db/registry';
-import { MAX_F2P_NBRS } from '@/engine/types';
-import { getPreprocessed, useDatabase, usePreprocessed, useSeedNode, useSeeds, useTableSlots, useTask } from '@/state/hooks';
+import { useDatabase, usePreprocessed, useSeedNode, useSeeds, useTableSlots, useTask } from '@/state/hooks';
 import { useSim } from '@/state/store';
 import { usePrefersReducedMotion } from '@/styles/theme';
 import { AnatomyFigure } from './AnatomyFigure';
 import { CellsVsNodes } from './CellsVsNodes';
 import { DegreeChart } from './DegreeChart';
-import { CellsCode, KeysCode, MetaCode, TimestampCode } from './CodeBlocks';
+import { CellsCode, KeysCode, MetaCode, TimeFilterCode } from './CodeBlocks';
 import { LinkExplorer } from './LinkExplorer';
 import {
   buildLinkIndex,
@@ -52,7 +49,6 @@ import {
   seedForEntity,
   seedTimeMs,
   timelineAnchor,
-  timestampCoverage,
   nullCounts,
   type RowRef,
 } from './model';
@@ -198,27 +194,6 @@ export default function DatabaseChapter() {
   }, [tables, idx]);
   const bestGroups = idx.childrenOf(degree.best.ref);
 
-  // P→F edges of the running example in the preprocessed graph: database children vs task-table rows (fly.rs:426-452)
-  const exampleKids = useMemo(() => {
-    const off = pdb.tableInfo[`${example.table}:Db`]?.nodeIdxOffset;
-    if (off === undefined) return null;
-    const adj = pdb.p2fAdj[off + example.row] ?? [];
-    let nDb = 0;
-    const byTask = new Map<string, number>();
-    for (const e of adj) {
-      if (e.tableType === 'Db') nDb++;
-      else {
-        const name = pdb.text[e.tableNameIdx] ?? 'task';
-        byTask.set(name, (byTask.get(name) ?? 0) + 1);
-      }
-    }
-    return { total: adj.length, nDb, byTask: [...byTask.entries()] };
-  }, [pdb, example]);
-
-  // the seed's own task table is the only one whose rows take part (fly.rs:416-419)
-  const seedTaskRows = seed?.isTaskNode ? (exampleKids?.byTask.find(([n]) => n === task.name)?.[1] ?? null) : null;
-  const otherTaskRows = exampleKids?.byTask.filter(([n]) => n !== task.name) ?? [];
-
   const taskChildTables = useMemo(
     () => db.tasks.filter((t) => t.kind === 'forecast' && t.entityTable === focus.table).map((t) => t.name),
     [db, focus.table],
@@ -232,18 +207,9 @@ export default function DatabaseChapter() {
   const boolCols = tables.flatMap((t) => t.schema.columns.filter((c) => c.dtype === 'bool').map((c) => `${t.schema.name}.${c.name}`));
   const timeTables = tables.filter((t) => t.schema.timeCol);
   const noTimeTables = tables.filter((t) => !t.schema.timeCol);
-  const coverage = useMemo(() => timestampCoverage(pdb, db), [pdb, db]);
   const anchor = useMemo(() => timelineAnchor(idx, lazyFocus), [idx, lazyFocus]);
-  // a table with a time column but no foreign key (spec §1.4): in this database if it has one, else in another
-  const localTimeOnly = useMemo(() => {
-    const c = coverage.find((x) => x.timeCol && x.nFk === 0);
-    return c ? { title: dbShort, table: c.table, timeCol: c.timeCol!, rows: c.rows, withTs: c.withTs, local: true } : null;
-  }, [coverage, dbShort]);
-  const otherTimeOnly = useTimeColumnWithoutFk(db.name, localTimeOnly === null);
-  const timeNoFk = localTimeOnly ?? otherTimeOnly;
   const noFkTables = useMemo(() => tables.filter((t) => Object.keys(t.schema.fkeys).length === 0).map((t) => t.schema.name), [tables]);
   const fkTables = tables.filter((t) => Object.keys(t.schema.fkeys).length > 0);
-  const timeOnlyTables = tables.filter((t) => t.schema.timeCol && Object.keys(t.schema.fkeys).length === 0).map((t) => t.schema.name);
 
   // Adopting the focus row changes the running example, and with it text above the link explorer.
   // Keep the link explorer where the reader is looking (manual scroll anchoring, applied after the
@@ -286,7 +252,7 @@ export default function DatabaseChapter() {
           'What tables, rows, columns and cells are, and which columns count as feature columns',
           'How primary and foreign keys link rows, in both directions (F→P and P→F)',
           'Why a row has few parents but possibly very many children',
-          'That key columns never become tokens, how RT keeps them as structure instead, and what that costs (paper p.10)',
+          'That key columns never become tokens, how RT keeps them as structure instead, and what that costs',
           'What a time column is, and why prediction must respect time',
           'How the same database looks as a graph of rows, and how RT’s view differs',
         ]}
@@ -350,8 +316,7 @@ export default function DatabaseChapter() {
             : 'It is one of the three pretraining databases; ShopDB is the one held out (chapter 14).'}
         </p>
         <ScaleNote paper="RelBench, 7 real databases" ours="4 synthetic databases, ShopDB held out">
-          Besides the sizes, we replace the data (and compute in float32 instead of bfloat16). Every operation applied to the data is the paper-era
-          code’s.
+          The databases are smaller and synthetic, but every operation applied to the data is the one in the official code.
         </ScaleNote>
         <Figure
           wide
@@ -369,13 +334,13 @@ export default function DatabaseChapter() {
           <Cite kind="paper" ref="p.3 §2.1" />. In the diagram below each card is a table. A key icon marks the primary key and a link icon a
           foreign key, with an arrow to the table it references. Every other column is a feature column, drawn with its type glyph:{' '}
           <span>#</span> for numbers, <span className="font-medium">Aa</span> for text, a clock for datetimes and a toggle for
-          booleans. The time column is one of the feature columns; it also carries a <span className="font-medium">time</span> tag.
+          booleans. The time column is a feature column too, marked with a <span className="font-medium">time</span> tag.
         </p>
         <Figure wide title={`${dbShort}: tables, keys and links`} caption="Hover a table to trace its links; click or tap it to open it in the table browser below.">
           <SchemaOverview tables={schemaTables} onOpen={openTable} />
         </Figure>
         <p>
-          The shape is worth a second look.{' '}
+          In the diagram,{' '}
           {noFkTables.length > 0 && (
             <>
               {joinAnd(noFkTables)} {noFkTables.length === 1 ? 'has' : 'have'} no foreign keys: nothing points out of{' '}
@@ -395,12 +360,6 @@ export default function DatabaseChapter() {
                       fkTables.filter((t) => t.schema.timeCol).length === 1 ? 'has' : 'have'
                     } a time column.`
                   : '.'}{' '}
-            </>
-          )}
-          {timeOnlyTables.length > 0 && (
-            <>
-              {joinAnd(timeOnlyTables)} {timeOnlyTables.length === 1 ? 'has' : 'have'} a time column but no foreign key, a case the Time section
-              comes back to.{' '}
             </>
           )}
           {isShop && 'Events point to the entities they involve.'}
@@ -449,12 +408,10 @@ export default function DatabaseChapter() {
       {/* ─────────────────────────────── 4 ─────────────────────────────── */}
       <Section id="links" title="Keys link rows: F→P and P→F">
         <p>
-          Every table has a <Term id="primary-key">primary key</Term>, and some include <Term id="foreign-key">foreign keys</Term> that reference
-          primary keys in other tables. This induces a graph structure. Connections from foreign keys to primary keys are{' '}
-          <Term id="f2p-link">F→P links</Term>, and the reverse incoming connections are <Term id="p2f-link">P→F links</Term>{' '}
-          <Cite kind="paper" ref="p.3 §2.1" />. (The paper’s “every table” is a simplification: the task tables of chapter 3 have no primary key,
-          and the code accepts any table without one <Cite kind="code" ref="rustler/src/pre.rs:118-123" />
-          <Cite kind="spec" ref="§3.1" />. A row is identified by its position anyway <Cite kind="spec" ref="§1.5" />.)
+          A table usually has a <Term id="primary-key">primary key</Term>, the column that identifies each row, and some tables also have{' '}
+          <Term id="foreign-key">foreign keys</Term> that reference the primary keys of other tables. These references turn the database into a
+          graph. A link from a foreign key to the primary key it references is an <Term id="f2p-link">F→P link</Term>, and the same link seen from
+          the other end is a <Term id="p2f-link">P→F link</Term> <Cite kind="paper" ref="p.3 §2.1" />.
         </p>
         <p>
           {isShop ? (
@@ -473,8 +430,9 @@ export default function DatabaseChapter() {
         {noteParents.length > 0 && (
           <Callout variant="note" title="A foreign-key value is a row position">
             <p>
-              The value of a foreign key is the position of the parent row in its table. Preprocessing finds the parent as the parent table’s
-              offset plus that value, without searching for a row whose primary key equals it <Cite kind="code" ref="rustler/src/pre.rs:452-459" />
+              The value of a foreign key is the position of the parent row in its table. Preprocessing never searches for a row whose primary key
+              equals that value; it adds the value to the parent table’s offset and goes straight to that row{' '}
+              <Cite kind="code" ref="rustler/src/pre.rs:452-459" />
               <Cite kind="code" ref="rustler/src/pre.rs:477" />. So {rowLabel(noteRow)} has{' '}
               {noteParents.map((p, i) => (
                 <span key={p.fkCol}>
@@ -496,8 +454,8 @@ export default function DatabaseChapter() {
             </p>
             {dbOffsets.length > 0 && offsetOf(noteRow.table) !== null && (
               <p className="!mt-3 !mb-0">
-                Which offset? Preprocessing gives every row of the database one integer id, its{' '}
-                <Term id="global-node-index">global node index</Term>. It lays the tables end to end (
+                The offset comes from the way preprocessing numbers rows. It gives every row of the database one integer id, its{' '}
+                <Term id="global-node-index">global node index</Term>, by laying the tables end to end (
                 {dbOffsets.map((d, i) => (
                   <span key={d.table}>
                     {i > 0 && (i === dbOffsets.length - 1 && !hasTaskNodes ? ' and ' : ', ')}
@@ -507,7 +465,7 @@ export default function DatabaseChapter() {
                     </span>
                   </span>
                 ))}
-                {hasTaskNodes ? ', then the task tables' : ''}), and a row’s index is its table’s offset plus its position{' '}
+                {hasTaskNodes ? ', then the task tables' : ''}). A row’s index is its table’s offset plus its position{' '}
                 <Cite kind="code" ref="rustler/src/pre.rs:291-306" />
                 <Cite kind="code" ref="rustler/src/pre.rs:466" />
                 <Cite kind="spec" ref="§1.5" />. So {rowLabel(noteRow)} is node <span className="num">{offsetOf(noteRow.table)! + noteRow.row}</span>
@@ -572,21 +530,14 @@ export default function DatabaseChapter() {
             <Stat label="Parents per row, at most" value={degree.maxFk} caption={`one per foreign-key column (${degree.fkTables.join(', ')})`} />
             <Stat label="Children per row, at most" value={degree.best.n} caption={`${rowLabel(degree.best.ref)}, no limit in principle`} emphasis />
           </div>
-          <p className="mx-auto !mt-2.5 !mb-0 max-w-[var(--prose-max)] text-[15px] leading-snug text-ink-2">
-            A limit of the code, not of the data: each token stores at most {MAX_F2P_NBRS} parent indices (<code>f2p_nbr_idxs</code>) for the
-            attention masks, and a row with more non-null foreign keys would trip an assertion when its cells are emitted{' '}
-            <Cite kind="code" ref="rustler/src/fly.rs:25" />
-            <Cite kind="code" ref="rustler/src/fly.rs:464" />
-            <Cite kind="spec" ref="§1.2" />. {dbShort} rows need at most {degree.maxFk}.
-          </p>
         </div>
         <p>
           The paper turns this asymmetry into its sampling rule. RT never reads a whole database at once. For each prediction it starts from one
           row, the <Term id="seed-row">seed row</Term>, and collects the cells of nearby rows into a <Term id="context-window">context window</Term>{' '}
           by walking the key links outward <Cite kind="paper" ref="p.4 §3.1" />. We call the part of RT that does this walk the <em>sampler</em>{' '}
-          (chapter 6). Parent rows typically contain important features (an order links to its customer and its product) and there are few of them,
-          so the sampler follows every F→P link immediately, without subsampling. Informative signals from P→F links often arise through
-          aggregation, with diminishing returns from including many children, so it follows at most <em>w</em> children from any row, the{' '}
+          (chapter 6). Parent rows usually hold important features (an order links to its customer and its product), and there are few of them,
+          so the sampler follows every F→P link right away, without subsampling. Children are different: their signal usually comes from looking at
+          many of them together, and each extra child adds less. So the sampler follows at most <em>w</em> children of any row, a limit called the{' '}
           <Term id="bfs-width">width bound</Term> <Cite kind="paper" ref="p.16 App. A" />.
         </p>
         <Figure
@@ -604,60 +555,44 @@ export default function DatabaseChapter() {
           The width bound is scaled down along with the context length (paper L = {PAPER_L}, this simulation L = {L})
           {w * PAPER_L === PAPER_W * L ? ', in the same ratio' : ', though not in the same ratio'}. The rule itself is unchanged.
         </ScaleNote>
-        <Callout
-          variant="paper-vs-code"
-          title="Which children does the width bound cap?"
-          paper={
-            <>
-              Algorithm 1 keeps at most w of <em>all</em> the P→F neighbors of a row that pass the time filter, picked at random{' '}
-              <Cite kind="paper" ref="p.15 Alg. 1" />.
-            </>
-          }
-          code={
-            <>
-              Only the database children are sampled down to w <Cite kind="code" ref="rustler/src/fly.rs:439-452" />. Rows of the seed’s task
-              table, the in-context labels of chapter 3, skip the sampling and are all kept <Cite kind="code" ref="rustler/src/fly.rs:426-437" />
-              <Cite kind="spec" ref="§4.7" />.
-            </>
-          }
-        >
-          {exampleKids && seedTaskRows !== null && (
-            <p>
-              In the preprocessed {dbShort} graph, {rowLabel(example)} has <span className="num">{exampleKids.nDb}</span> database children and{' '}
-              <span className="num">{seedTaskRows}</span> children in the {taskName} task table. The bound can cut the first group, never the
-              second; the time filter applies to both.
-              {otherTaskRows.length > 0 && (
-                <>
-                  {' '}
-                  Rows of other task tables ({otherTaskRows.map(([name, n]) => `${n} of ${name}`).join(', ')}) never enter a context for this task
-                  at all <Cite kind="code" ref="rustler/src/fly.rs:416-419" />.
-                </>
-              )}
-            </p>
-          )}
-        </Callout>
         <KeysCode />
       </Section>
 
       {/* ─────────────────────────────── 5 ─────────────────────────────── */}
       <Section id="features" title="Feature columns and key columns">
         <p>
-          Now the consequence that matters most for the model. RT does not tokenize rows; it tokenizes cells, and only some of them. Once a row is
-          selected, “all its non-missing feature cells (i.e., cells not from primary- or foreign-key columns)” enter the context{' '}
-          <Cite kind="paper" ref="p.16 App. A" />. Chapter 6 adds two small exceptions, for a context that fills up and for the leakage columns of
-          autocomplete tasks <Cite kind="spec" ref="§4.11" />
+          Each token is one cell, but not every cell becomes a token. Once a row is selected, “all its non-missing feature cells (i.e., cells not
+          from primary- or foreign-key columns)” enter the context <Cite kind="paper" ref="p.16 App. A" />. Chapter 6 covers two small
+          exceptions: a context that fills up, and columns that would give away the answer of an autocomplete task{' '}
+          <Cite kind="spec" ref="§4.11" />
           <Cite kind="spec" ref="§4.9" />.
         </p>
         <p>
-          A <Term id="feature-column">feature column</Term> holds information about the row. A key column (the paper says ID column) only says
-          which row is which and which rows are linked.
+          A <Term id="feature-column">feature column</Term> holds information about the row. A key column only says which row is which and which
+          rows are linked. Feature values come in four types: numbers, text, datetimes and booleans{' '}
+          <Cite kind="paper" ref="p.4 §3.1" />
+          <Cite kind="code" ref="rustler/src/common.rs:38-44" />. A boolean becomes 0 or 1 and is then normalized like a number (chapter 4){' '}
+          <Cite kind="code" ref="rustler/src/pre.rs:553-555" />.
+          {boolCols.length > 0 && (
+            <>
+              {' '}
+              {dbShort}’s boolean columns are{' '}
+              {boolCols.map((c, i) => (
+                <span key={c}>
+                  {i > 0 && (i === boolCols.length - 1 ? ' and ' : ', ')}
+                  <code>{c}</code>
+                </span>
+              ))}
+              .
+            </>
+          )}
         </p>
         <Figure wide title="What RT keeps of a row" caption="Split the row and watch where each cell goes. Try a row with a missing value from the menu.">
           <RowTokens db={db} idx={idx} slots={slots} focus={lazyFocus} />
         </Figure>
         <Callout variant="insight" title="Our reading: keys are structure, not content">
           <p>
-            The paper gives no reason for leaving key cells out; this is our interpretation. A key value is only a row position.{' '}
+            The paper does not say why key cells are left out, so this is our interpretation. A key value is only a row position.{' '}
             {noteParents[0] ? (
               <>
                 <code>
@@ -675,18 +610,18 @@ export default function DatabaseChapter() {
           </p>
         </Callout>
         <p>
-          The paper is candid about the price of this choice <Cite kind="paper" ref="p.10 §7" />. RT does not incorporate the names of primary-key
-          and foreign-key columns, which often carry useful semantics. And it does not tell apart two foreign keys that point to the same table. The
-          paper’s example is a product table with both <code>buyer_id</code> and <code>seller_id</code> referencing a user table: the model cannot
-          distinguish which user bought and which sold.
+          The paper names two costs of this choice <Cite kind="paper" ref="p.10 §7" />. RT does not use the names of primary-key and foreign-key
+          columns, which often carry useful meaning. And it cannot tell apart two foreign keys that point to the same table. The paper’s example is a
+          product table with both <code>buyer_id</code> and <code>seller_id</code> referencing a user table: the model cannot tell which user bought
+          and which sold.
         </p>
         <Figure
           title="Two foreign keys into the same table"
           caption={
             <>
-              No token carries a foreign-key column name. A column name reaches the model only through a cell’s column-name embedding{' '}
-              <Cite kind="code" ref="rustler/src/fly.rs:470-477" />, and key columns make no cells. What remains is the parent list{' '}
-              <Cite kind="code" ref="rustler/src/pre.rs:479" /> and the edges <Cite kind="code" ref="rustler/src/pre.rs:515-529" />.{' '}
+              No token carries a foreign-key column name: a column name reaches the model only through a cell’s column-name embedding{' '}
+              <Cite kind="code" ref="rustler/src/fly.rs:470-477" />, and key columns make no cells. Only the parent list{' '}
+              <Cite kind="code" ref="rustler/src/pre.rs:479" /> and the edges <Cite kind="code" ref="rustler/src/pre.rs:515-529" /> remain.{' '}
               {sameParentFks.length
                 ? `${dbShort} does have this case: ${sameParentFks.join('; ')}.`
                 : `${dbShort} never has this problem: no table has two foreign keys into the same table.`}
@@ -695,30 +630,6 @@ export default function DatabaseChapter() {
         >
           <TwoForeignKeys />
         </Figure>
-        <Callout variant="note" title="How many kinds of feature column?">
-          <p>
-            Section 2.1 of the paper describes feature columns as containing “numeric, text, and datetime information”{' '}
-            <Cite kind="paper" ref="p.3 §2.1" />. A page later, §3.1 adds a fourth value type: “The value v can be numeric, boolean, datetime, or
-            text”, and booleans are normalized like numbers <Cite kind="paper" ref="p.4 §3.1" />. The code has the same four semantic types{' '}
-            <Cite kind="code" ref="rustler/src/common.rs:38-44" />. It turns a boolean into 0 or 1 and z-scores it with the same formula as a number{' '}
-            <Cite kind="code" ref="rustler/src/pre.rs:553-555" />. One detail differs: a constant number column falls back to σ = 1, while a
-            boolean column whose values are all equal keeps σ = 0, which gives NaN values <Cite kind="code" ref="rustler/src/pre.rs:320-341" />
-            <Cite kind="spec" ref="§3.3" />.
-            {boolCols.length > 0 && (
-              <>
-                {' '}
-                {dbShort}’s boolean columns are{' '}
-                {boolCols.map((c, i) => (
-                  <span key={c}>
-                    {i > 0 && (i === boolCols.length - 1 ? ' and ' : ', ')}
-                    <code>{c}</code>
-                  </span>
-                ))}
-                .
-              </>
-            )}
-          </p>
-        </Callout>
         <CellsCode />
       </Section>
 
@@ -737,16 +648,17 @@ export default function DatabaseChapter() {
           {isShop && (
             <>
               {' '}
-              Note that customers does have a datetime column, <code>signup_date</code>, but it is an ordinary feature, not the table’s time column.
+              The customers table does have a datetime column, <code>signup_date</code>, but it is an ordinary feature and not the table’s time
+              column.
             </>
           )}
         </p>
         <p>
           The time column is still a feature column: <code>{timeTables[0]?.schema.timeCol ?? 'order_time'}</code> becomes a datetime token like any
-          other <Cite kind="spec" ref="§1.4" />. It has a second job, though: it gives the row a timestamp that the sampler uses.
+          other <Cite kind="spec" ref="§1.4" />. It has a second job as well: it gives the row a timestamp, which the sampler uses.
         </p>
         <p>
-          Why time matters: “if we want to predict whether a user will buy an item at time <em>t</em>, the model must only use information
+          The paper explains why time matters: “if we want to predict whether a user will buy an item at time <em>t</em>, the model must only use information
           available before <em>t</em>, otherwise it risks temporal leakage” <Cite kind="paper" ref="p.3 §2.1" />.{' '}
           {anchor ? (
             <>
@@ -769,44 +681,22 @@ export default function DatabaseChapter() {
           </Figure>
         )}
         <p>
-          Inside RT the principle lives in the sampler, and it is narrower. When the sampler visits a row, it first drops the children that are
-          later than the seed. Then it keeps at most <em>w</em> of the database children that remain, chosen uniformly at random (all of them if
-          there are <em>w</em> or fewer) <Cite kind="paper" ref="p.15 Alg. 1" />
+          Inside RT, the sampler enforces this rule in a narrower form. When it visits a row, it first drops the children whose timestamp is later
+          than the seed’s; a child with the same timestamp stays. Then it keeps at most <em>w</em> of the children that remain, chosen uniformly at
+          random (all of them if there are <em>w</em> or fewer) <Cite kind="paper" ref="p.15 Alg. 1" />
           <Cite kind="code" ref="rustler/src/fly.rs:421-443" />
-          <Cite kind="spec" ref="§4.7" />. Parents are never checked. Chapter 6 runs the whole algorithm step by step.
+          <Cite kind="spec" ref="§4.7" />. Parents are never checked <Cite kind="paper" ref="p.4 §3.1" />
+          <Cite kind="code" ref="rustler/src/fly.rs:406-408" />.
+          {noFkTables.length > 0 && (
+            <>
+              {' '}
+              In {dbShort}, {joinAnd(noFkTables)} {noFkTables.length === 1 ? 'has' : 'have'} no foreign key, so {noFkTables.length === 1 ? 'its' : 'their'}{' '}
+              rows are never anyone’s child: they enter a context only as the seed or as a parent, and the time rule never removes them.
+            </>
+          )}{' '}
+          Chapter 6 runs the whole algorithm step by step.
         </p>
-        <TimestampCode coverage={coverage} slots={slots} timeNoFk={timeNoFk} dbShort={dbShort} noFkTables={noFkTables} />
-        <Callout
-          variant="paper-vs-code"
-          title="Which rows does the time rule remove?"
-          paper={
-            <>
-              Section 2.1 states the principle: modeling is conditioned only on rows created prior to the target row{' '}
-              <Cite kind="paper" ref="p.3 §2.1" />. The sampler narrows it. Parent rows (F→P) are always included{' '}
-              <Cite kind="paper" ref="p.4 §3.1" />, and a child q reached through a P→F link is kept only if <em>T</em>(q) ≤ <em>T</em>(s), its
-              timestamp is not later than the seed’s <Cite kind="paper" ref="p.15 Alg. 1" />.
-            </>
-          }
-          code={
-            <>
-              The same rule <Cite kind="code" ref="rustler/src/fly.rs:406-408" />
-              <Cite kind="code" ref="rustler/src/fly.rs:421-424" />, applied only when both the child and the seed have a timestamp. A row has a
-              timestamp only if it has a time value and a non-null foreign key <Cite kind="code" ref="rustler/src/pre.rs:481-493" />. Any other
-              child always passes, and a seed without a timestamp switches the filter off for the whole context <Cite kind="spec" ref="§4.6" />.
-            </>
-          }
-          verdict="Algorithm 1 and the code agree: only children are checked, and equal timestamps are kept. They differ from the broader §2.1 principle, and the code adds the missing-timestamp case."
-        >
-          <p>
-            {noFkTables.length > 0 ? (
-              <>
-                In {dbShort}, {joinAnd(noFkTables)} hold{noFkTables.length === 1 ? 's' : ''} no foreign key, so {noFkTables.length === 1 ? 'its rows are' : 'their rows are'}{' '}
-                never anyone’s child. They enter a context only as the seed or as a parent, and neither is ever time-filtered.{' '}
-              </>
-            ) : null}
-            Chapter 6 shows the rule at work inside the sampler.
-          </p>
-        </Callout>
+        <TimeFilterCode />
       </Section>
 
       {/* ─────────────────────────────── 7 ─────────────────────────────── */}
@@ -814,9 +704,8 @@ export default function DatabaseChapter() {
         <p>
           Put all the links together and the database becomes a graph. Relational deep learning (RDL) makes this explicit: it represents a database
           as a <em>relational entity graph</em>, “a temporal, heterogeneous graph where each table is a node-type, each row an individual node, and
-          every primary-foreign key relationship an edge” <Cite kind="paper" ref="p.16 App. B" />. The first models applied graph neural networks
-          directly to that graph; later work refined their message passing and moved to transformer-based architectures{' '}
-          <Cite kind="paper" ref="p.16 App. B" />.
+          every primary-foreign key relationship an edge” <Cite kind="paper" ref="p.16 App. B" />. The first models ran graph neural networks
+          directly on that graph; later work refined their message passing and moved to transformers <Cite kind="paper" ref="p.16 App. B" />.
         </p>
         <Figure
           wide
@@ -826,16 +715,15 @@ export default function DatabaseChapter() {
           <NeighbourhoodGraph db={db} idx={idx} slots={slots} focus={lazyFocus} onFocus={setFocus} />
         </Figure>
         <p>
-          The paper’s criticism of these architectures is that they are schema-specific, which prevents pretraining and fine-tuning on diverse
-          database structures <Cite kind="paper" ref="p.16 App. B" />. RT keeps the links but changes the unit. When the paper contrasts RT with
-          another relational foundation model, one that first aggregates each table and then runs a graph neural network between tables, it
-          describes its own design this way: “our model uses a cell-level representation of the entire database and employs attention masks to
+          The paper’s objection to these architectures is that they are schema-specific, so they cannot be pretrained and fine-tuned across
+          databases with different structures <Cite kind="paper" ref="p.16 App. B" />. RT keeps the links but changes the unit. The paper
+          describes its own design like this: “our model uses a cell-level representation of the entire database and employs attention masks to
           directly represent the foreign-key structure” <Cite kind="paper" ref="p.16 App. B" />.
         </p>
         <Figure
           wide
           title="Same rows, two representations"
-          caption="Switch to the cell view: each row breaks into its feature cells, the key cells vanish as tokens, and the links remain as structure. This is not yet a context window; chapter 6 decides which rows enter one."
+          caption="Switch to the cell view. Each row breaks into its feature cells, its key cells make no token, and the links stay as structure. This is not yet a context window: chapter 6 decides which rows enter one."
         >
           <CellsVsNodes db={db} idx={idx} slots={slots} focus={lazyFocus} />
         </Figure>
@@ -1030,42 +918,4 @@ function useQuiz({ row, parents, eventTable, idx, degreeBest, example, seedTime 
     }
     return qs;
   }, [row, parents, eventTable, idx, degreeBest, example, seedTime]);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Edge case from another database: a table with a time column but no foreign key
-// (spec §1.4). Computed with the real preprocessing, deferred so it never delays
-// the first paint (~60 ms once, then cached by the engine).
-// ─────────────────────────────────────────────────────────────────────────────
-
-function useTimeColumnWithoutFk(current: string, enabled: boolean) {
-  const [v, setV] = useState<{ title: string; table: string; timeCol: string; rows: number; withTs: number; local: false } | null>(null);
-  useEffect(() => {
-    let alive = true;
-    setV(null);
-    if (!enabled) return;
-    const id = window.setTimeout(() => {
-      try {
-        for (const info of listDatabases()) {
-          if (info.name === current) continue;
-          const odb = getDatabase(info.name);
-          const t = odb.tables.find((x) => x.schema.timeCol && Object.keys(x.schema.fkeys).length === 0);
-          if (!t) continue;
-          const pdb = getPreprocessed(odb);
-          const ti = pdb.tableInfo[`${t.schema.name}:Db`];
-          let withTs = 0;
-          if (ti) for (let i = 0; i < ti.numNodes; i++) if (pdb.nodes[ti.nodeIdxOffset + i]?.ts !== null) withTs++;
-          if (alive) setV({ title: info.title.split(' ')[0], table: t.schema.name, timeCol: t.schema.timeCol!, rows: t.rows.length, withTs, local: false });
-          return;
-        }
-      } catch {
-        /* optional aside: ignore */
-      }
-    }, 400);
-    return () => {
-      alive = false;
-      window.clearTimeout(id);
-    };
-  }, [current, enabled]);
-  return v;
 }

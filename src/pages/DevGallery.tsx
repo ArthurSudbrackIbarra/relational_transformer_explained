@@ -159,9 +159,9 @@ export function DevGallery() {
             </>
           }
         />
-        <Callout variant="warning" title="Constant boolean columns">
+        <Callout variant="warning" title="Labels from the seed’s own date">
           <p>
-            A boolean column with σ = 0 gives NaN values that poison the whole batch loss <Cite kind="spec" ref="§3.3" />.
+            Other entities’ task rows with the seed’s timestamp pass the time filter, so their labels can sit in the context <Cite kind="spec" ref="§2.5" />.
           </p>
         </Callout>
         <Callout variant="insight">

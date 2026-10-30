@@ -401,7 +401,7 @@ export function BrowserParity() {
           {isLive ? (
             <strong className="text-ink">This is the context and checkpoint every chapter shows right now.</strong>
           ) : (
-            <>It is not the context of your current simulation settings, which is fine: the test only needs a real context.</>
+            <>It is not the context of your current simulation settings, and it does not need to be: the test only needs a real context.</>
           )}
         </p>
       )}

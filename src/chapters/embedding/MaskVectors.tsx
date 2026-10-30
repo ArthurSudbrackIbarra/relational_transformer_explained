@@ -64,11 +64,7 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
   const tasksBySem = targetSems(db);
   const parent = tgt.f2pNbrIdxs.find((p) => p >= 0);
   const parentTok = parent !== undefined ? ctx.tokens.find((t) => !t.isPadding && t.nodeIdx === parent) : undefined;
-  const shrink = (i: number) => (data.m0 ? 1 - norm(data.m[i]) / norm(data.m0[i]) : NaN);
   const cosInit = (i: number) => (data.m0 ? cosine(data.m[i], data.m0[i]) : NaN);
-  const pct = (x: number) => `${Math.round(x * 100)}%`;
-  const iText = TYPES.indexOf(SemType.Text);
-  const iDt = TYPES.indexOf(SemType.DateTime);
   const minCos = data.m0 ? Math.min(...TYPES.map((_, i) => cosInit(i))) : NaN;
 
   return (
@@ -77,8 +73,8 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
       title="The four mask vectors, and what the masked target still knows"
       caption={
         <>
-          Left: mask_embs of the checkpoint this page runs, on one shared color scale, each compared with its value in the exported initial
-          weights. Right: the live masked target, and what the code does with its hidden label.
+          Left: the four mask vectors of the checkpoint this page runs, on one shared color scale, each compared with its starting value. Right:
+          the live masked target, and what the code does with its hidden label.
         </>
       }
     >
@@ -121,21 +117,17 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
           })}
           <div className="grid gap-2 text-[15px] leading-snug text-ink-2 [&_code]:text-[14.5px]">
             <p className="!m-0">
-              Each <Mt /> starts as <code>torch.randn({data.d})</code>, a standard normal vector of length about √{data.d} ={' '}
-              {fmt(Math.sqrt(data.d), 0)}, as long as a normalized value term with γ = 1 <Cite kind="spec" ref="§7.4" />. Only{' '}
-              <code>m_number</code> and <code>m_boolean</code> can ever get a gradient: the gate that adds <Mt /> is 1 only at a
-              masked token of type t <Cite kind="code" ref="rt/model.py:221-224" />, RT never masks text <Cite kind="code" ref="rt/model.py:256-257" />,
-              and no paper-era task has a datetime target <Cite kind="code" ref="rt/tasks.py:3-88" />. AdamW still applies weight decay to every
-              parameter, in one parameter group <Cite kind="code" ref="rt/main.py:188-195" />, so <code>m_text</code> and <code>m_datetime</code>{' '}
-              stay their random start, shrunk.
+              Each <Mt /> starts as <code>torch.randn({data.d})</code>, a standard normal vector of length about √{data.d} = {fmt(Math.sqrt(data.d), 0)}, as
+              long as a normalized value term with γ = 1 <Cite kind="spec" ref="§7.4" />. Only <code>m_number</code> and <code>m_boolean</code> are
+              ever trained, because only a masked token of type t adds <Mt /> <Cite kind="code" ref="rt/model.py:221-224" />. RT never masks text{' '}
+              <Cite kind="code" ref="rt/model.py:256-257" />, and no task in the paper has a datetime target <Cite kind="code" ref="rt/tasks.py:3-88" />,
+              so <code>m_text</code> and <code>m_datetime</code> keep their random start, shrunk only by weight decay{' '}
+              <Cite kind="code" ref="rt/main.py:188-195" />.
             </p>
             {data.m0 && (
               <p className="!m-0">
-                In the checkpoint this page runs, every <Mt /> still has a cosine of at least {minCos.toFixed(4)} with its starting
-                value. <code>m_text</code> and <code>m_datetime</code>, which only see weight decay, got {pct(shrink(iText))} and{' '}
-                {pct(shrink(iDt))} shorter; <code>m_number</code> and <code>m_boolean</code> got {pct(shrink(0))} and{' '}
-                {pct(shrink(TYPES.indexOf(SemType.Boolean)))} shorter.
-                {minCos > 0.98 && ' So these lengths and patterns say more about the initialization and the weight decay than about anything learned.'}
+                In the checkpoint this page runs, every <Mt /> still has a cosine of at least {minCos.toFixed(4)} with its starting value
+                {minCos > 0.98 ? ', so these patterns say more about the random start than about anything learned.' : '.'}
               </p>
             )}
           </div>
@@ -225,9 +217,8 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
                 </li>
               </ol>
               <p className="!mt-2.5 !mb-0 text-[15px] leading-snug text-ink-2">
-                Check c holds by construction: our engine skips every branch whose gate is 0 and never reads a masked label. The official code does
-                compute the branch of a and then zeroes it, as b shows. That gives the same x₀ for any finite label; a NaN label would not, because NaN·0 =
-                NaN <Cite kind="spec" ref="§5.3" />.
+                Step b is why the hidden label never reaches x₀: its branch is multiplied by 0 before the sum <Cite kind="spec" ref="§5.3" />. The
+                engine on this site skips that branch altogether, so check c finds the same x₀ for every label.
               </p>
             </div>
           )}
@@ -256,13 +247,12 @@ export const MaskVectors = memo(function MaskVectors({ live }: { live: Embedding
                   </>
                 ) : s === SemType.DateTime ? (
                   <>
-                    Not by the paper’s tasks <Cite kind="code" ref="rt/tasks.py:3-88" />. The code would accept a datetime target and train it with
-                    the Huber loss <Cite kind="code" ref="rt/model.py:250-251" />.
-                    {tasksBySem[s].length > 0 ? <> Here: {tasksBySem[s].join(', ')}.</> : <> This database has none either.</>}
+                    No task in the paper predicts a datetime <Cite kind="code" ref="rt/tasks.py:3-88" />.
+                    {tasksBySem[s].length > 0 ? <> This database does: {tasksBySem[s].join(', ')}.</> : <> This database has none either.</>}
                   </>
                 ) : (
                   <>
-                    Never: the loss raises “masking text not supported” <Cite kind="code" ref="rt/model.py:256-257" />.
+                    Never: RT does not mask text, and the loss raises “masking text not supported” <Cite kind="code" ref="rt/model.py:256-257" />.
                   </>
                 )}
               </dd>

@@ -322,9 +322,8 @@ export function DecisionPanel({ step, iters, ctx, db, pdb, task, slots, before, 
       <div>
         <Heading aside="fly.rs:387-389">Frontier empty</Heading>
         <p className="text-[15.5px] leading-snug text-ink-2">
-          Every row that entered the frontier has been taken off it; rows the width bound did not keep never entered. The remaining{' '}
-          {plural(pad, 'position')} keep the padding defaults (node and parent ids −1, class index −1, the other fields zero,{' '}
-          <span className="font-mono">is_padding = true</span>) <Cite kind="spec" ref="§4.11" />, and every attention mask excludes them{' '}
+          Every row that entered the frontier has been taken off it (rows the width bound dropped never entered). The remaining{' '}
+          {plural(pad, 'position')} {pad === 1 ? 'is' : 'are'} padding <Cite kind="spec" ref="§4.11" />, and every attention mask excludes them{' '}
           <Cite kind="spec" ref="§6.2" />.
         </p>
       </div>
@@ -385,7 +384,7 @@ export function DecisionPanel({ step, iters, ctx, db, pdb, task, slots, before, 
             <p className="rounded-lg border border-dashed border-border-strong px-2.5 py-2 text-[15px] leading-snug text-ink-2">
               <X aria-hidden="true" size={14} className="mr-1 inline -translate-y-px" />
               <span className="text-ink">{rowName(db, pdb, it.node).short}</span> was already visited (visit #{state.visitedOrder.indexOf(it.node) + 1}),
-              so the loop hits <span className="font-mono">continue</span> (fly.rs:399-401): no cells, no expansion.
+              so the loop moves on with <span className="font-mono">continue</span> (fly.rs:399-401). It adds no cells and pushes nothing.
             </p>
           ) : kind === 'select' ? (
             <RowCard db={db} pdb={pdb} node={it.node} task={task} seed={seed} slots={slots} compact />

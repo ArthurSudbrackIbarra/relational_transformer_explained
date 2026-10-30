@@ -1,7 +1,7 @@
 /**
  * ScaleNote (BUILD_PLAN §0.4): wherever numbers appear, say what is scaled
  * down. Every OPERATION is identical to the paper-era code; only sizes and the
- * training data change, plus float32 instead of bf16.
+ * training data change, plus float32 instead of bfloat16.
  *
  *   <ScaleNote />                                  full comparison table
  *   <ScaleNote paper="L = 1024" ours="L = 128" />  one row, with an optional explanation as children
@@ -22,7 +22,7 @@ export const SCALE_ROWS: { what: string; paper: string; ours: string }[] = [
   { what: 'BFS width w', paper: '256', ours: '16' },
   { what: 'Parameters', paper: '22,336,131', ours: '535,491' },
   { what: 'Text encoder (frozen)', paper: 'all-MiniLM-L12-v2, 384-d', ours: 'same' },
-  { what: 'Precision', paper: 'bfloat16, RMSNorm ε = 2⁻⁷', ours: 'float32, ε = 2⁻⁷' },
+  { what: 'Precision', paper: 'bfloat16', ours: 'float32' },
   { what: 'Data', paper: 'RelBench, 7 databases', ours: '4 synthetic databases' },
 ];
 
@@ -89,7 +89,7 @@ export function ScaleNote({ paper, ours, children, inline = false, className }: 
           </span>
         )}
       >
-        <div className="mb-2 text-[15px] text-ink-2">Every operation matches the paper-era code; only these sizes change.</div>
+        <div className="mb-2 text-[15px] text-ink-2">Every operation matches the paper’s official code. Only these settings change.</div>
         <ScaleTable />
       </HoverCard>
     );
@@ -101,7 +101,7 @@ export function ScaleNote({ paper, ours, children, inline = false, className }: 
       <div className="flex items-start gap-2.5">
         <Scale aria-hidden="true" size={16} className="mt-[2px] shrink-0 text-muted" />
         <div className="min-w-0 flex-1">
-          <div className="text-[16.5px] font-semibold text-ink">Scaled down, not simplified</div>
+          <div className="text-[16.5px] font-semibold text-ink">Scaled down from the paper</div>
           {single ? (
             <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-ink-2">
               {paper !== undefined && (
@@ -121,7 +121,7 @@ export function ScaleNote({ paper, ours, children, inline = false, className }: 
             </div>
           )}
           <div className="mt-1.5 text-[16px] leading-snug text-ink-2">
-            {children ?? 'Every operation is the paper-era code’s; only the sizes, the data and the floating-point precision differ.'}
+            {children ?? 'Every operation matches the paper’s official code. Only the sizes, the data and the numeric precision differ.'}
           </div>
         </div>
       </div>

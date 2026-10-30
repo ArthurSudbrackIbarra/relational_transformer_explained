@@ -239,7 +239,7 @@ export function NumberNormFigure({ data, cols, defaultId, defaultProbe }: { data
           {nf(c.values.length)}
         </Readout>
         <Readout label="mean μ">{fixed(mean, 3)}</Readout>
-        <Readout label={guard ? 'σ (guarded)' : 'sample std σ'} hint={guard ? 'guard: σ set to 1 (pre.rs:338-339)' : 'ddof = 1 (divide by n − 1)'}>
+        <Readout label="standard deviation σ" hint={guard ? 'set to 1: the column has no spread' : undefined}>
           {fixed(std, 3)}
         </Readout>
         <Readout label="rows that fed μ, σ" hint={isTask ? 'Val and Test reuse them' : 'every row of the table file'}>

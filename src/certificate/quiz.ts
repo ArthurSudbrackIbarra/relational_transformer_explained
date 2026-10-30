@@ -71,7 +71,7 @@ export const FINAL_QUIZ: FinalQuestion[] = [
       '5: one token per column',
     ],
     answer: 0,
-    why: 'The primary key produces nothing, a foreign key becomes a link to its parent row (f2p_nbr_idxs), and a missing value produces no cell, no placeholder and no imputation. Only the two present feature values become cells.',
+    why: 'The primary key produces nothing, and a foreign key becomes a link to its parent row (f2p_nbr_idxs). A missing value produces nothing at all: no placeholder and no imputed value. Only the two present feature values become cells.',
   },
   {
     id: 'column-phrase',
@@ -89,7 +89,7 @@ export const FINAL_QUIZ: FinalQuestion[] = [
   {
     id: 'temporal-filter',
     chapters: ['sampling'],
-    prompt: 'Which rows does the released sampler skip because of time?',
+    prompt: 'Which rows does RT’s sampler skip because of time?',
     choices: [
       'P→F child rows whose timestamp is later than the seed row’s',
       'Parent rows whose timestamp is later than the seed row’s',
@@ -97,7 +97,7 @@ export const FINAL_QUIZ: FinalQuestion[] = [
       'None: the sampler ignores timestamps',
     ],
     answer: 0,
-    why: 'Parents are followed first and never filtered. A child row is skipped only when both timestamps exist and the child’s is later than the seed’s; equal timestamps, and rows without one, pass.',
+    why: 'Parents are followed first and never filtered. A child row is skipped only when its timestamp is later than the seed’s, so rows with the seed’s own timestamp still pass.',
   },
   {
     id: 'shuffle',
@@ -123,7 +123,7 @@ export const FINAL_QUIZ: FinalQuestion[] = [
       'Its value is replaced by a random value from the same column',
     ],
     answer: 0,
-    why: 'The masked token keeps its column phrase, its type and its row ids, so the model knows which cell to fill. Only its value term changes, to the learned mask vector of its type. The true label stays in the batch, where only the loss reads it.',
+    why: 'The masked token keeps its column phrase, its type and its row ids, so the model knows which cell to fill. Only its value term changes, to the learned mask vector of its type. The true label stays in the batch, but only the loss reads it.',
   },
   {
     id: 'feature-attention',
@@ -157,7 +157,7 @@ export const FINAL_QUIZ: FinalQuestion[] = [
       'The four attention layers in parallel, averaged, then one RMSNorm',
     ],
     answer: 0,
-    why: 'Five sublayers, always column, feature, neighbor, full, then the gated feed-forward network (SwiGLU). Each has its own RMSNorm and weights and computes x ← x + f(RMSNorm(x)): pre-norm, as the code runs it.',
+    why: 'A block has five sublayers, always in this order: column, feature, neighbor and full attention, then the gated feed-forward network (SwiGLU). Each has its own RMSNorm and weights and computes x ← x + f(RMSNorm(x)), the pre-norm form.',
   },
   {
     id: 'decoder',
@@ -170,7 +170,7 @@ export const FINAL_QUIZ: FinalQuestion[] = [
       'A softmax over every value stored in the database',
     ],
     answer: 0,
-    why: 'norm_out, then four linear decoders (number, text, datetime, boolean) run at every position, but only one output is read: the head that matches the masked cell’s type, at the masked position.',
+    why: 'A final RMSNorm (norm_out) comes first. Then four linear decoders (number, text, datetime, boolean) run at every position, and only one output is read: the one from the decoder that matches the masked cell’s type, at the masked position.',
   },
   {
     id: 'shape',
@@ -210,7 +210,7 @@ export const FINAL_QUIZ: FinalQuestion[] = [
       'The number of tables in the database',
     ],
     answer: 0,
-    why: 'The paper lists the drivers “in order of importance”, and the first is “time-series forecasting from past task rows for the target entity”: the masked cell reads the entity’s earlier labels through column attention, since they share its column.',
+    why: 'The paper lists the drivers “in order of importance”, and the first is “time-series forecasting from past task rows for the target entity”. The masked cell reads the entity’s earlier labels through column attention, because they sit in its column.',
   },
 ];
 

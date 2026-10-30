@@ -4,7 +4,7 @@
  * the same (query, key) pair in all four and says which condition allows it (./math.ts `maskReasons`,
  * checked against the masks in math.test.ts).
  */
-import { Cite, Figure, LayerLabel } from '@/components';
+import { Figure, LayerLabel } from '@/components';
 import { useElementSize } from '@/components/viz/useSize';
 import { ATTN_ORDER, type AttnLayer } from '@/engine/types';
 import { int, plural } from './format';
@@ -124,10 +124,6 @@ export function MaskStage() {
           </ul>
         )}
       </div>
-      <p className="!mt-3 !mb-0 text-[15px] leading-snug text-ink-2">
-        The code builds the four boolean S × S masks once per forward pass, ANDs each with “neither token is padding” and turns them into block masks
-        for FlexAttention <Cite kind="code" ref="rt/model.py:164-206" />. Every head of every block reuses them <Cite kind="spec" ref="§6.1" />.
-      </p>
     </Figure>
   );
 }

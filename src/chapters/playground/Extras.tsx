@@ -197,8 +197,7 @@ export function CkptMetrics() {
       </div>
       <DataTable caption={`${metric} per checkpoint`} columns={['Checkpoint', task.kind === 'autocomplete' ? 'Val (even ids)' : 'Val', task.kind === 'autocomplete' ? 'Test (odd ids)' : 'Test']} rows={rows} />
       <p className="!mb-0 mt-2 text-[14.5px] text-muted">
-        public/data/training/results.json, written by python/train.py. The zero-shot checkpoint is picked on Val, so its Test column is the fair
-        number (spec §9.1). Small splits: expect large variance.
+        The zero-shot checkpoint was chosen on Val, so its Test column is the fairer number.
       </p>
     </div>
   );
@@ -256,7 +255,7 @@ export function LabelCounts() {
     <div ref={ref} className="card my-6 px-4 py-4 sm:px-5">
       <div className="text-[17px] font-semibold text-ink">How many labels does a context hold?</div>
       <p className="!m-0 mt-1 text-[15.5px] leading-snug text-ink-2">
-        Mean ± sd per context, rounded like the paper’s Table 12. Live seed at L = {effL}: <strong className="num text-ink">{abl.labels.self.length}</strong> self,{' '}
+        Mean ± sd per context, rounded as in the paper’s Table 12. Live seed at L = {effL}: <strong className="num text-ink">{abl.labels.self.length}</strong> self,{' '}
         <strong className="num text-ink">{abl.labels.other.length}</strong> other.
       </p>
       <div className="scroll-quiet mt-3 overflow-x-auto">
@@ -301,9 +300,8 @@ export function LabelCounts() {
         </table>
       </div>
       <p className="!mb-0 mt-2 text-[14.5px] leading-snug text-muted">
-        Paper rows: a few of the 18 tasks of Table 12 (p.23). On rel-trial study-outcome no label reaches the context, and zero-shot AUROC there is
-        51.8, close to random (Table 1). Table 12 dates from arXiv v1, when the public sampler still left out other entities’ task rows at the
-        seed’s own timestamp; the released sampler keeps them, so other-entity counts here can be higher (spec §11.3).
+        Paper rows: a few of the 18 tasks in Table 12 (p.23). On rel-trial study-outcome no label reaches the context, and the zero-shot AUROC
+        there is 51.8, close to random (Table 1).
       </p>
     </div>
   );

@@ -21,65 +21,65 @@ export interface GlossaryEntry {
 export const GLOSSARY = {
   'relational-database': {
     term: 'Relational database',
-    def: 'A set of tables whose rows are linked through primary and foreign keys. RT reads it as one graph of rows plus a pool of feature cells.',
+    def: 'A set of tables whose rows are linked through primary and foreign keys. RT reads it as a graph of rows, each row holding feature cells.',
     cite: [{ kind: 'paper', ref: 'p.3 §2.1' }, { kind: 'spec', ref: '§1.1' }],
   },
   'feature-column': {
     term: 'Feature column',
-    def: 'Any column that is not a primary or foreign key. Its non-missing cells are what RT turns into tokens (number, text, datetime or boolean).',
+    def: 'Any column that is not a primary or foreign key. RT turns its non-missing cells into tokens (number, text, datetime or boolean).',
     cite: [{ kind: 'spec', ref: '§1.1' }, { kind: 'paper', ref: 'p.16 App. A' }],
     see: ['cell-token', 'sem-type'],
   },
   'primary-key': {
     term: 'Primary key (PK)',
-    def: 'The column that identifies a row. It produces no token and no edge; in RelBench-style data its value equals the row position 0..n−1.',
+    def: 'The column that identifies a row. It produces no token and no link. In RelBench-style data its value is the row’s position, 0 to n − 1.',
     cite: [{ kind: 'spec', ref: '§1.2' }, { kind: 'code', ref: 'rustler/src/pre.rs:439-442' }],
   },
   'foreign-key': {
     term: 'Foreign key (FK)',
-    def: 'A column holding the row position of a parent row in another table. It produces no token, only links: the parent id joins the child’s f2p_nbr_idxs and the parent gets a P→F edge back. At most 5 non-null FKs per row.',
+    def: 'A column holding the position of a parent row in another table. It produces no token, only links: the child records its parent (F→P), and the parent gets a link back to the child (P→F).',
     cite: [{ kind: 'spec', ref: '§1.2' }, { kind: 'code', ref: 'rustler/src/pre.rs:444-533' }],
     see: ['f2p-link', 'p2f-link'],
   },
   'f2p-link': {
     term: 'F→P link',
-    def: 'From a row that holds a foreign key to the row it references (its parent). The sampler always follows these first, without time filtering or subsampling.',
+    def: 'The link from a row that holds a foreign key to the row it references, its parent. The sampler always follows these links first, with no time filter and no width limit.',
     cite: [{ kind: 'spec', ref: '§1.3' }, { kind: 'spec', ref: '§4.4' }],
   },
   'p2f-link': {
     term: 'P→F link',
-    def: 'The reverse of an F→P link: from a parent row to each child row that references it. A row can have unboundedly many children, so the sampler time-filters and width-bounds them.',
+    def: 'The reverse of an F→P link: from a parent row to each child row that references it. A row can have a great many children, so the sampler filters them by time and keeps at most w of them.',
     cite: [{ kind: 'spec', ref: '§1.3' }, { kind: 'spec', ref: '§4.7' }],
   },
   'time-column': {
     term: 'Time column',
-    def: 'The one datetime column a table may declare. It is an ordinary datetime token, and also the source of the row’s integer timestamp used by the sampler.',
+    def: 'The one datetime column a table may declare. Its cells are ordinary datetime tokens, and its value also gives the row the timestamp that the sampler reads.',
     cite: [{ kind: 'spec', ref: '§1.4' }],
     see: ['node-timestamp'],
   },
   'node-timestamp': {
     term: 'Row timestamp',
-    def: 'Whole seconds of the time column, set only for rows that have a time column, a non-null time value and at least one non-null FK. Rows without one always pass the temporal filter.',
+    def: 'The row’s time-column value in whole seconds. Only the sampler reads it, for its temporal filter.',
     cite: [{ kind: 'spec', ref: '§1.4' }, { kind: 'code', ref: 'rustler/src/pre.rs:481-493' }],
   },
   'global-node-index': {
     term: 'Global node index',
-    def: 'One integer id per row across every table of a database, task-table splits included: offset of the table file plus the row position. DB tables come first (sorted by name), then task splits test < train < val.',
+    def: 'One integer id for every row of a database, task-table rows included: the offset of the row’s table plus its position in that table. Database tables come first, in alphabetical order, then the task splits (test, train, val).',
     cite: [{ kind: 'spec', ref: '§1.5' }, { kind: 'code', ref: 'rustler/src/pre.rs:79-92' }],
   },
   'cell-token': {
     term: 'Cell token',
-    def: 'One non-missing feature cell, represented by its value, its column name and its table name. RT’s sequence is made of these, not of rows.',
+    def: 'One non-missing feature cell, represented by its value, its column name and its table name. RT’s input sequence is made of these, so a row becomes one token per feature value it holds.',
     cite: [{ kind: 'paper', ref: 'p.4 §3.1' }, { kind: 'spec', ref: '§1.1' }],
   },
   'sem-type': {
     term: 'Semantic type',
-    def: 'Number (0), Text (1), DateTime (2) or Boolean (3), decided only by the physical dtype: integers and floats are numbers, strings are text. Each type has its own encoder, decoder and mask vector.',
+    def: 'Number (0), Text (1), DateTime (2) or Boolean (3), read off the column’s storage type: integers and floats are numbers, strings are text. Each type has its own encoder, decoder and mask vector.',
     cite: [{ kind: 'spec', ref: '§3.2' }, { kind: 'code', ref: 'rustler/src/common.rs:38-44' }],
   },
   'z-score': {
     term: 'z-score normalization',
-    def: 'Numbers and booleans are standardized per column, (v − μ)/σ with the sample std; datetimes use one global mean and population std per database. Task-label stats come from the Train split; DB-table stats from all rows.',
+    def: 'Numbers and booleans are standardized per column as (v − μ)/σ. Datetimes share one mean and one standard deviation across the whole database. Task labels use statistics from the Train split, database columns use all their rows.',
     cite: [{ kind: 'spec', ref: '§3.3' }, { kind: 'spec', ref: '§3.4' }],
   },
   'column-phrase': {
@@ -95,13 +95,13 @@ export const GLOSSARY = {
   },
   'task-table': {
     term: 'Task table',
-    def: 'A table holding the prediction task: a timestamp, one FK to the entity and the label. It is attached to the database as an ordinary table, with Train, Val and Test splits.',
+    def: 'A table that holds the prediction task: a timestamp, a foreign key to the entity and the label. It is attached to the database as an ordinary table, with Train, Val and Test splits.',
     cite: [{ kind: 'paper', ref: 'p.4 §2.2' }, { kind: 'spec', ref: '§2.1' }],
     see: ['task-table-prompting'],
   },
   'task-table-prompting': {
     term: 'Task-table prompting',
-    def: 'Specifying the task by attaching its task table to the database. Its rows are the seeds, and past rows of the same task, reached through the entity, carry visible labels.',
+    def: 'Giving RT a task by attaching its task table to the database. Its rows are the seeds, and the same task’s past rows, reached through the entity, bring visible labels into the context.',
     cite: [{ kind: 'paper', ref: 'p.4 §3.1' }, { kind: 'spec', ref: '§2.1' }],
   },
   'forecasting-task': {
@@ -111,13 +111,13 @@ export const GLOSSARY = {
   },
   'autocomplete-task': {
     term: 'Autocomplete task',
-    def: 'Predict a masked cell of an existing DB column. The seed is a DB row, no task rows enter the context, and leakage columns are dropped on the fly.',
+    def: 'Predict a masked cell of an existing database column. The seed is a database row and no task rows enter the context. Columns that would give the answer away are dropped while sampling.',
     cite: [{ kind: 'paper', ref: 'p.19 App. D' }, { kind: 'spec', ref: '§2.4' }],
     see: ['leakage-columns'],
   },
   'leakage-columns': {
     term: 'Leakage columns',
-    def: 'Per-task columns_to_drop (autocomplete only). Their cells are skipped for the seed row and for rows whose timestamp equals the seed’s.',
+    def: 'Columns that would give away the answer of an autocomplete task (columns_to_drop). Their cells are skipped for the seed row and for rows with the seed’s timestamp.',
     cite: [{ kind: 'spec', ref: '§4.9' }, { kind: 'code', ref: 'rustler/src/fly.rs:457-461' }],
   },
   'seed-row': {
@@ -133,7 +133,7 @@ export const GLOSSARY = {
   },
   'mask-vector': {
     term: 'Mask vector mₜ',
-    def: 'A learned vector per sem type, added raw (not normalized) in place of the value term of the masked cell.',
+    def: 'A learned vector for each sem type. It takes the place of the masked cell’s value term and is added as it is, with no RMSNorm.',
     cite: [{ kind: 'spec', ref: '§5.2' }, { kind: 'code', ref: 'rt/model.py:141-146' }],
   },
   'in-context-label': {
@@ -144,42 +144,42 @@ export const GLOSSARY = {
   },
   'self-label': {
     term: 'Self label',
-    def: 'An in-context label of the target entity itself (its past task rows). Removing them is the largest zero-shot ablation in the paper.',
+    def: 'An in-context label of the target entity itself, from its past task rows. Removing them causes the largest zero-shot drop of any ablation in the paper.',
     cite: [{ kind: 'spec', ref: '§11.2' }, { kind: 'paper', ref: 'p.9 Table 4' }],
   },
   'same-horizon': {
     term: 'Same-horizon rows',
-    def: 'Other entities’ task rows with the same timestamp as the seed. The released sampler keeps them (filter is child_ts > seed_ts), so their labels are visible.',
+    def: 'Other entities’ task rows with the same timestamp as the seed. The sampler skips only rows later than the seed, so these rows stay and their labels can appear in the context.',
     cite: [{ kind: 'spec', ref: '§2.5' }, { kind: 'code', ref: 'rustler/src/fly.rs:422' }],
   },
   'context-window': {
     term: 'Context window (L)',
-    def: 'The L cell tokens gathered around the seed by the sampler (paper L = 1024). Sampling stops at exactly L tokens, even mid-row, or pads when the frontier empties.',
+    def: 'The L cell tokens the sampler gathers around the seed (L = 1024 in the paper). Sampling stops at exactly L tokens, even in the middle of a row, and pads the rest if it runs out of rows first.',
     cite: [{ kind: 'spec', ref: '§4.1' }, { kind: 'spec', ref: '§4.11' }],
   },
   'bfs-width': {
     term: 'BFS width bound (w)',
-    def: 'At most w DB children are kept per visited row, sampled uniformly after the temporal filter. Task-table children are never subsampled. Paper scripts use w = 256.',
+    def: 'At most w database children are kept for each visited row, drawn at random after the temporal filter. Task-table children are never subsampled. The paper uses w = 256.',
     cite: [{ kind: 'spec', ref: '§4.7' }, { kind: 'code', ref: 'rustler/src/fly.rs:426-452' }],
   },
   'depth-label': {
     term: 'Depth label',
-    def: 'The hop count carried by a frontier entry (+1 per F→P or P→F hop). The next P→F row is drawn uniformly from the lowest non-empty depth bucket.',
+    def: 'The number of hops from the seed to a row waiting in the sampler’s frontier (+1 per F→P or P→F hop). The next child row is drawn at random from the shallowest non-empty depth.',
     cite: [{ kind: 'spec', ref: '§4.5' }],
   },
   'temporal-filter': {
     term: 'Temporal filter',
-    def: 'A P→F child is skipped only if both timestamps exist and the child’s is later than the seed’s. Equal timestamps pass; parents are never filtered.',
+    def: 'A P→F child row is skipped when its timestamp is later than the seed’s. Equal timestamps pass, and parents are never filtered.',
     cite: [{ kind: 'spec', ref: '§4.6' }, { kind: 'code', ref: 'rustler/src/fly.rs:421-424' }],
   },
   padding: {
     term: 'Padding token',
-    def: 'A filler position when fewer than L cells were sampled: node −1, every field at its default, is_padding = true. Its input is the zero vector and every mask excludes it.',
+    def: 'A filler position, flagged by is_padding, used when fewer than L cells were sampled. Its input is the zero vector, and every mask excludes it.',
     cite: [{ kind: 'spec', ref: '§4.11' }, { kind: 'spec', ref: '§6.2' }],
   },
   'relational-attention': {
     term: 'Relational attention',
-    def: 'Multi-head attention restricted by a boolean mask built from table, column and row ids. RT uses four kinds per block: column, feature, neighbor and full.',
+    def: 'Multi-head attention restricted by a boolean mask built from the tokens’ table, column and row ids. The paper’s three relational layers are column, feature and neighbor attention; each block adds a full attention layer after them.',
     cite: [{ kind: 'paper', ref: 'p.5 §3.2' }, { kind: 'spec', ref: '§6.2' }],
   },
   'column-attention': {
@@ -194,7 +194,7 @@ export const GLOSSARY = {
   },
   'neighbor-attention': {
     term: 'Neighbor attention',
-    def: 'A parent’s tokens attend to the tokens of its child rows in the context, like GNN message passing. A row with no children in the context gets a zero update.',
+    def: 'A parent’s tokens attend to the tokens of its child rows in the context, much like message passing in a graph neural network. A row with no children in the context gets a zero update.',
     cite: [{ kind: 'spec', ref: '§6.2' }, { kind: 'spec', ref: '§6.1' }],
   },
   'full-attention': {
@@ -204,12 +204,12 @@ export const GLOSSARY = {
   },
   rmsnorm: {
     term: 'RMSNorm',
-    def: 'y = x / √(mean(x²) + ε) · γ. RT applies one before every sublayer, after every input projection and once at the end; ε = 2⁻⁷ in the paper’s bf16 environment.',
+    def: 'y = x / √(mean(x²) + ε) · γ, with ε = 2⁻⁷ in RT. There is one before every sublayer, one after each input projection and one at the very end.',
     cite: [{ kind: 'spec', ref: '§7.2' }],
   },
   'pre-norm': {
     term: 'Pre-norm residual',
-    def: 'Each sublayer computes x + f(RMSNorm(x)). The code is pre-norm, although the paper’s Algorithm 2 writes the norm after the sublayer.',
+    def: 'Each sublayer computes x + f(RMSNorm(x)): it reads a normalized copy of x, and its raw output is added back to x.',
     cite: [{ kind: 'spec', ref: '§7.1' }, { kind: 'code', ref: 'rt/model.py:83-85' }],
   },
   swiglu: {
@@ -219,24 +219,24 @@ export const GLOSSARY = {
   },
   'permutation-invariance': {
     term: 'Permutation invariance',
-    def: 'RT has no positional encodings: shuffling the tokens permutes the outputs identically, so the prediction at the target does not change.',
+    def: 'RT has no positional encodings. Shuffling the tokens reorders the outputs the same way, so the prediction at the target stays the same.',
     cite: [{ kind: 'spec', ref: '§6.5' }, { kind: 'paper', ref: 'p.5 §3.1' }],
     see: ['permutation-equivariance'],
   },
   'permutation-equivariance': {
     term: 'Permutation equivariance',
-    def: 'Reordering the input tokens reorders the outputs in the same way: each token’s final hidden state moves with it and does not change. RT has it because its inputs depend only on each token’s own fields and its masks only on ids.',
+    def: 'Reordering the input tokens reorders the outputs in the same way: each token’s final hidden state moves with it, unchanged. RT has this property because each input vector depends only on the token’s own fields, and the masks depend only on ids.',
     cite: [{ kind: 'spec', ref: '§6.5' }, { kind: 'code', ref: 'rt/model.py:165-224' }],
     see: ['permutation-invariance'],
   },
   'zero-shot': {
     term: 'Zero-shot',
-    def: 'Predicting on a database (or task) never trained on, with no weight updates; the new data enters only through the context window. Checkpoints are still selected on the target task’s validation split.',
+    def: 'Predicting on a database (or task) the model was never trained on, with no weight updates. The new data enters only through the context window. The checkpoint is still chosen on the target task’s validation split.',
     cite: [{ kind: 'paper', ref: 'p.4 §2.3' }, { kind: 'spec', ref: '§9.4' }],
   },
   'leave-one-db-out': {
     term: 'Leave-one-DB-out pretraining',
-    def: 'Pretrain on all tasks of every other database, then evaluate zero-shot on the held-out one. Best validation checkpoint kept per target task.',
+    def: 'Pretrain on all tasks of every other database, then evaluate zero-shot on the one held out. For each target task, the checkpoint with the best validation score is kept.',
     cite: [{ kind: 'spec', ref: '§9.1' }, { kind: 'paper', ref: 'p.6 §4.1' }],
   },
   'entity-mean': {
@@ -246,22 +246,22 @@ export const GLOSSARY = {
   },
   huber: {
     term: 'Huber loss',
-    def: 'Loss for number (and datetime) targets in z-space with δ = 1: 0.5d² if |d| < 1, else |d| − 0.5.',
+    def: 'The loss for number targets, computed in z-space with δ = 1: 0.5d² if |d| < 1, else |d| − 0.5.',
     cite: [{ kind: 'spec', ref: '§8.2' }],
   },
   bce: {
     term: 'BCE with logits',
-    def: 'Loss for boolean targets against 1{z > 0}, where z is the z-scored label (z > 0 exactly when the label is true).',
+    def: 'The loss for boolean targets, against 1{z > 0}, where z is the z-scored label (z > 0 exactly when the label is true).',
     cite: [{ kind: 'spec', ref: '§8.2' }, { kind: 'spec', ref: '§3.3' }],
   },
   auroc: {
     term: 'AUROC',
-    def: 'Area under the ROC curve, computed on raw logits (identical to using sigmoid probabilities). Metric for binary tasks.',
+    def: 'Area under the ROC curve, the metric for binary tasks. RT computes it on raw logits; sigmoid probabilities would give the same value.',
     cite: [{ kind: 'spec', ref: '§8.5' }],
   },
   r2: {
     term: 'R²',
-    def: 'Coefficient of determination, computed in z-space (equal to raw-unit R²). 0 is the global-mean baseline. Metric for regression tasks.',
+    def: 'Coefficient of determination, the metric for regression tasks. Computed in z-space, it equals R² in raw units. Always predicting the global mean scores 0.',
     cite: [{ kind: 'spec', ref: '§8.5' }],
   },
 } satisfies Record<string, GlossaryEntry>;

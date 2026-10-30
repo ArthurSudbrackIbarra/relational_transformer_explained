@@ -1,6 +1,6 @@
 /**
  * Step 3 figure: where ε matters. Top: the RMSNorm transfer curve rms_out = r / √(r² + ε) (γ = 1) as a
- * function of the input's rms r, for ε = 2⁻⁷ (paper environment, spec §7.2) and for float32 ε. Bottom:
+ * function of the input's rms r, for RT's ε = 2⁻⁷ (spec §7.2). Bottom:
  * the real pre-norm inputs of the live forward pass (ForwardResult.embedding.colPreNorm / valuePreNorm),
  * one dot per distinct input, in one row per input kind. Hover a dot for its numbers, click to inspect it.
  */
@@ -13,8 +13,6 @@ import type { EmbeddingStable } from './live';
 import { fmt, int, phraseOf, rowRef, SEM_LABEL } from './live';
 import { meanSquare, norm, slice } from './math';
 import { useCrossPick } from './nav';
-
-const EPS_FP32 = 2 ** -23;
 
 type Kind = 'col' | SemType;
 
@@ -185,10 +183,10 @@ export const EpsKnee = memo(function EpsKnee({ live }: { live: EmbeddingStable }
       title="Where ε takes over, with the real inputs of the five RMSNorms"
       caption={
         <>
-          Top: the length RMSNorm gives a vector (as rms, before γ) as a function of the length it receives. Bottom: every distinct input of the live
-          forward pass, one dot each, placed by its rms. Left of √ε, ε is more than half of the sum under the root and the output keeps less than
-          71% of its full length; well to the right (r ≫ √ε) it reaches full length. Hover or tap a dot for its numbers; click it (or focus it and
-          press Enter) to inspect that token in Step 2.
+          Top: the rms of RMSNorm’s output (before γ) as a function of the rms of its input. Bottom: every distinct input of the live forward
+          pass, one dot each, placed by its rms. Left of √ε, ε is more than half of the sum under the root and the output keeps less than 71% of
+          its full length; well to the right (r ≫ √ε) it reaches full length. Hover or tap a dot for its numbers; click it (or focus it and press
+          Enter) to inspect that token in Step 2.
         </>
       }
     >
@@ -198,13 +196,7 @@ export const EpsKnee = memo(function EpsKnee({ live }: { live: EmbeddingStable }
           <svg width="22" height="8" aria-hidden="true">
             <line x1="1" x2="21" y1="4" y2="4" style={{ stroke: 'var(--accent)' }} strokeWidth={2.5} />
           </svg>
-          ε = 2⁻⁷ (paper environment, this site)
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <svg width="22" height="8" aria-hidden="true">
-            <line x1="1" x2="21" y1="4" y2="4" style={{ stroke: 'var(--muted)' }} strokeWidth={2} strokeDasharray="4 3" />
-          </svg>
-          ε = 2⁻²³ (float32, newer torch)
+          RMSNorm with ε = 2⁻⁷
         </span>
         <span className="inline-flex items-center gap-2">
           <svg width="14" height="14" aria-hidden="true">
@@ -262,8 +254,7 @@ export const EpsKnee = memo(function EpsKnee({ live }: { live: EmbeddingStable }
             <text x={x(sqrtEps) + 6} y={yTop(0.12)} fontSize={SVG_TYPE.annotation} style={{ fill: 'var(--accent-text)' }}>
               √ε = {fmt(sqrtEps, 3)}
             </text>
-            {/* curves */}
-            <path d={curve(EPS_FP32)} fill="none" style={{ stroke: 'var(--muted)' }} strokeWidth={2} strokeDasharray="4 3" />
+            {/* transfer curve */}
             <path d={curve(eps)} fill="none" style={{ stroke: 'var(--accent)' }} strokeWidth={2.5} />
             {/* hover guide */}
             {hover && (

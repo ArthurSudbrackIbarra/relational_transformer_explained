@@ -382,7 +382,7 @@ export function BatchFigure({ binary, regression, model }: { binary: Lane; regre
               />
             </div>
             <ScaleNote
-              paper="32 contexts per GPU × 8 GPUs; gradients averaged over all 256"
+              paper="256 contexts per step (32 on each of 8 GPUs)"
               ours={`${PER_TASK * 2} contexts here, for legibility`}
               className="mt-3"
             />

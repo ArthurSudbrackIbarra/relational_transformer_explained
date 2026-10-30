@@ -4,7 +4,6 @@
  * Transformer → mean pooling → Normalize (spec §3.6), and a comparison strip showing that the cosine
  * of two unit vectors is the sum of their 384 element-wise products.
  */
-import { CircleCheck } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useMemo, useState } from 'react';
 import { VectorStrip, cx } from '@/components';
@@ -169,17 +168,6 @@ export function VectorExplorer({ store, catalog, value, onChange, compare, onCom
           </div>
         </div>
       )}
-
-      <div className="mt-5 flex items-start gap-2.5 rounded-lg border border-border px-3.5 py-2.5">
-        <CircleCheck aria-hidden="true" size={18} strokeWidth={2.2} className="mt-0.5 shrink-0" style={{ color: 'var(--good)' }} />
-        <p className="!m-0 text-[15px] leading-snug text-ink-2">
-          <span className="sr-only">Verified: </span>
-          <strong className="font-semibold text-ink">Checked offline</strong> with the real model: the mean of all wordpiece vectors, [CLS] and
-          [SEP] included, divided by its length, reproduces every stored vector to within{' '}
-          {ENCODER.meanPoolCheck.maxAbsDiffAllWordpieces.toExponential(0)}. Leaving [CLS] and [SEP] out misses by at least{' '}
-          {ENCODER.meanPoolCheck.minMaxAbsDiffWithoutClsSep.toFixed(2)} in some dimension.
-        </p>
-      </div>
     </div>
   );
 }

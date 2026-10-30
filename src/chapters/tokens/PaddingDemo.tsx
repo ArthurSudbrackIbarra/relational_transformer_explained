@@ -13,7 +13,7 @@ import { axis } from '../shapes';
 import { buildMasks } from '@/engine/masks';
 import { forwardWithMasks, l2norm, rmsnorm, scalarValueTerm, tensor, textEmbedder } from '@/engine/model';
 import { getForward, getSeeds } from '@/engine/pipeline';
-import { ATTN_ORDER, SemType, type ForwardResult, type SampledContext, type Split } from '@/engine/types';
+import { ATTN_ORDER, type ForwardResult, type SampledContext, type Split } from '@/engine/types';
 import { useSim } from '@/state/store';
 import { ArrayStrip } from './ArrayStrip';
 import { afterPaint, contextFor, findMostPadded, type PaddedPick } from './compute';
@@ -120,7 +120,6 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
     // What a padding slot would enter the model as without the ¬is_padding gates: its slots are 0,
     // but the encoders have biases (model.py:115-123), so W·0 + b = b and RMSNorm(b) ≠ 0.
     let wouldBe: { colNorm: number; valNorm: number } | null = null;
-    let dec: { head: string; at: number; bias: number } | null = null;
     if (assets.weights) {
       const w = assets.weights;
       const bCol = tensor(w, 'enc_dict.col_name.bias');
@@ -128,12 +127,7 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
       const valB = scalarValueTerm(w, 'number', 0).term; // sem_types = 0 → the number encoder
       wouldBe = { colNorm: l2norm(colB), valNorm: l2norm(valB) };
     }
-    if (demoFr && pad.length && assets.weights) {
-      const t = demoCtx.tokens[demoCtx.targetPos >= 0 ? demoCtx.targetPos : 0];
-      const head = t.sem === SemType.Boolean ? 'boolean' : t.sem === SemType.DateTime ? 'datetime' : 'number';
-      dec = { head, at: demoFr.yhat[head as 'boolean'][pad[0]], bias: tensor(assets.weights, `dec_dict.${head}.bias`)[0] };
-    }
-    return { S, pad, isPad, maskRows, wouldBe, dec };
+    return { S, pad, isPad, maskRows, wouldBe };
   }, [demoCtx, demoFr, assets.weights]);
 
   const seedNode = demoCtx ? pdb.nodes[demoCtx.params.seedNode] : null;
@@ -149,8 +143,7 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
         caption={
           <>
             Top: the <span className="font-mono">is_padding</span> array and the tokens of a context that ran out of rows. Left: one padding slot, every
-            field at the value <span className="font-mono">Vecs::new</span> gave it. Right: what the model does with it, computed from the real weights
-            and masks of this context.
+            field at its default. Right: what the model does with it, computed from the real weights and masks of this context.
           </>
         }
       >
@@ -172,7 +165,7 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
               .{' '}
               {scan.pick && seedNode ? (
                 <>
-                  So here is the {taskShort(task)} seed whose context is smallest at the same L = {L}, w = {w}, found by running the sampler on all{' '}
+                  The figure therefore uses the {taskShort(task)} seed with the smallest context at the same L = {L}, w = {w}, found by running the sampler on all{' '}
                   {scan.total.toLocaleString('en-US')} seeds of the task:{' '}
                   <span className="text-ink">{nodeRef(seedNode)}</span>
                   {entity !== null ? (
@@ -262,8 +255,8 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
                     <li>
                       <div className="mb-1 text-[16px] font-semibold text-ink">1 · It enters as the zero vector</div>
                       <p className="text-[15.5px] leading-relaxed text-ink-2">
-                        Its slots hold zeros, but that alone would not give a zero input: the encoders have biases{' '}
-                        <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:115-123" />,</span> so W·0 + b = b. What zeroes the slot is the factor ¬is_padding on every term{' '}
+                        Zero slots alone would not give a zero input, because the encoders have biases{' '}
+                        <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:115-123" />:</span> W·0 + b = b. The factor ¬is_padding on every term is what zeroes the slot{' '}
                         <Cite kind="code" ref="rt/model.py:213" /> <Cite kind="code" ref="rt/model.py:219" /> <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:223" />.</span>
                       </p>
                       {checks.wouldBe && (
@@ -370,10 +363,6 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
                           </span>
                         </li>
                       </ul>
-                      <p className="mt-1.5 text-[14.5px] leading-snug text-ink-2">
-                        This is a derivation, not a measurement: the site’s engine relies on it and skips padding rows inside the blocks, which gives the
-                        same numbers.
-                      </p>
                     </li>
 
                     <li>
@@ -400,15 +389,6 @@ export function PaddingDemo({ live }: { live: TokensLive }) {
                         <StatusBadge status="info">running the model without the padding…</StatusBadge>
                       )}
                     </li>
-
-                    {checks.dec && (
-                      <li className="text-[15px] leading-snug text-ink-2">
-                        The decoders still run at every position <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:239" />.</span> At padding position {firstPad} the{' '}
-                        {checks.dec.head} decoder outputs <span className="num text-ink">{formatSigned(checks.dec.at, 4)}</span>, and its bias is b ={' '}
-                        <span className="num text-ink">{formatSigned(checks.dec.bias, 4)}</span>: the same number, because W·<ZeroVec /> = <ZeroVec />. Nothing reads it:
-                        the loss and the readout look only at the masked position.
-                      </li>
-                    )}
                   </ol>
                 )}
               </div>

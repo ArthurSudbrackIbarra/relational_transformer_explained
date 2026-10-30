@@ -108,10 +108,7 @@ export function EmbedStage() {
               </>
             }
           >
-            <p className="!mb-0">
-              u is the projection from the previous step. In the paper’s formula the column-name term is a plain linear map; the code adds a bias and
-              this RMSNorm <Cite kind="spec" ref="§10 #2" />.
-            </p>
+            <p className="!mb-0">u is the column-name projection from the previous step. This norm has its own gain, used for column names only.</p>
           </NormView>
         ) : op === 'value' ? (
           <ValueOp live={live} width={width} hover={hover} setHover={setHover} />
@@ -166,7 +163,7 @@ function LookupOp({ live, width, hover, setHover }: OpProps) {
             markRow={cell?.r ?? null}
           />
           <Panel
-            o={{ data: f.text, rows: S, cols: dText, ...tokens, name: <code>text_values</code>, label: 'text-value embeddings', dims: tokText(live, 'A text cell’s row is the MiniLM vector of its string; every other row holds the vector of string 0, which the input gate multiplies by 0.') }}
+            o={{ data: f.text, rows: S, cols: dText, ...tokens, name: <code>text_values</code>, label: 'text-value embeddings', dims: tokText(live, 'A text cell’s row is the MiniLM vector of its string. Every other row holds a placeholder, the vector of string 0, which the model ignores.') }}
             cellW={cw}
             cellH={2.5}
             focusRow={focus}
@@ -189,11 +186,11 @@ function LookupOp({ live, width, hover, setHover }: OpProps) {
           }
         >
           <p className="!mb-0">
-            No text encoder runs here: every string of the database was embedded once, before training, and the sampler copies rows of that table.{' '}
-            <code>col_name_values</code> holds the phrase of each token’s column, so the {int(numReal)} rows take only {plural(nPhrases, 'distinct value')}.{' '}
-            <code>text_values</code> holds the value of the {plural(nText, 'text cell')}; every other token stores the embedding of string 0 (“{pdb.text[0]}”),
-            because the preprocessing writes text index 0 for non-text cells <Cite kind="code" ref="rustler/src/pre.rs:553-605" />. The input gate
-            multiplies those rows by 0.
+            No text encoder runs here. Every string of the database was embedded once, before training, and the sampler copies the stored vectors
+            into the batch. <code>col_name_values</code> holds the phrase of each token’s column, so its {int(numReal)} rows take only{' '}
+            {plural(nPhrases, 'distinct value')}. <code>text_values</code> holds the embedded string of each of the {plural(nText, 'text cell')}.
+            Every other token gets a placeholder row, the embedding of string 0 (“{pdb.text[0]}”) <Cite kind="code" ref="rustler/src/pre.rs:553-605" />,
+            which the model ignores because the token is not text.
           </p>
           <Readout>
             {t ? (
@@ -204,7 +201,7 @@ function LookupOp({ live, width, hover, setHover }: OpProps) {
                     <q>{pdb.text[t.textIdx]}</q> (index {t.textIdx})
                   </>
                 ) : (
-                  <>none, so the row is E(“{pdb.text[0]}”), gated out</>
+                  <>none, so the row is the placeholder E(“{pdb.text[0]}”), which the model ignores</>
                 )}
                 .
               </>
@@ -305,7 +302,7 @@ function ValueOp({ live, width, hover, setHover }: OpProps) {
         <div className="grid grid-cols-1 gap-5">
           <div className="flex flex-wrap items-start gap-x-3 gap-y-3">
             <Panel
-              o={{ data: fr!.embedding.valuePreNorm, rows: S, cols: d, ...tokens, blocked: gatedPre, name: <TeX tex="u^{\text{val}}_i = W_t v_i + b_t" />, label: 'value projection, by type', dims: tokD(live, 'Each row uses the encoder of its own type; masked and padding rows are never computed (gray).') }}
+              o={{ data: fr!.embedding.valuePreNorm, rows: S, cols: d, ...tokens, blocked: gatedPre, name: <TeX tex="u^{\text{val}}_i = W_t v_i + b_t" />, label: 'value projection, by type', dims: tokD(live, 'Each row uses the encoder of its own type. Masked and padding rows have no value projection (gray).') }}
               cellW={c}
               cellH={2.6}
               focusRow={focus}
@@ -333,15 +330,14 @@ function ValueOp({ live, width, hover, setHover }: OpProps) {
           tex={[`\\text{val}_i = \\mathrm{RMSNorm}_t(W_t\\,v_i + b_t)`, `\\text{val}_i = m_t \\;\\;\\text{(the masked cell)}`]}
           cite={
             <>
-              <code>enc_dict</code>, <code>norm_dict</code>, <code>mask_embs</code> <Cite kind="code" ref="rt/model.py:115-146" />; the gated sum{' '}
-              <Cite kind="code" ref="rt/model.py:216-224" />; m<sub>t</sub> is added without a norm <Cite kind="spec" ref="§5.2" />.
+              <code>enc_dict</code>, <code>norm_dict</code>, <code>mask_embs</code> <Cite kind="code" ref="rt/model.py:115-146" />; the value term
+              by type <Cite kind="code" ref="rt/model.py:216-224" />; m<sub>t</sub> is added without a norm <Cite kind="spec" ref="§5.2" />.
             </>
           }
         >
           <p className="!mb-0">
             Each token uses the encoder of its own type t: a Linear(1, d) for a z-scored number, datetime or boolean, a Linear({dText}, d) for a text
-            embedding, each followed by its own RMSNorm. The code runs every type’s encoder on every position and multiplies the wrong types by 0.
-            The masked cell gets its type’s learned vector m<sub>t</sub> instead
+            embedding, each followed by its own RMSNorm. The masked cell gets its type’s learned vector m<sub>t</sub> instead
             {masked.length === 1 ? (
               <>
                 {' '}
@@ -355,7 +351,7 @@ function ValueOp({ live, width, hover, setHover }: OpProps) {
               t.mask ? (
                 <>
                   {tok(live, t.pos)} is the masked cell: its row is m<sub>{key}</sub>, entry {cell.c} ={' '}
-                  <strong className="num text-ink">{fmtNum(fr!.embedding.valueTerm[t.pos * d + cell.c])}</strong>. Its projection is gated out (gray).
+                  <strong className="num text-ink">{fmtNum(fr!.embedding.valueTerm[t.pos * d + cell.c])}</strong>. It has no value projection (gray).
                 </>
               ) : pre ? (
                 t.sem === SemType.Text ? (
@@ -498,7 +494,7 @@ function SumOp({ live, width, hover, setHover }: OpProps) {
           tex={[`x_{0,i} = c'_i + \\text{val}_i`, `x_0 \\in \\mathbb{R}^{${int(S)}\\times ${d}}`]}
           cite={
             <>
-              <code>x = 0</code>, then each term is added with its gate <Cite kind="code" ref="rt/model.py:208-224" />; padding rows are exactly 0{' '}
+              Both terms are added into <code>x</code> <Cite kind="code" ref="rt/model.py:208-224" />; padding rows stay 0{' '}
               <Cite kind="spec" ref="§5.2" />.
             </>
           }

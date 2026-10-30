@@ -145,9 +145,9 @@ export function ThreeImplementations() {
       )}
       {sdpa && (
         <p className="mt-5 mb-0 text-[15.5px] leading-snug text-ink-2">
-          For speed, training swapped the port’s dense attention for <span className="font-mono text-[15px]">F.scaled_dot_product_attention</span> with
-          the same boolean mask, after checking on random data, fully masked rows included, that the two agree: outputs to{' '}
-          {sci(sdpa.maxAbsDiffForward)} and gradients to {sci(sdpa.maxAbsDiffGrad)} (
+          For speed, the training run replaced the port’s dense attention with{' '}
+          <span className="font-mono text-[15px]">F.scaled_dot_product_attention</span> and the same boolean mask. Before the switch, the two were
+          compared on random data, fully masked rows included, and they agree to {sci(sdpa.maxAbsDiffForward)} on outputs and {sci(sdpa.maxAbsDiffGrad)} on gradients (
           <span className="font-mono text-[15px]">results.json → config.attention</span>).
         </p>
       )}

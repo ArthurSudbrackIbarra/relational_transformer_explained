@@ -166,8 +166,9 @@ function DecodeOp({ live, width, hover, setHover }: { live: E2ELive; width: numb
           }
         >
           <p className="!mb-0">
-            Every position gets a number, a datetime and a boolean output. The official code also runs the text head ({d} → 384), but its output is
-            never used because text is never masked, so this page leaves it out <Cite kind="spec" ref="§8.1" />. Columns left to right: number, datetime, boolean. The outlined row is the masked target
+            Every position gets a number, a datetime and a boolean output. The fourth decoder, the text head ({d} → 384), is left out: text cells
+            are never masked, so its output is never read <Cite kind="spec" ref="§8.1" />. Columns left to right: number, datetime, boolean. The
+            outlined row is the masked target
             {tt ? <> ({tok(live, target)}, a {['number', 'text', 'datetime', 'boolean'][tt.sem]} cell)</> : null}: its{' '}
             {['number', 'datetime', 'boolean'][col]} output is the prediction. Every other value is computed and discarded.
           </p>
@@ -225,9 +226,9 @@ function AnswerOp({ live }: { live: E2ELive }) {
                 Huber(ẑ − z = {fmtNum(z - (label.z ?? 0))}) = <span className="num font-semibold text-ink">{fmtNum(loss, 4)}</span>
               </>
             )}{' '}
-            <Cite kind="code" ref="rt/model.py:250-265" />. With one masked cell the mean over masked cells is this single value. The evaluation loop
-            computes it too <Cite kind="code" ref="rt/main.py:281" /> and only logs its average <Cite kind="code" ref="rt/main.py:316-326" />: at
-            inference no weight changes.
+            <Cite kind="code" ref="rt/model.py:250-265" />. With a single masked cell, this one value is the whole loss. At inference the evaluation
+            loop only computes and logs it <Cite kind="code" ref="rt/main.py:281" /> <Cite kind="code" ref="rt/main.py:316-326" />, so no weight
+            changes.
           </div>
         </div>
       }
@@ -237,22 +238,22 @@ function AnswerOp({ live }: { live: E2ELive }) {
           tex={binary ? `p = \\sigma(\\hat y) = 1 \\,/\\, (1 + e^{-\\hat y})` : `\\hat v = \\hat y \\cdot \\sigma + \\mu`}
           cite={
             <>
-              Read at <code>is_targets</code> <Cite kind="code" ref="rt/main.py:283-288" />; σ and the de-normalization are display steps, as in the
-              authors’ later scripts <Cite kind="spec" ref="§8.4" />.
+              Read at <code>is_targets</code> <Cite kind="code" ref="rt/main.py:283-288" />; σ and the de-normalization are for display only{' '}
+              <Cite kind="spec" ref="§8.4" />.
             </>
           }
         >
           <p className="!mb-0">
             {binary ? (
               <>
-                The code keeps the logit: the loss and the AUROC both take it directly <Cite kind="spec" ref="§8.5" />. The sigmoid only turns it into a
-                probability for people.
+                The loss and the AUROC both take the logit directly <Cite kind="spec" ref="§8.5" />. The sigmoid only turns it into a probability that
+                is easier to read.
               </>
             ) : (
               <>
-                The number head predicts a z-score in the target column’s own scale. The mean and standard deviation that z-scored{' '}
-                {task.targetCol} turn it back into units: the Train split’s for a task table, the whole table’s for an autocomplete column{' '}
-                <Cite kind="spec" ref="§8.4" /> <Cite kind="spec" ref="§3.4" />.
+                The number head predicts a z-score in the target column’s own scale. The mean and standard deviation that {task.targetCol} was
+                z-scored with turn it back into units. For a task table they come from the Train split, for an autocomplete column from the whole
+                table <Cite kind="spec" ref="§8.4" /> <Cite kind="spec" ref="§3.4" />.
               </>
             )}{' '}
             The model got here from the {task.kind === 'forecast' ? `${nSelf} self and ${nOther} other` : nOther} in-context label
@@ -303,7 +304,8 @@ function SigmoidBar({ p, y }: { p: number; y: 0 | 1 }) {
       </div>
       <p className="!mt-1.5 !mb-0 text-[15px] text-ink-2">
         Predicted {pct(p)}; the true class is <span className="font-semibold text-ink">{y === 1 ? 'true' : 'false'}</span>, so at a 0.5 threshold this
-        prediction is {(p > 0.5 ? 1 : 0) === y ? 'right' : 'wrong'}. The paper scores rankings (AUROC), not thresholds.
+        prediction is {(p > 0.5 ? 1 : 0) === y ? 'right' : 'wrong'}. The paper’s metric, AUROC, scores how well many predictions are ranked and uses
+        no threshold.
       </p>
     </div>
   );

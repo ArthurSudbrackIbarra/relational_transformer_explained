@@ -39,7 +39,7 @@ const STEPS = [
   },
   {
     title: 'Shuffle',
-    text: 'Once per pass over the data, the whole list is shuffled with the seed epoch + seed. Tasks and databases now mix.',
+    text: 'Once per pass over the data, the whole list is shuffled again, seeded with the epoch number. Tasks and databases now mix.',
   },
   {
     title: 'One batch',
@@ -200,9 +200,8 @@ export function BatchFigure({ set, dataset }: { set: PretrainSet | null; dataset
                 />
               </div>
               <p className="mt-2 text-[14.5px] leading-snug text-muted">
-                Shuffle drawn with this site’s random generator. The official sampler shuffles with Rust’s <code>StdRng</code> seeded by epoch + seed{' '}
-                <Cite kind="code" ref="rustler/src/fly.rs:324-328" />, and our trainer with a NumPy permutation: the same rule with different random
-                numbers.
+                The shuffle follows the official sampler’s rule <Cite kind="code" ref="rustler/src/fly.rs:324-328" />, but its random numbers come
+                from this site’s generator, so the exact order is only an illustration.
               </p>
             </motion.div>
           )}
@@ -526,8 +525,8 @@ function ItemContext({
         <TokenStrip tokens={ctx.tokens} tableSlots={set.tableSlots[task.dbName]} variant="cells" label={`Context of ${task.id} seed ${seed}`} />
       </div>
       <p className="mt-2 text-[14.5px] leading-snug text-muted">
-        {int(real)} cell tokens{real < L ? ` and ${int(L - real)} padding` : ''} (L = {L}, w = {w}), sampled with the RNG seed epoch + seed row + 0 ={' '}
-        {int(ctx.params.rngSeed)}: the exact context exported for this row at epoch {epoch}. The dashed “?” is the only masked cell{' '}
+        {int(real)} cell tokens{real < L ? ` and ${int(L - real)} padding` : ''} (L = {L}, w = {w}), sampled with RNG seed epoch + seed row ={' '}
+        {int(ctx.params.rngSeed)}, which gives the exact context exported for this row at epoch {epoch}. The dashed “?” is the only masked cell{' '}
         <Cite kind="code" ref="rustler/src/fly.rs:492-496" />.
       </p>
     </div>

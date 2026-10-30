@@ -2,11 +2,10 @@
  * RT as a feature extractor (Table 3, p.8) and the cost-quality trade-off (Fig. 4, p.8-9).
  * Fig. 4 prints no table, so only its settings and the paper's stated summary are shown.
  */
-import { Check, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Cite, Figure, Segmented } from '@/components';
 import { useSim } from '@/state/store';
-import { FIG4, TABLE10, TABLE3, taskLabel, type Cell } from './data';
+import { FIG4, TABLE3, taskLabel, type Cell } from './data';
 import { DotPlot, type DotRow } from './DotPlot';
 import { f1, MethodLegend, PaperTableView, TitleWithBadge, ChartTableFrame } from './kit';
 import { METHODS, T3_METHOD } from './methods';
@@ -50,7 +49,7 @@ export function FeatureExtraction() {
         { id: 'mean', head: ['Mean', ''], cells: t.mean, mean: true },
       ]}
       markMax
-      caption={<>{t.caption} Underline: best in row (computed here).</>}
+      caption={<>{t.caption} The best entry in each row is underlined.</>}
     />
   );
   const iP = t.cols.indexOf('rtP');
@@ -92,62 +91,6 @@ export function FeatureExtraction() {
   );
 }
 
-/** Observation (ours): Table 3's "Full FT (RT)" equals, task by task, the higher of Table 10's two RT columns. */
-export function FullFtCheck() {
-  const rows = (['clf', 'reg'] as const).flatMap((m) =>
-    TABLE3[m].rows.map((r) => {
-      const full = r.v[TABLE3[m].cols.indexOf('fullFt')] as number;
-      const t10 = TABLE10[m].rows.find((x) => x.task === r.task)!;
-      const u = t10.v[TABLE10[m].cols.indexOf('rtNo')] as number;
-      const p = t10.v[TABLE10[m].cols.indexOf('rtYes')] as number;
-      return { task: r.task, metric: m, full, u, p, match: full === Math.max(u, p) };
-    }),
-  );
-  const all = rows.every((r) => r.match);
-  return (
-    <details className="group my-5 rounded-xl border border-border bg-surface px-4 py-3 text-[16px]">
-      <summary className="cursor-pointer font-semibold text-ink marker:text-muted">
-        Check it yourself: where does the “Full FT (RT)” column come from?
-      </summary>
-      <p className="mt-2 text-ink-2">
-        The paper does not say. Comparing it with Table 10 (p.21), every one of its nine numbers equals the higher of Table 10’s two RT columns for
-        that task: untrained or pretrained initialization. {all ? 'All nine match.' : 'Not all match.'} This is our observation from the printed
-        tables, not a statement of the paper.
-      </p>
-      <div className="scroll-quiet mt-2 overflow-x-auto">
-        <table className="w-full min-w-[480px] border-collapse text-[15px]">
-          <thead>
-            <tr className="border-b border-axis text-left text-ink-2">
-              <th className="px-2 py-1 text-[14px] font-semibold">Task</th>
-              <th className="px-2 py-1 text-right text-[14px] font-semibold">Table 3 Full FT</th>
-              <th className="px-2 py-1 text-right text-[14px] font-semibold">Table 10 RT untrained</th>
-              <th className="px-2 py-1 text-right text-[14px] font-semibold">Table 10 RT pretrained</th>
-              <th className="px-2 py-1 text-center text-[14px] font-semibold">= higher?</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.task} className="border-b border-grid/70">
-                <td className="px-2 py-1 text-[14.5px]">{taskLabel(r.task)}</td>
-                <td className="num px-2 py-1 text-right font-semibold">{f1(r.full)}</td>
-                <td className={`num px-2 py-1 text-right ${r.u >= r.p ? 'text-ink' : 'text-muted'}`}>{f1(r.u)}</td>
-                <td className={`num px-2 py-1 text-right ${r.p >= r.u ? 'text-ink' : 'text-muted'}`}>{f1(r.p)}</td>
-                <td className="px-2 py-1 text-center">
-                  {r.match ? (
-                    <Check aria-label="matches" size={17} className="inline text-[var(--good-text)]" />
-                  ) : (
-                    <X aria-label="differs" size={17} className="inline text-[var(--critical)]" />
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </details>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Fig. 4: what was varied, and what the paper states
 // ─────────────────────────────────────────────────────────────────────────────
@@ -162,9 +105,9 @@ export function CostQuality() {
       title={<TitleWithBadge title="Shorter contexts at inference: what Figure 4 varies" kind="paper" badge="Fig. 4 · p.8-9" />}
       caption={
         <>
-          Both models were pretrained at their largest setting and evaluated zero-shot with smaller ones; time and memory were measured on an A100 at
-          batch size 32, averaged over the 10 classification and 8 regression tasks <Cite kind="paper" ref="p.9 Fig. 4" />. The figure prints no
-          table, so we show only its settings and the paper’s own summary. Your context length (L = {L}) is drawn for scale.
+          Both models were pretrained at their largest setting and evaluated zero-shot with smaller ones. The figure averages AUROC over the 10
+          classification tasks and R² over the 8 regression tasks <Cite kind="paper" ref="p.9 Fig. 4" />. It prints no table, so this panel shows
+          its settings and the paper’s summary. Your context length (L = {L}) is drawn for scale.
         </>
       }
     >
@@ -223,8 +166,9 @@ export function CostQuality() {
             ))}
           </div>
           <p className="mt-3 text-[15.5px] leading-snug text-ink-2">
-            The paper also finds that RT dominates Griffin here, because FlexAttention kernels are efficient, Griffin pays a cell-level cost in its
-            row encoder, and at equal parameter count and similar context sizes the memory cost is similar <Cite kind="paper" ref="p.8 §4.5" />.
+            RT also dominates Griffin here, even though RT attends over cells and Griffin works on rows. The paper gives three reasons: RT’s
+            FlexAttention kernels are efficient, Griffin pays a per-cell cost when it encodes rows, and at equal parameter count and similar context
+            sizes the two use similar memory <Cite kind="paper" ref="p.8 §4.5" />.
           </p>
         </div>
       </div>

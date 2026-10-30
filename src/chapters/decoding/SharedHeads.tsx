@@ -5,16 +5,15 @@
  * preprocessing mirror for all four databases; the decoders' sizes come from the parameter inventory
  * of model/config.ts.
  */
-import { useEffect, useMemo, useState } from 'react';
-import { Figure, ScaleNote, SemBadge, Slider, StatusBadge } from '@/components';
+import { useEffect, useState } from 'react';
+import { Figure, ScaleNote, SemBadge, Slider } from '@/components';
 import { getDatabase, listDatabases } from '@/engine/db/registry';
 import { MINI_CONFIG, PAPER_CONFIG, parameterShapes } from '@/engine/model/config';
-import { tensor } from '@/engine/model/weights';
 import { getPreprocessed } from '@/engine/pipeline';
 import { targetStats } from '@/engine/sampler';
 import { SemType, type ColumnStats, type RTConfig, type TaskDef } from '@/engine/types';
-import { fmt, fmtS, int, taskLabel, useAssetsFor, type Lane } from './live';
-import { ratioStats, sigmoid } from './math';
+import { fmt, fmtS, int, taskLabel } from './live';
+import { sigmoid } from './math';
 
 interface Row {
   db: string;
@@ -263,56 +262,6 @@ export function DecoderSizes() {
       <ScaleNote paper="d = 256" ours="d = 64" className="mt-3">
         The decoders differ only in their input width d. The text head’s output width is the MiniLM size, 384, in both.
       </ScaleNote>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// The text head never learns: compare the checkpoint with its initialization
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function TextHeadCheck({ lane }: { lane: Lane }) {
-  const init = useAssetsFor('init');
-  const w = lane.assets.weights;
-  const w0 = init.weights;
-  const check = useMemo(() => {
-    if (!w || !w0 || lane.assets.fallback || init.fallback) return null;
-    try {
-      const tw = ratioStats(tensor(w0, 'dec_dict.text.weight'), tensor(w, 'dec_dict.text.weight'));
-      const tb = ratioStats(tensor(w0, 'dec_dict.text.bias'), tensor(w, 'dec_dict.text.bias'));
-      return {
-        tw,
-        tb,
-        n: tensor(w, 'dec_dict.text.weight').length + tensor(w, 'dec_dict.text.bias').length,
-      };
-    } catch {
-      return null;
-    }
-  }, [w, w0, lane.assets.fallback, init.fallback]);
-  if (!check) return null;
-  if (lane.ckpt === 'init')
-    return <StatusBadge status="info">The loaded checkpoint is the initialization itself, so there is nothing to compare.</StatusBadge>;
-  const uniform = check.tw.maxDev < 1e-4 && Math.abs(check.tb.mean - check.tw.mean) < 1e-4;
-  return (
-    <div className="rounded-lg border border-border bg-surface px-4 py-3 text-[16px] leading-relaxed text-ink">
-      <div className="mb-1 flex flex-wrap items-center gap-2">
-        <span className="font-semibold">Checked on the loaded checkpoint ({lane.ckpt})</span>
-        {uniform ? (
-          <StatusBadge status="good">no gradient ever reached the text head</StatusBadge>
-        ) : (
-          <StatusBadge status="warning">not a uniform scaling</StatusBadge>
-        )}
-      </div>
-      {uniform ? (
-        <>
-          Each of the {int(check.n)} text-decoder parameters equals its initial value times{' '}
-          <span className="num font-semibold">{fmt(check.tw.mean, 4)}</span> (largest deviation {check.tw.maxDev.toExponential(0)}). A uniform shrink
-          is exactly what weight decay alone does: AdamW multiplies every parameter by (1 − lr·wd) at each step, and with a zero gradient nothing else
-          moves it. For comparison, the boolean head’s trained weights are no rescaling of their initial values at all: that head learned.
-        </>
-      ) : (
-        <>The text head’s parameters are not a uniform rescaling of their initial values in this checkpoint.</>
-      )}
     </div>
   );
 }

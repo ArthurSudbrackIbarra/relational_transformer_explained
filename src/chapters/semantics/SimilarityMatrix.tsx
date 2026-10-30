@@ -452,9 +452,9 @@ export function SimilarityMatrix({ store, catalog, home, focus, onFocus }: Simil
         </div>
       </div>
       <p className="mt-2 text-[14.5px] leading-snug text-muted">
-        Largest cosine shown: <span className="num text-ink-2">{f3(maxCos)}</span> (the legend rounds it up to {vmax.toFixed(1)}). Cells at or
-        below 0 take the lightest step (the hover read-out gives the signed value). Average over the {R * C} pairs shown:{' '}
-        <span className="num text-ink-2">{f3(mean)}</span>. Rows: {DB_SHORT[home]}, the live database; click a row to follow that phrase.
+        Largest cosine shown: <span className="num text-ink-2">{f3(maxCos)}</span>. Average over the {R * C} pairs:{' '}
+        <span className="num text-ink-2">{f3(mean)}</span>. Cells at or below 0 get the lightest color; hover one for its signed value. The
+        rows are {DB_SHORT[home]}, the live database. Click a row to follow that phrase.
       </p>
 
       {focusRow >= 0 ? (

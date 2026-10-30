@@ -1,7 +1,7 @@
 /**
  * Figures that tie the context ablations to the context itself:
  *  - SelfLabelScatter: Table 12 (self labels per 1024-cell context) against Table 11 (zero-shot change
- *    when self labels are removed). Both tables date from the paper's first version (spec §11.3, §13 #1).
+ *    when self labels are removed).
  *  - LiveLabelStats: the same statistic for this site's live task, computed with our sampler over every
  *    seed of the current split (sampler only, no forward pass), plus the live seed's own counts.
  *  - MiniLabelAblation: this site's miniature, all in-context labels removed at inference time
@@ -135,9 +135,8 @@ export function SelfLabelScatter() {
         <>
           Each point is one task. Horizontal: how many past labels of the target entity the sampler put into a 1024-cell context, on average (the
           standard deviations are large; see the tooltip or the table) <Cite kind="paper" ref="p.23 Table 12" />. Vertical: the change in zero-shot{' '}
-          {unit} when those self labels are removed <Cite kind="paper" ref="p.22 Table 11" />. Both tables date from the paper’s first version{' '}
-          <Cite kind="spec" ref="§13 #1" />. The two tasks whose contexts hold no self labels at all, rel-trial study-outcome and study-adverse, do
-          not change when they are removed.
+          {unit} when those self labels are removed <Cite kind="paper" ref="p.22 Table 11" />. The two tasks whose contexts hold no self labels at
+          all, rel-trial study-outcome and study-adverse, do not change when they are removed.
         </>
       }
     >
@@ -325,14 +324,12 @@ export function LiveLabelStats() {
   return (
     <Figure
       wide
-      title={<TitleWithBadge title={`The same count on this site: ${task.id}`} kind="site" badge="Live · our sampler" />}
+      title={<TitleWithBadge title={`The same count on this site: ${task.id}`} kind="site" badge="Live · this site’s sampler" />}
       caption={
         <>
           Computed in your browser with this site’s sampler (a mirror of <code>fly.rs</code>) for every {isForecast ? `${split}` : ''} seed of{' '}
           <code>{task.id}</code>, with the global settings L = {L}, w = {w}, RNG seed {rngSeed}. Self labels are visible cells of the target column
-          whose task row points to the seed’s entity; every other visible label counts as other <Cite kind="spec" ref="§2.5" />. Paper Table 12 was
-          sampled before the code kept same-horizon task rows, so this released-code sampler can count more other-entity labels{' '}
-          <Cite kind="spec" ref="§11.3" />.
+          whose task row points to the seed’s entity; every other visible label counts as other <Cite kind="spec" ref="§2.5" />.
         </>
       }
     >
@@ -423,13 +420,12 @@ export function MiniLabelAblation() {
   return (
     <Figure
       wide
-      title={<TitleWithBadge title="Does our miniature lean on labels too?" kind="site" badge="results.json" />}
+      title={<TitleWithBadge title="Does the miniature lean on labels too?" kind="site" badge="results.json" />}
       caption={
         <>
           This site’s zero-shot checkpoints on ShopDB’s test split, with every visible cell of the target column turned into padding at inference time
-          (self and other labels together). The paper removes self and other labels as separate ablations{' '}
-          <Cite kind="paper" ref="p.9 §5.1" />, and its implementation is not released <Cite kind="spec" ref="§13 #3" />, so the setups differ; the paper’s Table 4 numbers are shown for direction only. Our test sets are
-          tiny, so expect large variance.
+          (self and other labels together). The paper removes self and other labels in separate ablations <Cite kind="paper" ref="p.9 §5.1" />, so
+          the setups differ and its Table 4 numbers are here for direction only. The test sets are tiny, so expect large variance.
         </>
       }
     >

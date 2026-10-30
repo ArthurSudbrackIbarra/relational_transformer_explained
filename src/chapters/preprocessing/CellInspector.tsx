@@ -1,8 +1,8 @@
 /**
  * Section 5 figure: "pick a cell, see its encoding". Click any cell of any
  * table file; the panel walks it through pre.rs (role, sem type,
- * normalization, the record slots it fills, the bf16 value a batch would
- * carry) and names the embedding term that reads it (model.py:208-224). Every
+ * normalization, the record slots it fills) and names the embedding term
+ * that reads it (model.py:208-224). Every
  * number is read from the engine (pdb nodes, colStats, datetimeStats), the
  * text embeddings from the precomputed MiniLM table (public/data/embeddings).
  */
@@ -13,7 +13,7 @@ import { axis, vec } from '../shapes';
 import { SEM_TYPE_NAMES, SemType, type Cell } from '@/engine/types';
 import { catVar } from '@/styles/palette';
 import { useAssets, useContextWindow } from '@/state/hooks';
-import { DAY_MS, fileLabel, isoDay, isoSeconds, rowFates, toBf16, type Fate, type TableFile } from './data';
+import { DAY_MS, fileLabel, isoDay, isoSeconds, rowFates, type Fate, type TableFile } from './data';
 import { PickChip, Sub, signed, texNum, texText, usePhone, type ChapterData } from './shared';
 
 export interface CellPick {
@@ -112,8 +112,8 @@ function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: Table
     const why: Record<Exclude<Fate['kind'], 'cell'>, ReactNode> = {
       pk: (
         <>
-          <code>{col}</code> is the primary key. pre.rs makes no cell and no edge from it (its column phrase gets a text index, which is never used). Its value equals the row
-          position, so the node index {file.offset} + {row} = {file.offset + row} already identifies the row.
+          <code>{col}</code> is the primary key. pre.rs makes no cell and no edge from it. Its value equals the row position, so the node index {file.offset} + {row} ={' '}
+          {file.offset + row} already identifies the row.
         </>
       ),
       link: (
@@ -125,7 +125,7 @@ function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: Table
       ),
       'null-fk': (
         <>
-          <code>{col}</code> is a foreign key with a null value. pre.rs skips it: no link, no cell.
+          <code>{col}</code> is a foreign key with a null value. pre.rs skips it and makes neither a link nor a cell.
         </>
       ),
       missing: (
@@ -172,14 +172,12 @@ function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: Table
       norm = (
         <>
           Per-column z-score with the statistics of <code>{statsKey}</code>
-          {statsKey !== file.key ? ' (copied to this split)' : ''}: {st.count} values,{' '}
+          {statsKey !== file.key ? ' (copied to this split)' : ''}: {st.count} values
           {guarded ? (
             <>
-              σ set to 1 by the guard <Cite kind="code" ref="rustler/src/pre.rs:338-339" />
+              , and σ is set to 1 because the column has no spread <Cite kind="code" ref="rustler/src/pre.rs:338-339" />
             </>
-          ) : (
-            'sample std'
-          )}
+          ) : null}
           .
           <TexBox tex={`z = \\dfrac{${texNum(fate.value as number, 3, { trim: true })} - ${texNum(st.mean, 3)}}{${texNum(st.std, 3)}} = ${texNum(cell.number, 4, { sign: true })}`} />
         </>
@@ -196,7 +194,7 @@ function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: Table
       const { mean, std, count } = pdb.datetimeStats;
       norm = (
         <>
-          The one global z-score of the database: μ<Sub>T</Sub> and σ<Sub>T</Sub> over all {count.toLocaleString('en-US')} datetime values, population std.
+          The one global z-score of the database: μ<Sub>T</Sub> and σ<Sub>T</Sub> over all {count.toLocaleString('en-US')} datetime values.
           <TexBox
             tex={`z = \\dfrac{\\text{${isoDay(fate.value as number)}} - \\text{${isoDay(mean)}}}{${texNum(std / DAY_MS, 1)}\\text{ days}} = ${texNum(cell.datetime, 4, { sign: true })}`}
           />
@@ -210,7 +208,7 @@ function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: Table
     } else {
       norm = (
         <>
-          Not normalized. The string is interned in the database’s one string table and stored as its index <strong className="num text-ink">#{cell.textIdx}</strong>. Every cell
+          Not normalized. The string goes into the database’s one string table and is stored as its index <strong className="num text-ink">#{cell.textIdx}</strong>. Every cell
           holding the same string shares that index, and the text encoder embeds the raw string, without the column name.
         </>
       );
@@ -238,20 +236,6 @@ function Panel({ data, file, row, col, roomy }: { data: ChapterData; file: Table
         </table>
       ),
     });
-
-    if (cell.sem !== SemType.Text) {
-      const v = cell.sem === SemType.Number ? cell.number : cell.sem === SemType.DateTime ? cell.datetime : cell.boolean;
-      const b = toBf16(v);
-      steps.push({
-        title: 'In a batch: bfloat16',
-        body: (
-          <>
-            fly.rs rounds the stored float32 to bf16: <span className="num text-ink">{signed(v, 6)}</span> → <span className="num font-semibold text-ink">{signed(b, 6)}</span>{' '}
-            <span className="text-muted">(error {Math.abs(b - v).toExponential(1)})</span>. This site keeps float32.
-          </>
-        ),
-      });
-    }
 
     // embedding
     const tok = ctx.tokens.find((t) => !t.isPadding && t.nodeIdx === file.offset + row && t.colName === col);

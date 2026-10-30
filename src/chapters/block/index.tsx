@@ -3,7 +3,7 @@
  *
  * Every number comes from the live forward pass of the global context (src/engine/model/forward.ts, a
  * mirror of rt/model.py:50-86 and :226-229) through the shared hooks, so the seed, context and tokens match
- * every other chapter. Spec: research/RT_TECHNICAL_SPEC.md §7 (all), §6.4, §10 #1, #23, §11.4-11.5, §13 #1.
+ * every other chapter. Spec: research/RT_TECHNICAL_SPEC.md §7 (all), §6.4, §10 #1, §11.4-11.5.
  */
 import { useReducedMotion } from 'motion/react';
 import { useMemo } from 'react';
@@ -30,7 +30,7 @@ import { SemType } from '@/engine/types';
 import { BlockDiagram } from './BlockDiagram';
 import { AppECards, Table15, Table5 } from './Expressivity';
 import { FlowTracer } from './FlowTracer';
-import { StreamNormChart, WiringCompare } from './PreNorm';
+import { StreamNormChart } from './PreNorm';
 import { ResidualStream } from './ResidualStream';
 import { MODEL_BLOCK_62_86, MODEL_FFN_50_59, MODEL_LOOP_226_229, MODEL_STACK_147_150, PRETRAIN_MODEL_28_35 } from './snippets';
 import { ParamTable, StackFigure } from './Stack';
@@ -39,7 +39,6 @@ import { useBlockLive } from './useBlockLive';
 import { allowedKeys, article, flowOrder, fx, int, rowName, singular, streamStages, SUB_NAME, traceFlow } from './utils';
 
 const RMSNORM_TEX = String.raw`\begin{gathered}\mathrm{RMSNorm}(x)_i \;=\; \frac{x_i}{\sqrt{\tfrac{1}{d}\sum_{j=1}^{d} x_j^2 \;+\; \varepsilon}}\;\gamma_i\\[4pt] \varepsilon = 2^{-7}\end{gathered}`;
-const ALG2_TEX = String.raw`\textbf{Alg. 2:}\quad \mathbf{X} \leftarrow \mathbf{X} + \mathrm{Norm}\big(\mathrm{MHA}(\mathbf{X};\,\mathbf{M})\big)`;
 const CODE_TEX = String.raw`\textbf{code:}\quad x \leftarrow x + \mathrm{MHA}_\ell\big(\mathrm{RMSNorm}_\ell(x);\,\mathbf{M}_\ell\big)`;
 const BLOCK_TEX = String.raw`\begin{aligned}
 x &\leftarrow x + \mathrm{MHA}_{\text{col}}\big(\mathrm{RMSNorm}_{\text{col}}(x);\ \mathbf{M}^{\text{column}}\big)\\
@@ -139,17 +138,17 @@ export default function BlockChapter() {
         slug="block"
         lede={
           <>
-            Attention is one sublayer. A block chains five of them: four attention layers (three relational, one full) and a gated feed-forward network, each adding its
-            result to a running vector per token. This chapter assembles the block, stacks it, and follows the masked target through the whole stack
-            with the live numbers of the trained mini model.
+            Attention is one sublayer. A block chains five sublayers: four attention layers (three relational, one full) and a gated feed-forward
+            network. Each adds its result to a running vector per token. This chapter builds the block, stacks it, and follows the masked target
+            through the whole stack with the live numbers of the trained mini model.
           </>
         }
         learn={[
           'The five sublayers of an RT block, in the order the code runs them',
-          'Pre-norm residuals: how the code differs from the paper’s Algorithm 2, and what each sublayer reads and adds as a result',
-          'SwiGLU, the gated feed-forward network, with the hidden units of a live token',
+          'Pre-norm residuals: what each sublayer reads and what it adds to the stream',
+          'SwiGLU, the gated feed-forward network, on the hidden units of a live token',
           `The stack: ${nBlocks} blocks here, 12 in the paper, then a final RMSNorm, and where the parameters live`,
-          'How information from any cell can reach the masked target, block by block (an interpretation of the masks)',
+          'How information from any cell can reach the masked target, block by block',
         ]}
       >
         <p className="mt-6 text-[17px] leading-relaxed text-ink-2">
@@ -208,15 +207,15 @@ export default function BlockChapter() {
       <Section id="block" title="One block, five sublayers" kicker="Step 1">
         <p>
           After the embedding of chapter 8, every token of the context is a vector of d = {d} numbers (256 in the paper). Inside the blocks the
-          model never replaces that vector; it only adds to it. Each <strong>sublayer</strong> reads the token’s current vector, computes an update, and
-          adds the update back: <TeX tex="x \leftarrow x + f(x)" /> <Cite kind="code" ref="rt/model.py:82-86" />. The running vector is called the{' '}
+          model only ever adds to that vector. Each <strong>sublayer</strong> reads the token’s current vector, computes an update, and adds it
+          back: <TeX tex="x \leftarrow x + f(x)" /> <Cite kind="code" ref="rt/model.py:82-86" />. The running vector is called the{' '}
           <strong>residual stream</strong>, and the identity path that carries it past every sublayer is the residual connection.
         </p>
         <p>
-          An RT block has five sublayers. Four are relational attentions, always in the order column, feature, neighbor, full; the fifth is a
-          feed-forward network <Cite kind="code" ref="rt/model.py:83-85" /> <Cite kind="paper" ref="p.26 App. J" />. Each has its own{' '}
-          <Term id="rmsnorm">RMSNorm</Term> and its own weights: a block holds five RMSNorms, four separate attention modules and one feed-forward
-          module <Cite kind="code" ref="rt/model.py:71-80" />.
+          An RT block has five sublayers. The first four are attention layers, always in the order column, feature, neighbor, full, and the fifth
+          is a feed-forward network <Cite kind="code" ref="rt/model.py:83-85" /> <Cite kind="paper" ref="p.26 App. J" />. Each has its own{' '}
+          <Term id="rmsnorm">RMSNorm</Term> and its own weights, so a block holds five RMSNorms, four separate attention modules and one
+          feed-forward module <Cite kind="code" ref="rt/model.py:71-80" />.
         </p>
         <div className="sm:hidden">
           <MathBlock tex={BLOCK_TEX_NARROW} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:82-86" />} caption="One RT block, as the code runs it. Each line reads the x left by the line above." />
@@ -225,15 +224,16 @@ export default function BlockChapter() {
           <MathBlock tex={BLOCK_TEX} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:82-86" />} caption="One RT block, as the code runs it. Each line reads the x left by the line above." />
         </div>
         <p>
-          Walk through a block below. The pulse travels with the followed token, the masked target by default; each box shows the length of the
-          update it adds, ‖Δ‖, from the live forward pass. Click a box to inspect that sublayer.
+          Walk through a block below. The pulse follows one token, the masked target by default, and each box shows ‖Δ‖, the length of the
+          update that sublayer adds in the live forward pass. Click a box to inspect it.
         </p>
         <Figure wide id="block-diagram" title="An RT block, with the live numbers of one token">
           <BlockDiagram live={live} follow={follow} setFollow={setFollow} />
         </Figure>
         {targetNbrKeys === 0 && (
           <p>
-            One box stays at zero for the target in every block: neighbor. The neighbor mask lets a row read only the rows that point to it, and{' '}
+            For the target, the neighbor box stays at zero in every block. The neighbor mask lets a row read only the rows that point to it,
+            and{' '}
             {forecast ? (
               <>
                 no row has a foreign key to a task row: task tables have no primary key, so their rows are never parents{' '}
@@ -242,35 +242,26 @@ export default function BlockChapter() {
             ) : (
               <>no row in the context points to the target’s row</>
             )}
-            , so the target has no key to read <Cite kind="spec" ref="§6.2" />. A fully masked query returns exactly 0, and <TeX tex="W_o" /> has
-            no bias, so the update is the zero vector <Cite kind="spec" ref="§6.1" />.
+            . The target has no key to read <Cite kind="spec" ref="§6.2" />, so its attention output is 0, and since <TeX tex="W_o" /> has no
+            bias, the update is the zero vector <Cite kind="spec" ref="§6.1" />.
             {entityTok && entityNbrKeys > 0 && (
               <>
                 {' '}
                 <button type="button" className="font-medium text-accent-text underline decoration-dotted underline-offset-4" onClick={() => followEntity(entityTok.pos)}>
                   Follow the {entity}’s {entityTok.colName}
                 </button>{' '}
-                instead: its neighbor row has {int(entityNbrKeys)} keys, and its neighbor update is not zero.
+                instead: its neighbor row has {int(entityNbrKeys)} keys, so its neighbor update is not zero.
               </>
             )}
           </p>
         )}
-        <Callout variant="note" title="Two orders in the same file">
-          <p>
-            <code>__init__</code> registers the modules as feat, nbr, col, full, but <code>forward</code> runs them as col, feat, nbr, full{' '}
-            <Cite kind="code" ref="rt/model.py:71-84" />. Only the execution order matters. It matches Algorithm 2 and Figure 1 of the paper, and has
-            been the code’s order since commit 7f891d1; the ICLR submission ran feat, nbr, col, full <Cite kind="spec" ref="§6.6" />{' '}
-            <Cite kind="spec" ref="§10 #23" />. The paper later tested other orders and found that “the specific order of relational attention layers
-            is not critical” <Cite kind="paper" ref="p.23 App. H.1" />; the numbers are in step 7.
-          </p>
-        </Callout>
         <CodeRef
           title="RelationalBlock: five norms, four attentions, one FFN, and the pre-norm forward"
           file="rt/model.py"
           lines="62-86"
           code={MODEL_BLOCK_62_86}
           highlightLines={[83, 84, 85]}
-          note="Line 84 is the whole attention sublayer: normalize a copy, attend under this layer's mask, add the result. Line 85 does the same with the FFN."
+          note="Line 83 sets the order the layers run in. The order in which __init__ lists them does not matter. Line 84 is the whole attention sublayer: normalize a copy, attend under this layer's mask, add the result. Line 85 does the same with the FFN."
         />
       </Section>
 
@@ -278,79 +269,44 @@ export default function BlockChapter() {
       <Section id="pre-norm" title="Pre-norm: where the norm sits" kicker="Step 2">
         <p>
           Every sublayer starts with an RMSNorm. It divides a vector by its root mean square and multiplies each dimension by a learned weight{' '}
-          <TeX tex="\gamma_i" /> <Cite kind="spec" ref="§7.2" />. Unlike LayerNorm it subtracts no mean and adds no bias.
+          <TeX tex="\gamma_i" /> <Cite kind="spec" ref="§7.2" />. Unlike LayerNorm, it subtracts no mean and adds no bias. The ε under the root is
+          a small constant that keeps the denominator above zero.
         </p>
         <MathBlock tex={RMSNORM_TEX} className="text-[18px] sm:text-[19px]" label={<Cite kind="spec" ref="§7.2" />} />
         <p>
-          The small constant ε = 2⁻⁷ is not a typo. The paper trained in bfloat16 <Cite kind="paper" ref="p.6 §4.1" />, and the official code pins
-          PyTorch 2.6.0, where <code>nn.RMSNorm</code> without an explicit ε uses the machine epsilon of the input type: 2⁻⁷ for bfloat16{' '}
-          <Cite kind="spec" ref="§7.2" />. This site runs in float32 and keeps ε = 2⁻⁷ to match.
+          The norm sits on the sublayer’s <em>input</em>. The sublayer reads <TeX tex="\mathrm{RMSNorm}_\ell(x)" />, and its raw output is added
+          to the stream <Cite kind="code" ref="rt/model.py:84-85" />. This placement is called <Term id="pre-norm">pre-norm</Term>. The paper says
+          RT follows LLaMA for “normalization, activations, etc.” <Cite kind="paper" ref="p.5 §3.2" />, and LLaMA normalizes the input of each
+          sublayer for training stability{' '}
+          <Cite kind="url" ref="https://arxiv.org/abs/2302.13971" title="Touvron et al. 2023, LLaMA, §2.2 Pre-normalization" />.
         </p>
-        <h3>Algorithm 2 and the code disagree on placement</h3>
-        <p>
-          The paper’s Algorithm 2 normalizes the <em>output</em> of each sublayer before adding it. The code normalizes the <em>input</em>: the
-          sublayer reads <TeX tex="\mathrm{RMSNorm}_\ell(x)" />, and its raw output is added to the stream <Cite kind="paper" ref="p.26 Alg. 2" />{' '}
-          <Cite kind="code" ref="rt/model.py:84-85" />. This placement is called <Term id="pre-norm">pre-norm</Term>.
-        </p>
-        <MathBlock tex={ALG2_TEX} className="text-[18px]" label={<Cite kind="paper" ref="p.26 Alg. 2" />} />
         <div className="sm:hidden">
           <MathBlock tex={CODE_TEX_NARROW} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:84" />} />
         </div>
         <div className="hidden sm:block">
           <MathBlock tex={CODE_TEX} className="text-[18px]" label={<Cite kind="code" ref="rt/model.py:84" />} />
         </div>
-        <WiringCompare />
-        <Callout
-          variant="paper-vs-code"
-          title="Post-sublayer norm in Algorithm 2, pre-norm in the code"
-          paper={
-            <>
-              <TeX tex="\mathbf{X} \leftarrow \mathbf{X} + \mathrm{Norm}(\mathrm{MHA}(\mathbf{X}; \mathbf{M}))" />, and the same for the MLP{' '}
-              <Cite kind="paper" ref="p.26 Alg. 2" />
-            </>
-          }
-          code={
-            <>
-              <code className="!whitespace-normal !break-words">x = x + self.attns[l](self.norms[l](x), …)</code> and{' '}
-              <code className="!whitespace-normal !break-words">x = x + self.ffn(self.norms["ffn"](x))</code>{' '}
-              <Cite kind="code" ref="rt/model.py:84-85" />
-            </>
-          }
-          verdict="This site follows the code (spec §7.1, §10 #1)."
-        >
-          <p>
-            The code agrees with the paper’s own statement that “other architectural details (normalization, activations, etc.) follow the design
-            choices of LLaMA” <Cite kind="paper" ref="p.5 §3.2" />. LLaMA normalizes the input of each sublayer instead of the output, citing
-            training stability <Cite kind="url" ref="https://arxiv.org/abs/2302.13971" title="Touvron et al. 2023, LLaMA, §2.2 Pre-normalization" />.
-          </p>
-        </Callout>
         <p>
-          Neither wiring rescales the stream itself inside a block: in both, x only ever receives additions. The original Transformer did
-          rescale it, with <TeX tex="x \leftarrow \mathrm{LayerNorm}(x + f(x))" />{' '}
-          <Cite kind="url" ref="https://arxiv.org/abs/1706.03762" title="Vaswani et al. 2017, Attention Is All You Need, §3.1" />. What the placement
-          changes is what each sublayer reads and how large its update can be:
+          The paper’s Algorithm 2 puts the norm on the sublayer’s output instead,{' '}
+          <TeX tex="\mathbf{X} \leftarrow \mathbf{X} + \mathrm{Norm}(\mathrm{MHA}(\mathbf{X}; \mathbf{M}))" />{' '}
+          <Cite kind="paper" ref="p.26 Alg. 2" />. The code is pre-norm, and this site follows the code <Cite kind="spec" ref="§7.1" />.
         </p>
-        <ul>
-          <li>
-            <strong>What a sublayer reads.</strong> In Algorithm 2 it reads the raw stream x. In the code it reads{' '}
-            <TeX tex="\mathrm{RMSNorm}_\ell(x)" />, whose length depends only on the direction of x and the weights γ, whatever the length of x.
-          </li>
-          <li>
-            <strong>How large an update can be.</strong> In Algorithm 2 every update passes through Norm, so its length is set the same way, whatever
-            the sublayer computed. In the code the raw output is added, so the length of the update is free.
-          </li>
-        </ul>
         <p>
-          The chart shows both effects in the trained mini model, for the target.
+          With the norm on the input, a sublayer always reads a vector of controlled length. However long x grows, the length of{' '}
+          <TeX tex="\mathrm{RMSNorm}_\ell(x)" /> depends only on the direction of x and the weights γ. The output is not normalized. It goes
+          straight back into the stream, so an update can be as long as the sublayer makes it. Inside a block the stream itself is never rescaled,
+          only added to.
+        </p>
+        <p>
+          The chart shows this for the target in the trained mini model.
           {facts && (
             <>
               {' '}
               Its stream {facts.xLast > facts.x0 ? 'grows' : 'goes'} from ‖x‖ = {fx(facts.x0)} at the embedding to {fx(facts.xLast)} after block{' '}
-              {nBlocks} (blue); a sublayer that read the raw stream, as in Algorithm 2, would see vectors of these lengths. In the code every sublayer
-              reads a copy whose length stays between {fx(facts.hMin)} and {fx(facts.hMax)} (orange). The updates it adds have lengths from{' '}
-              {fx(facts.dMin)} to {fx(facts.dMax)}
+              {nBlocks} (blue), while every sublayer reads a copy whose length stays between {fx(facts.hMin)} and {fx(facts.hMax)} (orange). The
+              updates have lengths from {fx(facts.dMin)} to {fx(facts.dMax)}
               {facts.nZero > 0 ? ', and exactly 0 where a sublayer has no key to read' : ''}. The final RMSNorm, <code>norm_out</code>, is the only
-              norm applied to the stream itself: it brings the length to {fx(facts.xOut)} before the decoders read it{' '}
+              norm applied to the stream itself. It brings the length to {fx(facts.xOut)} before the decoders read it{' '}
               <Cite kind="code" ref="rt/model.py:229" />.
             </>
           )}
@@ -367,30 +323,25 @@ export default function BlockChapter() {
       {/* ───────────────────────────────────────────────────────────── 3 */}
       <Section id="swiglu" title="SwiGLU: the feed-forward sublayer" kicker="Step 3">
         <p>
-          The fifth sublayer is a gated MLP. The paper says it uses “gated MLPs with SiLU activation, as found in the LLaMA architecture”, with a
-          hidden dimension of 1024 <Cite kind="paper" ref="p.6 §4.1" />. In the code it is three bias-free linear maps <Cite kind="code" ref="rt/model.py:50-59" />:
+          The fifth sublayer is a gated MLP. The paper describes “gated MLPs with SiLU activation, as found in the LLaMA architecture”, with a
+          hidden dimension of 1024 <Cite kind="paper" ref="p.6 §4.1" />. In the code it is three linear maps without bias{' '}
+          <Cite kind="code" ref="rt/model.py:50-59" />:
         </p>
         <MathBlock tex={SWIGLU_TEX} className="text-[18px] sm:text-[19px]" label={<Cite kind="code" ref="rt/model.py:59" />} />
         <p>
-          <TeX tex="W_1" /> and <TeX tex="W_3" /> map the normalized vector h from d = {d} to d<sub>ff</sub> = {dFF} hidden units; <TeX tex="W_2" />{' '}
-          maps back to {d}. The paper model uses 256 → 1024 → 256. In both, d<sub>ff</sub> = 4d: RT does not use LLaMA’s ⅔ sizing of the hidden
-          layer <Cite kind="spec" ref="§7.1" />. The name <Term id="swiglu">SwiGLU</Term> joins Swish, another name for SiLU, with GLU, a gated linear
-          unit <Cite kind="url" ref="https://arxiv.org/abs/2002.05202" title="Shazeer 2020, GLU Variants Improve Transformer" />: SiLU(W₁h) is the
+          <TeX tex="W_1" /> and <TeX tex="W_3" /> map the normalized vector h from d = {d} to d<sub>ff</sub> = {dFF} hidden units, and{' '}
+          <TeX tex="W_2" /> maps back to {d}. The paper model uses 256 → 1024 → 256. In both, the hidden layer is four times as wide as the
+          stream, d<sub>ff</sub> = 4d <Cite kind="spec" ref="§7.1" />. The name <Term id="swiglu">SwiGLU</Term> joins Swish, another name for SiLU, with GLU, a gated linear
+          unit <Cite kind="url" ref="https://arxiv.org/abs/2002.05202" title="Shazeer 2020, GLU Variants Improve Transformer" />. SiLU(W₁h) is the
           activation, and W₃h is a learned linear gate that multiplies it unit by unit.
         </p>
         <p>
-          The FFN works on each token by itself. It mixes the {d} dimensions of one token’s vector but never looks at another token. In an RT block,
-          information moves between tokens only in the four attention sublayers.
+          The FFN works on each token separately. It mixes the {d} dimensions of one token’s vector and never looks at another token, so inside a
+          block, information moves between tokens only in the four attention sublayers.
         </p>
         <Figure wide title="SiLU, the gate, and the hidden units of a live token">
           <SwiGLUFigure live={live} follow={follow} setFollow={setFollow} />
         </Figure>
-        <Callout variant="note" title="The only gate in the block">
-          <p>
-            Besides SwiGLU’s W₃ branch, the paper-era block has no other gate. It also has no dropout, no attention bias, no positional encoding and
-            no normalization of queries and keys <Cite kind="spec" ref="§7.1" />.
-          </p>
-        </Callout>
         <CodeRef title="FFN: SwiGLU with three bias-free maps" file="rt/model.py" lines="50-59" code={MODEL_FFN_50_59} highlightLines={[59]} />
         <ScaleNote
           paper={`${PAPER_CONFIG.dModel} → ${PAPER_CONFIG.dFF} → ${PAPER_CONFIG.dModel} (${int(3 * PAPER_CONFIG.dModel * PAPER_CONFIG.dFF)} weights per FFN)`}
@@ -401,21 +352,20 @@ export default function BlockChapter() {
       {/* ───────────────────────────────────────────────────────────── 4 */}
       <Section id="stack" title={`The stack: ${nBlocks} blocks here, 12 in the paper`} kicker="Step 4">
         <p>
-          The model is a list of identical blocks with separate weights, followed by one more RMSNorm, <code>norm_out</code>{' '}
-          <Cite kind="code" ref="rt/model.py:147-150" />. The forward pass runs the blocks in sequence, passing each the same four block masks, which
-          were built once from the token ids, and then normalizes <Cite kind="code" ref="rt/model.py:226-229" />. The paper model has 12 blocks of
-          width 256 with 8 heads <Cite kind="paper" ref="p.6 §4.1" /> <Cite kind="code" ref="scripts/example_pretrain.py:32" />; the mini model has{' '}
-          {nBlocks} blocks of width {d} with {H} heads.
+          The model is a stack of blocks with the same shape and separate weights, followed by one more RMSNorm, <code>norm_out</code>{' '}
+          <Cite kind="code" ref="rt/model.py:147-150" />. The forward pass runs the blocks in sequence, hands each one the same four masks (built
+          once from the token ids), and then applies <code>norm_out</code> <Cite kind="code" ref="rt/model.py:226-229" />. The paper model has 12
+          blocks of width 256 with 8 heads <Cite kind="paper" ref="p.6 §4.1" /> <Cite kind="code" ref="scripts/example_pretrain.py:32" />, and the
+          mini model has {nBlocks} blocks of width {d} with {H} heads.
         </p>
         <Figure wide title="The forward pass, end to end">
           <StackFigure live={live} follow={follow} />
         </Figure>
         <p>
-          Counting every weight of <code>model.py</code> at the paper’s sizes gives {int(paperParams)} parameters, which the paper rounds to “about
-          22M” <Cite kind="paper" ref="p.6 §4.1" /> and “22.3M” <Cite kind="paper" ref="p.26 App. I.4" />. The frozen MiniLM text encoder is not part
-          of it: its 384-d embeddings are computed once, before training <Cite kind="spec" ref="§7.3" />. The mini model has {int(miniParams)}, of
-          which {int(nBlocks * perBlockMini)} sit in the blocks. In both, the blocks hold most of the weights, and the attention matrices are the
-          largest single group.
+          Counting every weight in <code>model.py</code> at the paper’s sizes gives {int(paperParams)} parameters, the “about 22M” of the paper{' '}
+          <Cite kind="paper" ref="p.6 §4.1" />. The frozen MiniLM text encoder is not included, because its 384-d embeddings are computed once,
+          before training <Cite kind="spec" ref="§7.3" />. The mini model has {int(miniParams)}, of which {int(nBlocks * perBlockMini)} sit in the
+          blocks. In both models the blocks hold most of the weights, and the attention matrices are the largest single group.
         </p>
         <ParamTable weights={assets.weights} />
         <ScaleNote paper={`12 blocks, d = 256, d_ff = 1024: ${int(paperParams)} parameters`} ours={`${nBlocks} blocks, d = ${d}, d_ff = ${dFF}: ${int(miniParams)} parameters`} />
@@ -433,9 +383,9 @@ export default function BlockChapter() {
       {/* ───────────────────────────────────────────────────────────── 5 */}
       <Section id="residual-stream" title="The residual stream of the masked target" kicker="Step 5">
         <p>
-          {nBlocks * 5} sublayers sit between the embedding and the decoders of the mini model ({nBlocks} blocks × 5), and each one adds its update to the
-          target’s stream. The grid measures every update; the matrix shows the vector itself after each stage, one row per stage, on a shared
-          color scale. Pick another token to compare.
+          In the mini model, {nBlocks * 5} sublayers ({nBlocks} blocks × 5) sit between the embedding and the decoders, and each one adds its
+          update to the target’s stream. The grid gives the length of every update. The matrix shows the vector itself after each stage, one row
+          per stage, on a shared color scale. Pick another token to compare.
         </p>
         <Figure wide title="One token through the whole stack">
           <ResidualStream live={live} follow={follow} setFollow={setFollow} />
@@ -447,33 +397,29 @@ export default function BlockChapter() {
             {facts.top.kind === 'col' && (
               <> That is the layer in which the masked cell reads the visible {forecast ? 'labels' : 'values'} of its column directly (chapter 9).</>
             )}{' '}
-            After block 1 the target’s vector has cosine {fx(facts.cos1)} with the output of block {nBlocks}
-            {facts.cos1 > 0.8 ? ': here the later blocks refine its direction more than they replace it.' : ': here the later blocks still turn it substantially.'}{' '}
-            These are the mini model’s numbers on one context, not a general law.
+            After block 1, the target’s vector has cosine {fx(facts.cos1)} with the output of block {nBlocks}
+            {facts.cos1 > 0.8 ? ', so the later blocks mostly refine its direction.' : ', so the later blocks still turn it a good deal.'} These
+            numbers describe the mini model on this one context.
           </p>
         )}
         <Callout variant="insight" title="Why a residual stream?">
           <p>
-            Because every sublayer adds instead of replacing, a token’s vector after any sublayer is exactly its embedding x⁽⁰⁾ (the column-name and
-            value terms of chapter 8) plus the sum of all updates so far. Nothing a sublayer computed is overwritten, and a sublayer with nothing to
-            read changes nothing: the empty neighbor rows add exactly zero. RT takes this structure from “the standard transformer design”, adding
-            the relational attention layers to each block <Cite kind="paper" ref="p.5 §3.2" />.
+            Every sublayer adds to the vector and none replaces it, so a token’s vector after any sublayer is exactly its embedding x⁽⁰⁾ (the
+            column-name and value terms of chapter 8) plus the sum of all updates so far. A later sublayer never overwrites what an earlier one
+            wrote, and a sublayer with nothing to read leaves the vector as it was: the empty neighbor rows add exactly zero. RT keeps this
+            structure from “the standard transformer design” and adds the relational attention layers to each block{' '}
+            <Cite kind="paper" ref="p.5 §3.2" />.
           </p>
         </Callout>
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 6 */}
       <Section id="information-flow" title="How information can reach the target" kicker="Step 6">
-        <Callout variant="note" title="An interpretation, not a claim of the paper">
-          <p>
-            This step reads the masks as a map of where information <em>can</em> flow. It follows from the mask definitions; the paper does not
-            present it this way <Cite kind="spec" ref="§6.4" />. Whether the trained model uses a route is a separate question, which the live
-            attention weights on each hop only begin to answer.
-          </p>
-        </Callout>
         <p>
-          In an attention sublayer, query q can receive from key k exactly when the mask allows the pair. The feed-forward sublayer works per token
-          and moves nothing between tokens. Read in block order, the masks give a story for the target <Cite kind="spec" ref="§6.4" />:
+          In an attention sublayer, query q can receive from key k exactly when the mask allows the pair, and the feed-forward sublayer moves
+          nothing between tokens. The masks are therefore a map of where information <em>can</em> flow <Cite kind="spec" ref="§6.4" />. Whether
+          the trained model uses a route is a separate question, which the attention weights shown on each hop of the tracer below only partly
+          answer. In block order, the four attention layers move information like this:
         </p>
         {forecast ? (
           <ol>
@@ -497,7 +443,7 @@ export default function BlockChapter() {
         ) : (
           <ol>
             <li>
-              <LayerLabel layer="col" />: the target reads every visible cell of its column directly: the same column of the other{' '}
+              <LayerLabel layer="col" />: the target reads every visible cell of its column directly, that is, the same column of the other{' '}
               {seed?.tableName} rows in the context.
             </li>
             <li>
@@ -555,9 +501,9 @@ export default function BlockChapter() {
                   and the target then reads its {entity} in a feature layer. Column attention links rows that no foreign key connects.{' '}
                 </>
               )}
-              With full attention every token reaches the target in block 1, since the full mask connects every pair of non-padding tokens. That is
-              the point of the layer: it “enables long-range interactions in a fixed number of layers, independent of database or graph diameter”{' '}
-              <Cite kind="paper" ref="p.20 App. E" />.
+              With full attention every token reaches the target in block 1, since the full mask connects every pair of non-padding tokens. In
+              the paper’s words, full attention “enables long-range interactions in a fixed number of layers, independent of database or graph
+              diameter” <Cite kind="paper" ref="p.20 App. E" />.
             </p>
           </>
         )}
@@ -570,31 +516,24 @@ export default function BlockChapter() {
       {/* ───────────────────────────────────────────────────────────── 7 */}
       <Section id="expressivity" title="Expressivity notes" kicker="Step 7">
         <p>
-          If full attention can reach everything in one layer, why keep the three relational layers? The paper’s App. E discusses what each layer
-          contributes to the expressive power of RT <Cite kind="paper" ref="p.19-20 App. E" />:
+          If full attention can reach everything in one layer, why keep the three relational layers? Appendix E of the paper discusses what each
+          layer adds to the expressive power of RT <Cite kind="paper" ref="p.19-20 App. E" />:
         </p>
         <AppECards />
         <p>
-          The paper closes the discussion with “we leave the full theoretical characterization of RT’s expressive power to future work”{' '}
-          <Cite kind="paper" ref="p.20 App. E" />. Its empirical evidence is the layer ablation of Table 5: models trained with one layer type
-          removed.
+          The paper leaves a full theory of RT’s expressive power to future work <Cite kind="paper" ref="p.20 App. E" />. For evidence it turns to
+          the layer ablation of Table 5, which retrains the model with one layer type removed.
         </p>
         <Table5 />
-        <Callout variant="note" title="Which code produced these ablations">
-          <p>
-            Tables 4, 5 and 13 are unchanged since arXiv v1 and predate the commit that set the released attention order, so they were run with the
-            submission-era order feat, nbr, col, full; their “none” columns do not equal the headline Table 1 <Cite kind="spec" ref="§13 #1" />{' '}
-            <Cite kind="spec" ref="§10 #25" />. Table 15 is new in v3.
-          </p>
-        </Callout>
         <p>
-          Table 15 asks the order question directly. Mean zero-shot AUROC moves between 69.3 and 70.6 across orders, and mean R² between 22.1 and
-          23.6 <Cite kind="paper" ref="p.24 Table 15" />.
+          The paper also tried other orders of the three relational layers and found that “the specific order of relational attention layers is
+          not critical” <Cite kind="paper" ref="p.23 App. H.1" />. Across orders, mean zero-shot AUROC stays between 69.3 and 70.6, and mean R²
+          between 22.1 and 23.6 <Cite kind="paper" ref="p.24 Table 15" />.
         </p>
         <Table15 />
         <p>
-          The playground (chapter 15) lets you switch layers off at inference time on the live context. That is a different experiment: the paper’s
-          ablations retrain the model without the layer <Cite kind="spec" ref="§11.4" />.
+          The playground (chapter 15) lets you switch layers off at inference time on the live context. That is a different experiment, because
+          the paper’s ablations retrain the model without the layer <Cite kind="spec" ref="§11.4" />.
         </p>
       </Section>
 
@@ -603,28 +542,28 @@ export default function BlockChapter() {
           title="Check your understanding"
           questions={[
             {
-              prompt: 'In what order does the released code apply the four attention layers inside a block?',
+              prompt: 'In what order does an RT block run its four attention layers?',
               choices: [
-                { text: 'column → feature → neighbor → full', correct: true, why: 'model.py:83 loops over ["col", "feat", "nbr", "full"]; Algorithm 2 prints the same order.' },
+                { text: 'column → feature → neighbor → full', correct: true, why: 'The loop on model.py:83 runs ["col", "feat", "nbr", "full"], the same order as Algorithm 2 and Figure 1 of the paper.' },
                 {
-                  text: 'feature → neighbor → column → full',
-                  why: 'That was the ICLR-submission order (and the registration order in __init__ starts with feat, nbr). The forward loop runs col first since commit 7f891d1.',
+                  text: 'All four at once, with their outputs summed',
+                  why: 'They run one after another, and each reads the stream as the previous one left it. Summing the three relational layers in parallel is one of the variants the paper tested in Table 15.',
                 },
                 { text: 'full → column → feature → neighbor', why: 'Full attention comes last among the four, just before the SwiGLU.' },
               ],
-              explanation: 'Only the execution order in forward() matters. The paper also reports that other orders score about the same (Table 15).',
+              explanation: 'Each sublayer reads what the previous ones added, so the order decides which hops can chain inside one block. The paper reports that other orders of the three relational layers score about the same (Table 15).',
             },
             {
-              prompt: 'In the code, is RMSNorm applied before or after each sublayer?',
+              prompt: 'Is RMSNorm applied before or after each sublayer?',
               choices: [
                 {
                   text: 'Before: x + MHA(RMSNorm(x)), so the stream itself is never normalized inside a block.',
                   correct: true,
-                  why: 'model.py:84-85 normalize a copy for the sublayer and add the raw output. This is LLaMA-style pre-norm.',
+                  why: 'model.py:84-85 normalize a copy for the sublayer and add its raw output. This is LLaMA-style pre-norm.',
                 },
                 {
-                  text: 'After: x + Norm(MHA(x)), as in Algorithm 2.',
-                  why: 'That is how Algorithm 2 (p.26) prints it, but the code is pre-norm. The site follows the code.',
+                  text: 'After: x + Norm(MHA(x)), as Algorithm 2 writes it.',
+                  why: 'Algorithm 2 (p.26) prints it that way, but the code normalizes the sublayer’s input, and this site follows the code.',
                 },
                 { text: 'Both before and after.', why: 'Each sublayer has exactly one RMSNorm, on its input. The other RMSNorms are outside the blocks: one per input projection in the embedding, and norm_out after the last block.' },
               ],

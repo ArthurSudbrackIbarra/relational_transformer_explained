@@ -30,7 +30,7 @@ import { useSim } from '@/state/store';
 import { HeadGrid, useLayerStats } from './HeadGrid';
 import { ImplementationChecks } from './Implementation';
 import { QueryPicker, SublayerMap } from './Controls';
-import { MODEL_BLOCK_FWD_82_86, MODEL_FLEX_14_17, MODEL_MAKE_BLOCK_MASK_89_101, MODEL_MASKED_ATTENTION_20_47, MODEL_NORMS_ATTNS_71_79 } from './snippets';
+import { MODEL_BLOCK_FWD_82_86, MODEL_MAKE_BLOCK_MASK_89_101, MODEL_MASKED_ATTENTION_20_47, MODEL_NORMS_ATTNS_71_79 } from './snippets';
 import { StepThrough } from './StepThrough';
 import { LabelShare, TargetLook, useLabelShareFacts } from './TargetLook';
 import { useAttnLive, type AttnLive } from './useAttnLive';
@@ -69,15 +69,15 @@ export default function AttentionChapter() {
         slug="attention"
         lede={
           <>
-            All four kinds of attention layer in RT run the same computation, each with its own weights; what sets them apart is the mask that
-            decides which token may read which. This chapter follows one token through one attention sublayer with the real numbers of the trained
-            mini model, from the normalized input to the residual update, then shows the attention patterns of every layer and head.
+            The four kinds of attention layer in RT run the same computation, each with its own weights. What sets them apart is the mask, which
+            decides which token may read which. This chapter follows one token through one attention sublayer of the trained mini model, with its
+            real numbers, from the normalized input to the residual update. Then it shows the attention patterns of every layer and head.
           </>
         }
         learn={[
           'The seven steps of a masked multi-head attention sublayer, with live numbers',
           `How ${H} heads split a ${d}-dimensional query into slices of ${dh}, and where the factor 1/√${dh} comes from`,
-          'Why a blocked key gets exactly zero weight, and a query with no allowed key gets exactly zero update',
+          'Why a blocked key gets exactly zero weight, and why a query with no allowed key passes through unchanged',
           'Where the masked target looks, layer by layer and head by head, in the trained mini model',
         ]}
       >
@@ -111,13 +111,13 @@ export default function AttentionChapter() {
           Chapter 9 built four masks from the token ids. Each RT block uses them in four attention sublayers, always in the order column,
           feature, neighbor, full, and then applies a feed-forward sublayer <Cite kind="code" ref="rt/model.py:82-86" />. Every attention
           sublayer has its own <Term id="rmsnorm">RMSNorm</Term> and its own four projection matrices <Cite kind="code" ref="rt/model.py:71-79" />.
-          The {nBlocks} blocks of the mini model therefore hold {nBlocks * 4} different attention sublayers; the 12 blocks of the paper model hold 48{' '}
+          So the {nBlocks} blocks of the mini model hold {nBlocks * 4} different attention sublayers, and the 12 blocks of the paper model hold 48{' '}
           <Cite kind="code" ref="scripts/example_pretrain.py:32" />.
         </p>
         <p>
-          Choose one in the map. Each cell shows the length of the update, ‖Δx‖, that the sublayer adds to the query’s residual stream in the
-          live forward pass. Then choose a query token: the <Term id="target-cell">masked target</Term> by default, or any other cell of the
-          context. The choice is shared with the rest of this chapter and with chapters 7 to 9, so a token you inspected there is the query here.
+          Pick one in the map. Each cell shows ‖Δx‖, the length of the update that the sublayer adds to the query’s residual stream in the live
+          forward pass. Then pick a query token: the <Term id="target-cell">masked target</Term> by default, or any other cell of the context.
+          The rest of this chapter and chapters 7 to 9 share this choice, so a token you inspected there is the query here.
         </p>
         <Figure wide title="The attention sublayers of the mini model, and the query token">
           <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-8">
@@ -134,13 +134,13 @@ export default function AttentionChapter() {
         {nbrKeys === 0 ? (
           <p>
             For this query the Neighbor row of the map reads 0 in every block. No token in the context has the query’s row among its parents, so its row
-            of the neighbor mask is empty, and an empty row gives an update of exactly zero <Cite kind="spec" ref="§6.1" />. The other three layers
-            always contain at least the query itself <Cite kind="spec" ref="§6.2" />.
+            of the neighbor mask is empty, and an empty row gives an update of exactly zero <Cite kind="spec" ref="§6.1" />. In the other three layers
+            a token can always read at least itself <Cite kind="spec" ref="§6.2" />.
           </p>
         ) : (
           <p>
-            This query’s row has {int(nbrKeys)} {nbrKeys === 1 ? 'key' : 'keys'} in the neighbor mask: tokens of child rows that point to it. So
-            here even the neighbor sublayers add something. Try the masked target to see an empty neighbor row <Cite kind="spec" ref="§6.2" />.
+            This query’s row has {int(nbrKeys)} {nbrKeys === 1 ? 'key' : 'keys'} in the neighbor mask: tokens of child rows that point to it, so
+            here even the neighbor sublayers add something. Pick the masked target to see an empty neighbor row <Cite kind="spec" ref="§6.2" />.
           </p>
         )}
       </Section>
@@ -148,11 +148,12 @@ export default function AttentionChapter() {
       {/* ───────────────────────────────────────────────────────────── 2 */}
       <Section id="steps" title="Seven steps through one sublayer" kicker="Step 2">
         <p>
-          Here is the sublayer as the code writes it. The block computes <TeX tex="x + \mathrm{MHA}(\mathrm{RMSNorm}(x))" />, a{' '}
-          <Term id="pre-norm">pre-norm</Term> residual <Cite kind="code" ref="rt/model.py:84" />. Inside MHA, three linear maps without bias give
-          queries, keys and values; these are split into heads; FlexAttention computes a masked softmax per head; and a fourth map{' '}
-          <TeX tex="W_o" /> mixes the concatenated head outputs <Cite kind="code" ref="rt/model.py:20-47" />. For head <em>j</em> and query token{' '}
-          <em>q</em>:
+          Each attention sublayer sits inside a <Term id="pre-norm">pre-norm</Term> residual: the block computes{' '}
+          <TeX tex="x + \mathrm{MHA}(\mathrm{RMSNorm}(x))" /> <Cite kind="code" ref="rt/model.py:84" />. The norm applies to the sublayer’s
+          input, and the raw output is added back to <TeX tex="x" />. Chapter 11 looks at this placement more closely. Inside MHA, three linear maps without
+          bias give the queries, keys and values, which are then split into heads. FlexAttention computes a masked softmax for each head, and a
+          fourth map <TeX tex="W_o" /> mixes the concatenated head outputs <Cite kind="code" ref="rt/model.py:20-47" />. For head <em>j</em> and
+          query token <em>q</em>:
         </p>
         <div className="sm:hidden">
           <MathBlock
@@ -183,31 +184,31 @@ export default function AttentionChapter() {
           />
         </div>
         <p>
-          The paper writes attention for a single head, with <em>n</em> queries and keys of <TeX tex="d_k" /> numbers each and a divisor{' '}
-          <TeX tex={String.raw`\sqrt{d_k}`} /> <Cite kind="paper" ref="p.5 §3.2" />. With heads, <TeX tex="d_k" /> is the width of one head (the{' '}
-          <TeX tex={String.raw`d_\text{head}`} /> of other chapters): the
-          code calls FlexAttention without a scale, and its default is <TeX tex={String.raw`1/\sqrt{E}`} />, where <em>E</em> is the last
-          dimension of each head’s query <Cite kind="spec" ref="§6.1" />. That is 256 / 8 = 32 in the paper model and {d} / {H} = {dh} here.
+          The paper writes attention for a single head, with queries and keys of <TeX tex="d_k" /> numbers each and a divisor{' '}
+          <TeX tex={String.raw`\sqrt{d_k}`} /> <Cite kind="paper" ref="p.5 §3.2" />. With several heads, <TeX tex="d_k" /> is the width of one
+          head, the <TeX tex={String.raw`d_\text{head}`} /> of other chapters: 256 / 8 = 32 in the paper model and {d} / {H} = {dh} here. The code
+          passes no scale to FlexAttention, which then divides by the square root of the head width by default <Cite kind="spec" ref="§6.1" />.
         </p>
         <p>
-          Two pieces of general Transformer background help to read the steps; they come from the original Transformer paper, not from RT{' '}
+          Two pieces of general Transformer background help with the steps. They come from the original Transformer paper rather than from RT{' '}
           <Cite kind="url" ref="https://arxiv.org/abs/1706.03762" title="Vaswani et al. (2017), Attention Is All You Need, §3.2.1" label="Vaswani 2017" />.
           First, the three roles. A token’s query describes what it is looking for, each key describes what a token offers, and the score{' '}
           <TeX tex={String.raw`q\cdot k`} /> measures how well the two match. The values are what the tokens hand over, averaged with the softmax
-          weights. Second, the divisor. If the numbers in <TeX tex="q" /> and <TeX tex="k" /> were independent with mean 0 and variance 1, their
-          dot product would have variance <TeX tex="d_k" />. Wider heads would then give larger scores and push the softmax towards a single key,
-          where its gradients are tiny. Dividing by <TeX tex={String.raw`\sqrt{d_k}`} /> brings the variance back to about 1.
+          weights. Second, the divisor. If the numbers in <TeX tex="q" /> and <TeX tex="k" /> were independent with mean 0 and variance 1,
+          their dot product would have variance <TeX tex="d_k" />. Wider heads would then give larger scores and push the softmax towards a single
+          key, where its gradients are tiny. Dividing by <TeX tex={String.raw`\sqrt{d_k}`} /> brings the variance back to about 1.
         </p>
         <p>
-          Step through it below. Each step shows the live tensors on the left and the arithmetic, with this token’s numbers, on the right.
+          The figure below walks through the sublayer one step at a time. Each step shows the live tensors on the left and the arithmetic, with
+          this token’s numbers, on the right.
         </p>
         <StepThrough live={live} />
         <p>Three things to watch as you step:</p>
         <ul>
           <li>
             In step 3, head {live.head + 1}’s query uses all {d} numbers of <TeX tex="h" />, but only its own {dh} rows of <TeX tex="W_q" />. The
-            faded rows produce the other heads’ queries. Splitting the output this way is the reshape{' '}
-            <code>"b s (h d) -&gt; b h s d"</code> <Cite kind="code" ref="rt/model.py:35-37" />.
+            faded rows produce the other heads’ queries. In the code this split is the reshape <code>"b s (h d) -&gt; b h s d"</code>{' '}
+            <Cite kind="code" ref="rt/model.py:35-37" />.
           </li>
           <li>
             In step 5, switch the layer while the query is the masked target. The column mask keeps the cells of the label column, the feature mask
@@ -215,39 +216,19 @@ export default function AttentionChapter() {
             <Cite kind="spec" ref="§6.2" />.
           </li>
           <li>
-            In step 6, the blocked keys do not get a small weight; they get exactly 0, because <TeX tex="e^{-\infty}=0" />. The allowed weights
-            alone sum to 1 <Cite kind="paper" ref="p.5 §3.2" />.
+            In step 6, every blocked key gets a weight of exactly 0, because <TeX tex="e^{-\infty}=0" />, so the allowed weights alone sum to 1{' '}
+            <Cite kind="paper" ref="p.5 §3.2" />.
           </li>
         </ul>
-        <Callout
-          variant="paper-vs-code"
-          title="Where the norm sits"
-          paper={
-            <>
-              Algorithm 2 writes each sublayer as
-              <span className="scroll-quiet my-1 block overflow-x-auto">
-                <TeX tex={String.raw`X \leftarrow X + \mathrm{Norm}(\mathrm{MHA}(X;\mathbf{M}))`} />
-              </span>
-              a norm after the sublayer <Cite kind="paper" ref="p.26 Alg. 2" />.
-            </>
-          }
-          code={
-            <>
-              <code className="my-1 block text-[15px] break-words whitespace-pre-wrap">x = x + self.attns[l](self.norms[l](x), …)</code>
-              The norm is applied to the sublayer’s input, and the residual adds the raw output <Cite kind="code" ref="rt/model.py:84" />.
-            </>
-          }
-          verdict="This site follows the code (pre-norm), consistent with the paper's statement that RT follows LLaMA's design choices (spec §7.1, §10 #1). Chapter 11 compares the two forms."
-        />
         <Callout variant="note" title="What this sublayer does not have">
           <p>
-            No bias in any of the four projections <Cite kind="code" ref="rt/model.py:25-28" />, no dropout, no positional encoding and no
-            normalization of queries or keys <Cite kind="spec" ref="§7.1" />. Attention is bidirectional: there is no causal mask, only the
-            relational one <Cite kind="spec" ref="§6.1" />.
+            The four projections have no bias <Cite kind="code" ref="rt/model.py:25-28" />, and there is no positional encoding{' '}
+            <Cite kind="spec" ref="§7.1" />. Attention is bidirectional: there is no causal mask, only the relational one{' '}
+            <Cite kind="spec" ref="§6.1" />.
           </p>
         </Callout>
         <ScaleNote paper="d = 256 · 8 heads × 32 dims · scale 1/√32 ≈ 0.177" ours={`d = ${d} · ${H} heads × ${dh} dims · scale 1/√${dh} = ${trimNum(1 / Math.sqrt(dh), 3)}`}>
-          The operations are the same; the paper model has more and wider heads. Values here are float32, the paper’s are bfloat16.
+          The operations are the same. The paper model has more heads, and wider ones.
         </ScaleNote>
         <CodeRef
           title="MaskedAttention: projections, head split, FlexAttention, output projection"
@@ -256,7 +237,6 @@ export default function AttentionChapter() {
           code={MODEL_MASKED_ATTENTION_20_47}
           highlightLines={[25, 26, 27, 28, 35, 36, 37, 43, 45, 46]}
           defaultOpen
-          note="The SDPA branch (lines 39-41) never runs: every layer always receives a block mask (spec §6.1)."
         />
         <CodeRef
           title={
@@ -277,10 +257,9 @@ export default function AttentionChapter() {
       <Section id="all-heads" title="All heads, all layers" kicker="Step 3">
         <p>
           The step-through followed one row of one head. A sublayer computes such a row for every token at once: one S×S matrix of weights per
-          head, where row <em>q</em> is the softmax over the keys that <em>q</em> may read. Below are all {4 * H} matrices of one block. Every head
-          of a layer uses the same mask, because <code>_make_block_mask</code> passes <code>H=None</code> to <code>create_block_mask</code>{' '}
-          <Cite kind="code" ref="rt/model.py:89-101" />, so the gray pattern repeats along each row of panels. The heads differ only in how they
-          spread weight inside it.
+          head, where row <em>q</em> is the softmax over the keys that <em>q</em> may read. Below are all {4 * H} matrices of one block. All heads
+          of a layer share its mask <Cite kind="code" ref="rt/model.py:89-101" />, so the gray pattern repeats along each row of panels, and the
+          heads differ only in how they spread weight inside it.
         </p>
         <HeadGrid live={live} />
         <LayerStatsProse live={live} />
@@ -289,13 +268,15 @@ export default function AttentionChapter() {
       {/* ───────────────────────────────────────────────────────────── 4 */}
       <Section id="target" title="Where does the target look?" kicker="Step 4">
         <p>
-          Now fix the query to the masked target and compare the four layers. Each card lists the keys with the largest weights; hover one to find
-          it in the context below, which is drawn as small tables in the style of the paper’s Figure 1 <Cite kind="paper" ref="p.2 Fig. 1" />.
+          In this figure the query is always the masked target, and the four layers sit side by side. Each card lists the keys with the largest
+          weights. Hover one to find it in the context underneath, drawn as small tables in the style of the paper’s Figure 1{' '}
+          <Cite kind="paper" ref="p.2 Fig. 1" />.
         </p>
         <p>
-          The masks decide what the target can read, whatever the weights. In the column layer: the cells of its own column, which are the task’s
-          labels from every split, and itself. In the feature layer: its own row and the row of its {entity}. In the neighbor layer: nothing,
-          because no row points to a task row. In the full layer: every real token <Cite kind="spec" ref="§6.2" /> <Cite kind="spec" ref="§6.4" />.
+          The masks decide what the target can read, whatever the weights. In the column layer it reads the cells of its own column (the task’s
+          labels from every split) and itself. In the feature layer it reads its own row and the row of its {entity}. In the neighbor layer it reads
+          nothing, because no row points to a task row, and in the full layer it reads every real token <Cite kind="spec" ref="§6.2" />{' '}
+          <Cite kind="spec" ref="§6.4" />.
         </p>
         <TargetLook live={live} />
         <LabelsIntroProse live={live} />
@@ -304,9 +285,9 @@ export default function AttentionChapter() {
         <Callout variant="warning" title="Reading attention weights with care">
           <p>
             These are the weights of a {int(paramCount(live.cfg))}-parameter replica{' '}
-            {prov ? provenanceClause(prov) : 'trained on small synthetic databases'}. They describe this model, not the paper’s. And a weight
-            says where a head looks, not what it takes away: the value vectors, <TeX tex="W_o" /> and every later sublayer decide what the
-            information becomes. Treat the patterns as clues, not explanations.
+            {prov ? provenanceClause(prov) : 'trained on small synthetic databases'}. They show how this small model attends, and the paper’s
+            model may attend differently. A weight also tells you only where a head looks. The value vectors, <TeX tex="W_o" /> and every
+            later sublayer decide what the target makes of it, so read these patterns as clues rather than explanations.
           </p>
         </Callout>
       </Section>
@@ -315,28 +296,20 @@ export default function AttentionChapter() {
       <Section id="implementation" title="Implementation note: FlexAttention and a dense loop" kicker="Step 5">
         <p>
           The paper implements the relational layers “with sparse attention masks, and compiled to efficient FlashAttention-based kernels using
-          FlexAttention” <Cite kind="paper" ref="p.5 §3.2" />. The code compiles <code>flex_attention</code> once{' '}
-          <Cite kind="code" ref="rt/model.py:14-17" />. In every forward pass, before the first block, it turns each dense boolean mask into a
-          block mask <Cite kind="code" ref="rt/model.py:197-206" />, and every block reuses those four block masks{' '}
-          <Cite kind="code" ref="rt/model.py:226-227" /> <Cite kind="spec" ref="§6.1" />. A block mask records which tiles of (query, key) pairs
-          contain any allowed pair, so the kernel can skip the empty tiles <Cite kind="code" ref="rt/model.py:89-101" />{' '}
+          FlexAttention” <Cite kind="paper" ref="p.5 §3.2" />. In every forward pass the code turns the four masks into FlexAttention block masks
+          once, before the first block, and every block reuses them <Cite kind="code" ref="rt/model.py:197-206" />{' '}
+          <Cite kind="code" ref="rt/model.py:226-227" />. A block mask lets the GPU skip the parts of the score matrix that a mask blocks
+          entirely <Cite kind="code" ref="rt/model.py:89-101" />{' '}
           <Cite kind="url" ref="https://docs.pytorch.org/docs/2.8/nn.attention.flex_attention.html" title="PyTorch FlexAttention documentation" />.
         </p>
         <p>
           This site runs in your browser without a GPU, so its engine loops over each query’s allowed keys in plain TypeScript. The arithmetic is
           the same masked softmax: scores scaled by <TeX tex={String.raw`1/\sqrt{d_{\text{head}}}`} />, blocked keys excluded, weights
-          normalized over the allowed keys <Cite kind="spec" ref="§6.1" />. One case needs care. A query with no allowed key would divide 0 by 0.
-          In the pinned PyTorch 2.6 kernel such a row outputs exactly 0, neither NaN nor a uniform average, and with a bias-free{' '}
-          <TeX tex="W_o" /> the update is exactly 0 too <Cite kind="spec" ref="§6.1" />. Our loop skips such rows by construction, which gives the
-          same zeros. The checks below verify the output of our engine on the live forward pass:
+          normalized over the allowed keys <Cite kind="spec" ref="§6.1" />. A query with no allowed key, such as the masked target in the neighbor
+          layer, has nothing to normalize. FlexAttention outputs 0 for such a row, and since <TeX tex="W_o" /> has no bias, the update is 0 as
+          well <Cite kind="spec" ref="§6.1" />. The checks below test these properties on the engine’s live forward pass:
         </p>
         <ImplementationChecks live={live} />
-        <p>
-          The remaining difference is precision. The paper runs the model in bfloat16 <Cite kind="code" ref="rt/main.py:187" />; this site stores
-          values in float32 and accumulates in float64, so its numbers are slightly more precise, not differently computed{' '}
-          <Cite kind="spec" ref="§10 #20" />.
-        </p>
-        <CodeRef title="FlexAttention, compiled once" file="rt/model.py" lines="14-17" code={MODEL_FLEX_14_17} highlightLines={[17]} />
         <CodeRef title="_make_block_mask: one mask, every head" file="rt/model.py" lines="89-101" code={MODEL_MAKE_BLOCK_MASK_89_101} highlightLines={[96]} />
       </Section>
 
@@ -347,37 +320,40 @@ export default function AttentionChapter() {
             {
               prompt: 'By what factor are the attention scores multiplied before the softmax in the paper’s model? And in this site’s mini model?',
               choices: [
-                { text: `1/√256 in the paper, 1/√${d} here`, why: 'That would be the full model width. FlexAttention scales by the width of one head.' },
+                { text: `1/√256 in the paper, 1/√${d} here`, why: 'That would be the full model width. The scale uses the width of one head.' },
                 {
                   text: `1/√32 in the paper, 1/√${dh} here`,
                   correct: true,
-                  why: `d_head = 256/8 = 32 in the paper and ${d}/${H} = ${dh} here; FlexAttention’s default scale is 1/√E with E the head width.`,
+                  why: `A head is 256/8 = 32 numbers wide in the paper and ${d}/${H} = ${dh} here, and the scale is 1 over the square root of that width.`,
                 },
-                { text: 'No scaling: FlexAttention uses raw dot products', why: 'The code passes no scale, so FlexAttention applies its default 1/√E.' },
+                {
+                  text: 'No scaling: the scores go into the softmax as raw dot products',
+                  why: 'The code passes no scale to FlexAttention, so FlexAttention applies its default, 1 over the square root of the head width.',
+                },
               ],
-              explanation: `The scale is 1 over the square root of the head width: 1/√32 ≈ 0.177 in the paper, 1/√${dh} ${Number.isInteger(Math.sqrt(dh)) ? '=' : '≈'} ${trimNum(1 / Math.sqrt(dh), 3)} here (spec §6.1).`,
+              explanation: `The scale is 1 over the square root of the head width: 1/√32 ≈ 0.177 in the paper, 1/√${dh} ${Number.isInteger(Math.sqrt(dh)) ? '=' : '≈'} ${trimNum(1 / Math.sqrt(dh), 3)} here. Without it, wider heads would give larger scores and a sharper softmax (spec §6.1).`,
             },
             {
               prompt: 'The masked target’s row of the neighbor mask is empty. What does the neighbor sublayer add to the target?',
               choices: [
-                { text: 'Exactly zero: the target passes through unchanged.', correct: true, why: 'A fully masked row outputs 0, and W_o has no bias (spec §6.1).' },
-                { text: 'The mean of all value vectors.', why: 'That would be a uniform softmax over every key. The kernel returns 0 for a row without allowed keys.' },
+                { text: 'Exactly zero: the target passes through unchanged.', correct: true, why: 'A row with no allowed key outputs 0, and W_o has no bias (spec §6.1).' },
+                { text: 'The mean of all value vectors.', why: 'That would be an even softmax over every key. A row without allowed keys outputs 0 instead.' },
                 { text: 'Its own value vector, since a token always attends to itself.', why: 'Self-attention is allowed in column, feature and full, but not in neighbor: no row is its own parent.' },
               ],
               explanation:
-                'For real tokens, empty rows only occur in the neighbor mask (padding rows are empty in every mask), and an empty row always gives a zero update. The live checks in Step 5 verify this on our engine’s output.',
+                'For real tokens, only the neighbor mask can have an empty row, and an empty row always gives a zero update. The live checks in Step 5 confirm this on the engine’s output.',
             },
             {
               prompt: 'Do the heads of one attention layer use different masks?',
               choices: [
-                { text: 'Yes: each head learns its own mask.', why: 'Masks are built from ids, not learned, and _make_block_mask passes H=None.' },
+                { text: 'Yes: each head learns its own mask.', why: 'Masks are built from the token ids, not learned, and each layer has a single mask for all its heads.' },
                 {
                   text: 'No: all heads share the layer’s mask; they differ in their projection weights, and so in how they spread weight over the allowed keys.',
                   correct: true,
                 },
                 { text: 'Only in the full layer, which has no mask.', why: 'The full layer’s mask is the padding mask, and it is shared like the others.' },
               ],
-              explanation: 'create_block_mask(..., H=None) broadcasts one mask over every head (rt/model.py:89-101).',
+              explanation: 'The code builds one block mask per layer and applies it to every head of that layer (rt/model.py:89-101).',
             },
           ]}
         />
@@ -420,9 +396,9 @@ function LayerStatsProse({ live }: { live: AttnLive }) {
       Some numbers for block {block + 1}, averaged over the real query tokens and the heads. A <LayerLabel layer="col" /> query may read{' '}
       {keys(stats.col.keys)} keys on average, and its largest weight averages {pctw(stats.col.top)}. A <LayerLabel layer="feat" /> query may read{' '}
       {keys(stats.feat.keys)} keys, with a largest weight of {pctw(stats.feat.top)}. In the <LayerLabel layer="nbr" /> layer,{' '}
-      {int(stats.nbr.empty)} of the {int(live.numReal)} queries have an empty row and receive no update at all <Cite kind="spec" ref="§6.2" />; the
-      others read {keys(stats.nbr.keys)} keys on average. A <LayerLabel layer="full" /> query may read all {keys(stats.full.keys)}, and its largest
-      weight averages {pctw(stats.full.top)}, against {pctw(1 / Math.max(1, stats.full.keys))} for a perfectly even spread.
+      {int(stats.nbr.empty)} of the {int(live.numReal)} queries have an empty row and get no update at all <Cite kind="spec" ref="§6.2" />, while
+      the others read {keys(stats.nbr.keys)} keys on average. A <LayerLabel layer="full" /> query may read all {keys(stats.full.keys)}. Its
+      largest weight averages {pctw(stats.full.top)}, where a perfectly even spread would give {pctw(1 / Math.max(1, stats.full.keys))}.
     </p>
   );
 }
@@ -438,8 +414,8 @@ function LabelsIntroProse({ live }: { live: AttnLive }) {
   return (
     <>
       <p>
-        The column layer is the only layer whose mask confines the target to its own column, so there the visible labels compete only with each
-        other and with the target itself <Cite kind="spec" ref="§6.2" />. The full layer can read the same label cells, but mixed among all{' '}
+        Only the column layer confines the target to its own column, so there the visible labels compete with nothing but each other and the
+        target itself <Cite kind="spec" ref="§6.2" />. The full layer can read the same label cells, but mixed among all{' '}
         {int(numReal)} tokens
         {full0 !== null && full0 !== undefined && f && f.nSelf + f.nOther > 0 ? (
           <>
@@ -457,13 +433,11 @@ function LabelsIntroProse({ live }: { live: AttnLive }) {
       </p>
       <p>
         The paper finds that “zero-shot transfer is driven primarily by the model’s ability to leverage past labels of the target entity”:
-        removing them drops the mean zero-shot AUROC from 70.1 to 53.8 <Cite kind="paper" ref="p.9 Table 4" />. Removing the column layer hurts
-        zero-shot R² the most among the attention layers (22.8 → 11.9) <Cite kind="paper" ref="p.10 Table 5" />. For classification, the task type
-        of our running example, the effect is small: 70.1 → 69.8 AUROC <Cite kind="paper" ref="p.23 Table 13" />. Each of these ablations retrains a
-        separate model and keeps the parameter count constant by adding blocks <Cite kind="paper" ref="p.9 §5.2" />. (70.1 is the ablation tables’
-        own baseline. The headline zero-shot mean in Table 1 is 69.7 <Cite kind="paper" ref="p.8 Table 1" />, from runs repeated after later
-        fixes to the sampler <Cite kind="spec" ref="§10 #25" />.) The chart below shows how the mini model’s target divides its column-layer
-        weight.
+        removing them drops the mean zero-shot AUROC from 70.1 to 53.8 <Cite kind="paper" ref="p.9 Table 4" />. Among the attention layers,
+        removing the column layer hurts zero-shot R² the most (22.8 → 11.9) <Cite kind="paper" ref="p.10 Table 5" />, although for
+        classification, the task type of the running example, the effect is small (70.1 → 69.8 AUROC){' '}
+        <Cite kind="paper" ref="p.23 Table 13" />. Each of these ablations trains a separate model, with extra blocks to keep the parameter
+        count the same <Cite kind="paper" ref="p.9 §5.2" />. The chart below shows how the mini model’s target divides its column-layer weight.
       </p>
     </>
   );
@@ -498,8 +472,7 @@ function LabelShareProse({ live }: { live: AttnLive }) {
           {f.nOther > 0 ? ` and the other ${entities}’ labels ${pctw(last.other)}` : ''}.
         </>
       )}{' '}
-      Whether the model leans on the {entity}’s own history shows up here first, but only as weights: what the target then does with those values
-      is decided by everything after.
+      If the model leans on the {entity}’s own history, these weights are the first place where that can show.
     </p>
   );
 }

@@ -54,7 +54,8 @@ function ruleText(f: Fate, file: TableFile, data: ChapterData, node: { ts: numbe
     case 'pk':
       return (
         <>
-          {name} is the primary key. pre.rs skips it: no cell, no edge. Its value ({String(f.value)}) is the row position, which the node index already encodes.
+          {name} is the primary key. pre.rs skips it and makes neither a cell nor an edge. Its value ({String(f.value)}) is the row position, which the node index already
+          encodes.
         </>
       );
     case 'link':
@@ -65,7 +66,7 @@ function ruleText(f: Fate, file: TableFile, data: ChapterData, node: { ts: numbe
           {firstLink && file.table.schema.timeCol && node.ts !== null && (
             <>
               {' '}
-              The row’s timestamp is set here too, from <code>{file.table.schema.timeCol}</code>; every later non-null foreign key sets it again, to the same value.
+              The row’s timestamp is set here too, from <code>{file.table.schema.timeCol}</code>.
             </>
           )}
         </>
@@ -272,7 +273,7 @@ function RowFlow({ data, file, row }: { data: ChapterData; file: TableFile; row:
       {/* lanes */}
       <div className="mt-3 grid gap-3 md:grid-cols-3">
         {lane('cell', 'Cells', 'One record per non-missing feature value. These can become tokens later.')}
-        {lane('link', 'Links', 'Foreign keys: the parent’s node index, plus edges. No token.')}
+        {lane('link', 'Links', 'Foreign keys: the parent’s node index, plus edges. They never become tokens.')}
         {lane('none', 'Nothing', 'The primary key, and missing values.')}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-ink-2" aria-label="Glyph legend">

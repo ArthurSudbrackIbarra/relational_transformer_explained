@@ -5,7 +5,7 @@
  * Every number is the live engine: the store's context and forward pass (src/state/hooks.ts →
  * src/engine/pipeline.ts → model/forward.ts, a mirror of rt/model.py:153-267), plus a local preview
  * of the other target type (live.ts) and in-browser evaluations over whole splits (evaluate.ts).
- * Spec: research/RT_TECHNICAL_SPEC.md §8 (all), §3.3, §9.2, §10 #15, #19, §12.
+ * Spec: research/RT_TECHNICAL_SPEC.md §8 (all), §3.3.
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -31,12 +31,10 @@ import { fmt, fmtS, seedEntity, taskLabel, useDecodingLive, type Lane } from './
 import { BatchFigure, BceFigure, HuberFigure } from './LossFigures';
 import { R2Figure, RocFigure } from './MetricsFigures';
 import { RegressionFigure } from './RegressionFigure';
-import { DecoderSizes, SharedHeadsFigure, TextHeadCheck } from './SharedHeads';
+import { DecoderSizes, SharedHeadsFigure } from './SharedHeads';
 import {
-  MAIN_ADAMW_188_195,
   MAIN_METRICS_328_337,
   MAIN_READOUT_283_293,
-  MAIN_TASK_TYPE_228_241,
   MODEL_BLOCKS_NORM_OUT_226_229,
   MODEL_DEC_DICT_124_131,
   MODEL_DECODE_231_248,
@@ -65,9 +63,9 @@ export default function DecodingChapter() {
         slug="decoding"
         lede={
           <>
-            After the last block, every position holds a vector. This chapter turns the masked cell’s vector into an answer: four small linear heads,
-            one per data type; a probability or a number in the column’s own units; the loss that training minimizes; and the two metrics the paper
-            reports.
+            After the last block, every position holds a vector. This chapter turns the masked cell’s vector into an answer. Four small linear heads,
+            one per data type, read it. The head that matches the cell’s type gives a logit or a z-score, which becomes a probability or a number in
+            the column’s own units. The chapter also covers the loss that training minimizes and the two metrics the paper reports.
           </>
         }
         learn={[
@@ -83,22 +81,22 @@ export default function DecodingChapter() {
       {/* ───────────────────────────────────────────────────────────── 1 */}
       <Section id="decoders" title="A final norm, then four decoders at every position" kicker="Step 1">
         <p>
-          After the last block the forward pass applies one more <Term id="rmsnorm">RMSNorm</Term>, <code>norm_out</code>, to every position{' '}
-          <Cite kind="code" ref="rt/model.py:229" />. Chapter 11 followed the vector up to this point. Next come the decoders, which the paper calls
-          “cell decoders (also called prediction heads), one for each datatype” <Cite kind="paper" ref="p.6 §3.3" />.
+          Chapter 11 followed the vector through the last block. The forward pass then applies one more <Term id="rmsnorm">RMSNorm</Term>,{' '}
+          <code>norm_out</code>, to every position <Cite kind="code" ref="rt/model.py:229" /> and hands the result to what the paper calls “cell
+          decoders (also called prediction heads), one for each datatype” <Cite kind="paper" ref="p.6 §3.3" />.
         </p>
         <CodeRef title="The blocks, then norm_out" file="rt/model.py" lines="226-229" code={MODEL_BLOCKS_NORM_OUT_226_229} highlightLines={[229]} />
         <p>
           In the code the decoders are four <code>nn.Linear</code> layers in a dictionary, <code>dec_dict</code>. The number, datetime and boolean
           heads map the d-dimensional vector to a single value. The text head maps it to 384 values, the size of a MiniLM sentence embedding{' '}
-          <Cite kind="code" ref="rt/model.py:124-131" />. All four have a bias.
+          <Cite kind="code" ref="rt/model.py:124-131" />. Each one has a bias.
         </p>
         <CodeRef title="dec_dict: one linear decoder per data type" file="rt/model.py" lines="124-131" code={MODEL_DEC_DICT_124_131} defaultOpen />
         <p>
           The forward pass applies every head to the whole sequence, so each position, padding included, gets four outputs{' '}
           <Cite kind="code" ref="rt/model.py:238-239" />. Only one of these values is ever used: the output of the head that matches the masked cell’s
           type, at the masked position <Cite kind="spec" ref="§8.1" />. In the paper’s words, “the decoder to select for final prediction depends on
-          the task type, or equivalently on the datatype of the masked cell” <Cite kind="paper" ref="p.6 §3.3" />. Step through it for the live
+          the task type, or equivalently on the datatype of the masked cell” <Cite kind="paper" ref="p.6 §3.3" />. Step through it in the live
           context:
         </p>
         <DecoderFan lane={g} pos={pos} setPos={setPos} />
@@ -115,40 +113,29 @@ export default function DecodingChapter() {
           lines="231-248"
           code={MODEL_DECODE_231_248}
           highlightLines={[239, 241, 246]}
-          note="yhat = self.dec_dict[t](x) is a (B, S, D_t) tensor: all positions at once. A type with no masked cell in the batch still gets a zero-weight “touch”."
+          note="yhat = self.dec_dict[t](x) is a (B, S, D_t) tensor: all positions at once."
         />
         <Callout variant="insight" title="Why compute outputs nobody reads?">
           <p>
-            Applying a head to the whole <TeX tex="(B, S, d)" /> tensor is one matrix product; picking out the masked cells afterwards with a 0/1 mask
-            is the plain way to write this in batched PyTorch. The zero-weight “touch” <code>yhat.sum() * 0.0</code> has a reason stated in the code
-            itself: “still touch the param to avoid unused param error” <Cite kind="code" ref="rt/model.py:243-247" />. Distributed training expects
-            every parameter to take part in each backward pass, and a batch whose targets are all boolean would otherwise leave the number and
-            datetime heads out <Cite kind="spec" ref="§8.1" />.
+            Applying a head to the whole <TeX tex="(B, S, d)" /> tensor is one matrix product, and picking out the masked cells afterwards with a 0/1
+            mask is the plain way to write that in batched PyTorch. When a type has no masked cell in the batch, the line{' '}
+            <code>yhat.sum() * 0.0</code> adds zero to the loss. It is there only because distributed training expects every parameter to take part
+            in each backward pass <Cite kind="code" ref="rt/model.py:243-247" />.
           </p>
         </Callout>
 
         <h3>The text head is never trained</h3>
         <p>
-          Text cells are never masked. The paper only masks “cells in boolean or numeric columns” <Cite kind="paper" ref="p.6 §3.3" />, and the code
-          refuses outright: <code className="!whitespace-normal !break-words">raise ValueError("masking text not supported")</code>{' '}
-          <Cite kind="code" ref="rt/model.py:256-257" />. So no text output ever enters a loss, and the text head always falls in the “touch” branch:
-          its gradient is exactly zero <Cite kind="spec" ref="§8.1" />. One thing still moves it. The optimizer is a single AdamW parameter group with
-          weight decay on every parameter <Cite kind="code" ref="rt/main.py:188-195" /> <Cite kind="spec" ref="§9.2" />, and you can see the trace of
-          that in our checkpoint:
+          Text cells are never masked. The paper masks only “cells in boolean or numeric columns” <Cite kind="paper" ref="p.6 §3.3" />, and the code
+          raises an error if asked to: <code className="!whitespace-normal !break-words">raise ValueError("masking text not supported")</code>{' '}
+          <Cite kind="code" ref="rt/model.py:256-257" />. No text output enters a loss, so the text head gets no gradient{' '}
+          <Cite kind="spec" ref="§8.1" />. It runs at every position like the other heads and learns nothing.
         </p>
-        <TextHeadCheck lane={g} />
-        <CodeRef
-          title="One AdamW parameter group: weight decay reaches every parameter"
-          file="rt/main.py"
-          lines="188-195"
-          code={MAIN_ADAMW_188_195}
-        />
 
         <h3>Reading the prediction</h3>
         <p>
-          At evaluation time the code reads the boolean head for classification tasks and the number head for regression tasks, always at the
-          positions flagged <code>is_targets</code> <Cite kind="code" ref="rt/main.py:283-293" />. Which tasks count as regression is decided by a
-          hard-coded list of RelBench task names <Cite kind="code" ref="rt/main.py:228-241" /> <Cite kind="spec" ref="§8.3" />.
+          At evaluation time the code reads the boolean head for classification tasks and the number head for regression tasks, at the positions
+          flagged <code>is_targets</code> <Cite kind="code" ref="rt/main.py:283-293" />.
         </p>
         <CodeRef
           title="Read the prediction and the label at is_targets"
@@ -157,58 +144,40 @@ export default function DecodingChapter() {
           code={MAIN_READOUT_283_293}
           highlightLines={[284, 287]}
         />
-        <Callout variant="note" title="How this site picks the head">
-          <p>
-            The list names RelBench tasks. Only one of our tasks, ForumDB’s post-votes, happens to share a name with one of them. The engine therefore
-            reads the head that matches the masked cell’s type. On this site every binary task has a boolean target and every regression task a number
-            target, so this picks the same head as a list naming all our regression tasks would <Cite kind="spec" ref="§8.3" />.
-          </p>
-          <CodeRef title="main.py: the hard-coded list of regression tasks" file="rt/main.py" lines="228-241" code={MAIN_TASK_TYPE_228_241} />
-        </Callout>
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 2 */}
       <Section id="binary" title="Binary targets: from logit to probability" kicker="Step 2">
         <p>
           For a binary task the masked cell is a boolean, so the boolean head is read. Its output <TeX tex="\hat z" /> is an unbounded real number, a{' '}
-          <em>logit</em>. The paper-era code never turns it into a probability: the loss takes the logit directly{' '}
-          <Cite kind="code" ref="rt/model.py:253-255" />, and so does the AUROC <Cite kind="code" ref="rt/main.py:337" />. A probability is still the
-          natural number to show a person, and the authors’ later leaderboard script computes it with the sigmoid <Cite kind="spec" ref="§8.4" />:
+          <em>logit</em>. The code never turns it into a probability: the loss takes the logit directly{' '}
+          <Cite kind="code" ref="rt/model.py:253-255" />, and so does the AUROC <Cite kind="code" ref="rt/main.py:337" />. To show a person a
+          probability, apply the sigmoid <Cite kind="spec" ref="§8.4" />:
         </p>
         <MathBlock tex={SIGMOID_TEX} label={<Cite kind="spec" ref="§8.4" />} />
         <BinarySentence lane={live.binary} />
         <BinaryFigure lane={live.binary} />
         <p>
-          The label is still inside the masked token: its <code>boolean_values</code> slot holds the true value, gated out of the input so the model
-          cannot read it (<Link to="/tokens">chapter 7</Link>) <Cite kind="spec" ref="§5.3" />. That stored value is a z-score, like every boolean (
-          <Link to="/preprocessing">chapter 4</Link>). With a share μ of true values strictly between 0 and 1, true becomes{' '}
-          <TeX tex="(1-\mu)/\sigma > 0" /> and false becomes <TeX tex="-\mu/\sigma < 0" />, so the sign alone recovers the class{' '}
-          <Cite kind="spec" ref="§3.3" />. That is why the paper writes the loss as <TeX tex="\mathrm{BCE}(\mathbf{1}\{r>0\}, r')" />{' '}
-          <Cite kind="paper" ref="p.6 §3.3" /> and why the evaluation converts labels with <code>int(x &gt; 0)</code>{' '}
-          <Cite kind="code" ref="rt/main.py:336" />.
+          The label is still inside the masked token. Its <code>boolean_values</code> slot holds the true value, gated out of the input so the model
+          cannot read it (<Link to="/tokens">chapter 7</Link>) <Cite kind="spec" ref="§5.3" />. Like every boolean, that stored value is a z-score (
+          <Link to="/preprocessing">chapter 4</Link>). If μ is the share of true values, true becomes <TeX tex="(1-\mu)/\sigma > 0" /> and false
+          becomes <TeX tex="-\mu/\sigma < 0" />, so the sign alone recovers the class <Cite kind="spec" ref="§3.3" />. That is why the paper writes
+          the loss as <TeX tex="\mathrm{BCE}(\mathbf{1}\{r>0\}, r')" /> <Cite kind="paper" ref="p.6 §3.3" /> and why the evaluation converts labels
+          with <code>int(x &gt; 0)</code> <Cite kind="code" ref="rt/main.py:336" />.
         </p>
-        <Callout variant="warning" title="A constant boolean column would break this">
-          <p>
-            If every value of a boolean column were the same, its standard deviation would be 0 and every z-score 0/0 = NaN. The code has no guard for
-            this, and the NaN would spread through full attention into the loss of the whole batch <Cite kind="spec" ref="§3.3" />. Our four databases
-            are built so that no boolean column is constant and every task’s Train split holds both classes.
-          </p>
-        </Callout>
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 3 */}
       <Section id="regression" title="Regression targets: from z‑score to the column’s units" kicker="Step 3">
         <p>
-          For a regression task the masked cell is a number, so the number head is read. Its output is a z-score: the prediction lives in the same
-          normalized scale as the stored label <Cite kind="spec" ref="§8.3" />. Each numeric column was z-scored with its own mean and sample standard
-          deviation, and the Val and Test rows of a task table reuse the Train split’s statistics{' '}
-          <Cite kind="code" ref="rustler/src/pre.rs:383-396" /> <Cite kind="spec" ref="§3.3" />. Undoing the z-score gives the prediction in the
-          column’s original units:
+          For a regression task the masked cell is a number, so the number head is read. Its output is a z-score, on the same normalized scale as
+          the stored label <Cite kind="spec" ref="§8.3" />. Each numeric column was z-scored with its own mean and standard deviation, and the Val
+          and Test rows of a task table reuse the Train split’s statistics <Cite kind="code" ref="rustler/src/pre.rs:383-396" />{' '}
+          <Cite kind="spec" ref="§3.3" />. Undoing the z-score gives the prediction in the column’s original units:
         </p>
         <MathBlock tex={DENORM_TEX} label={<Cite kind="spec" ref="§8.4" />} />
         <p>
-          Like the sigmoid, this step is for display only. The paper-era code never leaves z-space; the authors’ later leaderboard script performs
-          exactly this inversion with the Train statistics <Cite kind="spec" ref="§8.4" />.
+          Like the sigmoid, this step only matters for display. Training and evaluation both stay in z-space <Cite kind="spec" ref="§8.4" />.
         </p>
         <RegressionSentence lane={live.regression} />
         <RegressionFigure lane={live.regression} />
@@ -217,10 +186,10 @@ export default function DecodingChapter() {
       {/* ───────────────────────────────────────────────────────────── 4 */}
       <Section id="loss" title="The loss, with numbers" kicker="Step 4">
         <p>
-          Training compares the read output with the hidden label. The paper: “we apply HuberLoss(r, r′) for regression and binary cross-entropy loss
-          BCE(1{'{'}r &gt; 0{'}'}, r′) for binary classification. The overall loss is the mean over all masked cells in the batch”{' '}
-          <Cite kind="paper" ref="p.6 §3.3" />. Here r is the cell’s normalized value, so both losses work on z-scores <Cite kind="spec" ref="§8.2" />
-          . The same objective is used in pretraining and in fine-tuning <Cite kind="paper" ref="p.6 §3.3" />.
+          Training compares the read output with the hidden label. As the paper puts it, “we apply HuberLoss(r, r′) for regression and binary
+          cross-entropy loss BCE(1{'{'}r &gt; 0{'}'}, r′) for binary classification. The overall loss is the mean over all masked cells in the batch”{' '}
+          <Cite kind="paper" ref="p.6 §3.3" />. Here r is the cell’s normalized value, so both losses work on z-scores{' '}
+          <Cite kind="spec" ref="§8.2" />. Pretraining and fine-tuning use the same objective <Cite kind="paper" ref="p.6 §3.3" />.
         </p>
 
         <h3>Binary cross-entropy with logits</h3>
@@ -240,9 +209,9 @@ export default function DecodingChapter() {
         <h3>Huber loss</h3>
         <p>
           Number targets use <code>F.huber_loss</code> with its default δ = 1, on the residual between the predicted and the stored z-score{' '}
-          <Cite kind="code" ref="rt/model.py:250-251" /> <Cite kind="spec" ref="§8.2" />. The paper does not say why it chose Huber; the curve shows
-          what it does. Small errors are penalized like a squared error, large ones only linearly, so the gradient of a single cell never exceeds 1 in
-          size: an unusual label, such as a product with a sudden burst of sales, pulls on the weights no harder than any other badly predicted cell.
+          <Cite kind="code" ref="rt/model.py:250-251" /> <Cite kind="spec" ref="§8.2" />. Small errors are penalized like a squared error and large
+          ones only linearly, so the gradient from a single cell never exceeds 1 in size. An unusual label, such as a product with a sudden burst of
+          sales, pulls on the weights no harder than any other badly predicted cell.
         </p>
         <MathBlock tex={HUBER_TEX} label={<Cite kind="spec" ref="§8.2" />} />
         <HuberFigure lane={live.regression} />
@@ -254,10 +223,9 @@ export default function DecodingChapter() {
         </p>
         <MathBlock tex={MEAN_TEX} label={<Cite kind="code" ref="rt/model.py:265" />} />
         <p>
-          Each context has exactly one masked cell, so this is the plain mean over the contexts of the batch, 32 per GPU in the paper; DDP then
-          averages the gradients over 8 GPUs, which gives the mean over 256 <Cite kind="spec" ref="§8.2" />. There is no weight per task, per type or
-          per class, and no label smoothing <Cite kind="spec" ref="§8.2" />. Pretraining shuffles the items of all its tasks into one list, so a batch
-          can mix binary and regression cells <Cite kind="spec" ref="§4.14" />:
+          Each context has exactly one masked cell, so this is the plain mean over the contexts of the batch. No task, type or class gets extra
+          weight <Cite kind="spec" ref="§8.2" />. Pretraining shuffles the items of all its tasks into one list, so a batch can mix binary and
+          regression cells <Cite kind="spec" ref="§4.14" />:
         </p>
         <BatchFigure binary={live.binary} regression={live.regression} model={g} />
         <CodeRef
@@ -267,23 +235,6 @@ export default function DecodingChapter() {
           code={MODEL_LOSS_250_267}
           highlightLines={[251, 253, 254, 257, 265]}
         />
-        <Callout
-          variant="paper-vs-code"
-          title="Datetime and text targets"
-          paper={
-            <>
-              “we only mask cells in boolean or numeric columns … HuberLoss(r, r′) for regression and … BCE(1{'{'}r &gt; 0{'}'}, r′) for binary
-              classification” <Cite kind="paper" ref="p.6 §3.3" />
-            </>
-          }
-          code={
-            <>
-              Huber for <code>number</code> <em>and</em> <code>datetime</code> targets; a <code>ValueError</code> for <code>text</code>{' '}
-              <Cite kind="code" ref="rt/model.py:250-257" />
-            </>
-          }
-          verdict="Identical for every task in the paper and on this site, whose targets are all boolean or number (spec §10 #15, #19). The site follows the code."
-        />
       </Section>
 
       {/* ───────────────────────────────────────────────────────────── 5 */}
@@ -291,8 +242,8 @@ export default function DecodingChapter() {
         <p>
           The paper scores binary tasks with <Term id="auroc">AUROC</Term> and regression tasks with <Term id="r2">R²</Term>{' '}
           <Cite kind="paper" ref="p.8 Tables 1-2" />. The evaluation loop collects the read output and the stored label of every evaluated seed, then
-          calls scikit-learn once per task and split <Cite kind="code" ref="rt/main.py:328-337" />. Each seed gets one context and one forward pass,
-          with no averaging over several contexts <Cite kind="spec" ref="§8.5" />: “a single forward pass” <Cite kind="paper" ref="p.1" />.
+          calls scikit-learn once per task and split <Cite kind="code" ref="rt/main.py:328-337" />. Each seed gets one context and “a single forward
+          pass” <Cite kind="paper" ref="p.1" />, with no averaging over several contexts <Cite kind="spec" ref="§8.5" />.
         </p>
         <CodeRef
           title="The metrics: r2_score on z-scores, roc_auc_score on raw logits"
@@ -305,7 +256,7 @@ export default function DecodingChapter() {
 
         <h3>AUROC</h3>
         <p>
-          AUROC is the area under the ROC curve. It also has a direct reading: pick one seed whose label is 1 and one whose label is 0 at random;
+          AUROC is the area under the ROC curve. It also has a direct reading: pick at random one seed whose label is 1 and one whose label is 0.
           AUROC is the probability that the first gets the higher score, with ties counting half. Only the <em>order</em> of the scores matters. The
           sigmoid never changes the order of two logits, so AUROC on logits equals AUROC on probabilities, and the code can skip the sigmoid{' '}
           <Cite kind="spec" ref="§8.5" />. The figure evaluates every seed of the split in your browser.
@@ -319,19 +270,14 @@ export default function DecodingChapter() {
         </p>
         <MathBlock tex={R2_TEX} label={<Cite kind="spec" ref="§8.5" />} />
         <p>
-          Predicting <TeX tex="\bar y" /> for every seed scores exactly 0, which is why the paper’s Table 2 notes “Global mean baseline is 0.0”{' '}
-          <Cite kind="paper" ref="p.8 Table 2" />. A negative R² is worse than that baseline. The code computes R² on z-scores. Converting labels and
-          predictions to original units multiplies both sums by σ², and the ratio does not change <Cite kind="spec" ref="§8.5" />.
+          Predicting <TeX tex="\bar y" /> for every seed scores exactly 0, which the paper’s Table 2 calls the global mean baseline{' '}
+          <Cite kind="paper" ref="p.8 Table 2" />. A negative R² is worse than that. The code computes R² on z-scores. Converting labels and
+          predictions to original units multiplies both sums by σ², so their ratio, and R², stay the same <Cite kind="spec" ref="§8.5" />.
         </p>
         <R2Figure lane={live.regression} />
-        <Callout variant="note" title="This evaluation and the paper’s">
-          <p>
-            The paper evaluates a fixed subset of at most 10,240 seeds per split and task, with labels and predictions in bfloat16, whose coarse
-            rounding produces tied scores. Under 8-GPU evaluation the last batch of a small split can even count some seeds twice{' '}
-            <Cite kind="spec" ref="§8.6" /> <Cite kind="spec" ref="§12" />. Here every seed is evaluated once, in float32, in one process. And the
-            numbers are our mini model’s on synthetic data: the paper’s own results are in chapter 16.
-          </p>
-        </Callout>
+        <p>
+          These are our mini model’s numbers on synthetic data. The paper’s own results are in <Link to="/results">chapter 16</Link>.
+        </p>
         <ScaleNote
           paper="12 blocks, d = 256, L = 1024, RelBench test splits"
           ours={`4 blocks, d = 64, L = ${g.L}, ShopDB splits of a few dozen seeds`}
@@ -341,31 +287,30 @@ export default function DecodingChapter() {
       {/* ───────────────────────────────────────────────────────────── 6 */}
       <Section id="shared" title="One decoder per type, shared by everything" kicker="Step 6">
         <p>
-          There is one number head and one boolean head for the whole model, not one per column, table or database{' '}
+          The whole model has a single number head and a single boolean head, shared by every column, table and database{' '}
           <Cite kind="code" ref="rt/model.py:115-131" /> <Cite kind="spec" ref="§8.1" />. The same handful of weights predicts the sales of a product,
-          the rating of a review and, in the pretraining databases, the grade of a submission or the points of a driver. Its output is read in the
-          target column’s own z-space, as a number of standard deviations above that column’s mean <Cite kind="spec" ref="§8.1" />. The head never
-          learns which column it is predicting; that information reaches it only through <TeX tex="\hat x" />, which carries the column-name embedding
-          of the masked token (<Link to="/embedding">chapter 8</Link>).
+          the rating of a review and, in the pretraining databases, the grade of a submission or the points of a driver. The output is read in the
+          target column’s own z-space, as a number of standard deviations above that column’s mean <Cite kind="spec" ref="§8.1" />. Nothing in the
+          head itself says which column it is predicting. That information reaches it only through <TeX tex="\hat x" />, which carries the
+          column-name embedding of the masked token (<Link to="/embedding">chapter 8</Link>).
         </p>
         <SharedHeadsFigure />
         <p>
-          This sharing is what lets a pretrained model answer for a column it has never seen. Our pretrained heads learned from the targets of
-          SchoolDB, RacingDB and ForumDB, and are read on ShopDB without any weight update <Cite kind="spec" ref="§9.4" />. Per-column z-scoring is
-          what lets one output scale serve them all: over the rows that define its statistics, every regression target has mean 0 and standard
-          deviation 1.
+          Because the heads are shared, a pretrained model can answer for a column it has never seen. Our pretrained heads learned from the targets
+          of SchoolDB, RacingDB and ForumDB, and are read on ShopDB without any weight update <Cite kind="spec" ref="§9.4" />. One output scale can
+          serve all these columns because each is z-scored on its own: over the rows that define its statistics, every regression target has mean 0
+          and standard deviation 1.
         </p>
         <DecoderSizes />
         <Callout variant="note" title="The vector before the decoders">
           <p>
-            The normalized vector <TeX tex="\hat x" /> at the masked position is useful on its own. The paper’s Table 3 trains only a small MLP on top
-            of it (“RT as feature extractor”) <Cite kind="paper" ref="p.8 §4.4" />. That probe is not part of the released paper-era code{' '}
-            <Cite kind="spec" ref="§9.5" />.
+            The normalized vector <TeX tex="\hat x" /> at the masked position is useful on its own. For “RT as feature extractor” in Table 3, the
+            paper trains only a small MLP on top of it <Cite kind="paper" ref="p.8 §4.4" />.
           </p>
         </Callout>
         <p>
-          This was the last piece of the forward pass. <Link to="/end-to-end">The next chapter</Link> puts all of them together on one page, from the
-          task row to this output, with every matrix and weight of a single prediction.
+          The decoders are the last piece of the forward pass. <Link to="/end-to-end">The next chapter</Link> puts all the pieces together on one
+          page, from the task row to this output, with every matrix and weight of a single prediction.
         </p>
       </Section>
 
@@ -409,7 +354,7 @@ export default function DecodingChapter() {
                   why: 'That is the loss of boolean targets.',
                 },
               ],
-              explanation: 'model.py:250-251 applies F.huber_loss to number (and datetime) targets; the residual is in units of the column’s σ.',
+              explanation: 'model.py:250-251 applies F.huber_loss to number targets; the residual is measured in units of the column’s σ.',
             },
             {
               prompt:

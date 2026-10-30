@@ -146,8 +146,8 @@ const STEP_TEXT = (i: number, block: number) => {
   if (i === 0) return `Block ${b} receives the residual stream x from ${block === 0 ? 'the input embedding' : `block ${block}`}.`;
   if (i === 6) return `Block ${b} hands x′ = x + five updates to ${block === 3 ? 'the final RMSNorm' : `block ${b + 1}`}. Nothing else changes the stream.`;
   const s = SUBLAYERS[i - 1];
-  if (s === 'ffn') return 'RMSNorm_ffn rescales a copy of x; SwiGLU transforms each token on its own; the result is added back.';
-  return `RMSNorm_${s} rescales a copy of x; ${SUB_NAME[s].toLowerCase()} attention reads it under the ${SUB_NAME[s].toLowerCase()} mask; the result is added back to x.`;
+  if (s === 'ffn') return 'RMSNorm_ffn rescales a copy of x, SwiGLU transforms each token on its own, and the result is added back to x.';
+  return `RMSNorm_${s} rescales a copy of x, ${SUB_NAME[s].toLowerCase()} attention reads it under the ${SUB_NAME[s].toLowerCase()} mask, and the result is added back to x.`;
 };
 
 export function BlockDiagram({ live, follow, setFollow }: { live: BlockLive; follow: number; setFollow: (p: number) => void }) {
@@ -510,8 +510,8 @@ function Inspector({ live, block, active, stages, follow }: { live: BlockLive; b
         </dl>
         {isAttn && nKeys === 0 && (
           <p className="!mb-0 mt-3 rounded-lg border border-border bg-surface px-3 py-2 text-[15.5px] leading-snug text-ink-2">
-            This token’s neighbor row is empty: no row in the context points to its row. FlexAttention returns exactly 0 for a fully masked
-            query, and W<sub>o</sub> has no bias, so the update is the zero vector and the stream passes through unchanged.
+            This token’s neighbor row is empty: no row in the context points to its row. With no key to read, the attention output is 0, and
+            W<sub>o</sub> has no bias, so the update is the zero vector and the stream passes through unchanged.
           </p>
         )}
         <div className="mt-3">

@@ -271,16 +271,15 @@ function TextView({ ex }: { ex: ShopExample }) {
   return (
     <div>
       <div className="mb-2 text-[15px] text-ink-2">
-        The same {int(rows)} sampled rows as JSON, parents merged into their child and children appended as lists, the way the paper serializes the
-        context for its LLM baseline <Cite kind="paper" ref="p.25 App. I.2" />:
+        The same {int(rows)} sampled rows as JSON, with parents merged into their child and children appended as lists, the way the paper
+        serializes the context for its LLM baseline <Cite kind="paper" ref="p.25 App. I.2" />:
       </div>
       <pre className="max-h-[300px] overflow-auto rounded-lg border border-border bg-[var(--code-bg)] px-3.5 py-3 font-mono text-[14px] leading-[1.5] text-[var(--code-ink)]">
         {lines.slice(0, 60).join('\n')}
         {lines.length > 60 && `\n  … ${int(lines.length - 60)} more lines`}
       </pre>
       <p className="!mb-0 mt-3 text-[15.5px] leading-snug text-ink-2">
-        <strong className="text-ink">{int(text.length)} characters</strong> of text for what RT reads as {int(ex.ctx.numReal)} cell tokens. Our
-        reconstruction follows the paper’s description of the format; the authors’ serializer is not part of the paper-era code.
+        <strong className="text-ink">{int(text.length)} characters</strong> of text for what RT reads as {int(ex.ctx.numReal)} cell tokens.
       </p>
     </div>
   );

@@ -146,11 +146,8 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
         <>
           Each square is one token (color = table, “?” = the masked target). Shuffling moves the squares to random positions: the token arrays are
           permuted, the four masks are rebuilt from the permuted ids <span className="whitespace-nowrap"><Cite kind="code" ref="rt/model.py:165-191" />,</span> and the full forward pass runs
-          again in your browser. Mathematically the result is exact. In floating point a different key order can change the last bits, so the
-          official bfloat16 model gives equality up to rounding. This site’s engine adds up its dot products and weighted sums in 64-bit floats and
-          stores 32-bit results (<span className="font-mono">src/engine/model/ops.ts</span>), so a different summation order moves the sums far
-          below what a 32-bit float can hold, and the comparison reports what it actually gets. Focus the squares and use the arrow keys to follow
-          one token.
+          again in your browser. Adding the same numbers in a different order can change the last bits of a float, so a tiny |Δ| here is rounding.
+          Focus the squares and use the arrow keys to follow one token.
         </>
       }
     >
@@ -239,7 +236,7 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
           </div>
           <div className="mt-1 text-[14.5px] text-ink-2">
             {current
-              ? `over all ${ctx.numReal} × ${fr?.d ?? 0} numbers of the final hidden states, matched token by token${current.maxEquivDiff > 0 ? ' (float32 rounding from a different summation order)' : ''}.`
+              ? `over all ${ctx.numReal} × ${fr?.d ?? 0} numbers of the final hidden states, matched token by token${current.maxEquivDiff > 0 ? ' (rounding from a different summation order)' : ''}.`
               : 'compares the final vector of every token'}{' '}
             d = {fr?.d ?? 0} here, {PAPER_D} in the paper <ScaleNote inline className="ml-0.5" />
           </div>
@@ -320,8 +317,8 @@ export function ShuffleDemo({ live }: { live: TokensLive }) {
             ; the widest here is <span className="text-ink">{band.label}</span>, whose cells {band.readers} child cells may read
           </>
         ) : null}
-        . After the shuffle the picture looks scattered, yet every entry still says the same thing about the same pair of cells: it is the same
-        relation, written in a different order. Hover a square or a matrix row to light up that token’s row and column in both drawings.
+        . After the shuffle the picture looks scattered, yet every entry still says the same thing about the same pair of cells. It is the same
+        relation written in a different order. Hover a square or a matrix row to light up that token’s row and column in both drawings.
         {fr && current ? ` Forward pass: ${formatNumber(current.ms, 0)} ms.` : ''}
       </p>
     </Figure>

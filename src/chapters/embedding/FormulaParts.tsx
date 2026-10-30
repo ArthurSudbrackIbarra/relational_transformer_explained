@@ -115,8 +115,8 @@ export const SymbolTable = memo(function SymbolTable({ config }: { config: RTCon
       </div>
       <p className="mt-2 text-[15px] leading-snug text-ink-2 [&_code]:text-[14.5px]">
         Batch fields are written by the sampler <Cite kind="code" ref="rustler/src/fly.rs:462-500" />; the parameters are created in{' '}
-        <Cite kind="code" ref="rt/model.py:115-146" />. Shapes follow PyTorch’s <code>nn.Linear</code> convention, weight = [out × in]. The 384 MiniLM dimensions are the same in both models;
-        only d changes ({d} here, {D} in the paper <Cite kind="paper" ref="p.6 §4.1" />).
+        <Cite kind="code" ref="rt/model.py:115-146" />. Shapes follow PyTorch’s <code>nn.Linear</code> convention, weight = [out × in]. Only d
+        differs between the two models ({d} here, {D} in the paper <Cite kind="paper" ref="p.6 §4.1" />).
       </p>
     </div>
   );

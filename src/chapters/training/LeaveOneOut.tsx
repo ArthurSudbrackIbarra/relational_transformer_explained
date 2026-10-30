@@ -40,8 +40,8 @@ export function LeaveOneOut({ set, dataset, results }: { set: PretrainSet | null
       <figcaption className="mx-auto mt-3 max-w-[var(--prose-max)] text-[16px] leading-snug text-ink-2">
         {view === 'site' ? (
           <>
-            Counts are computed live by the engine. Forecast tasks contribute their Train split; autocomplete tasks every row of their table{' '}
-            <Cite kind="code" ref="rt/data.py:77-81" />. ShopDB’s tables, column names and rows never reach the optimizer.
+            Counts are computed live by the engine. Forecast tasks contribute their Train split, autocomplete tasks every row of their table{' '}
+            <Cite kind="code" ref="rt/data.py:77-81" />.
           </>
         ) : (
           <>

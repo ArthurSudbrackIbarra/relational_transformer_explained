@@ -3,10 +3,9 @@
  * focus row, so they are memoized: walking the database never re-highlights the code listings.
  */
 import { memo } from 'react';
-import { Cite, CodeRef, TableSwatch } from '@/components';
+import { Cite, CodeRef } from '@/components';
 import { InTheCode } from './InTheCode';
-import type { timestampCoverage } from './model';
-import { CELLS, EDGES, KEYS, META, TEMPORAL, TS } from './snippets';
+import { CELLS, EDGES, KEYS, META, TEMPORAL } from './snippets';
 
 export const MetaCode = memo(function MetaCode() {
   return (
@@ -34,7 +33,7 @@ export const KeysCode = memo(function KeysCode() {
           <>
             Lines 439-442: the primary-key column is skipped, so it makes no token and no edge. For a foreign key, a null value is skipped
             (462-464), the parent is <code>ptable_offset + val</code> (477), and its index is pushed onto the row’s parent list{' '}
-            <code>f2p_nbr_idxs</code> (479). The <code>continue</code> at the end of the branch (line 532, below this excerpt) means no cell is ever made from a key{' '}
+            <code>f2p_nbr_idxs</code> (479). The branch ends with a <code>continue</code> (line 532, below this excerpt), so a key never makes a cell{' '}
             <Cite kind="spec" ref="§1.2" />.
           </>
         }
@@ -55,11 +54,10 @@ export const CellsCode = memo(function CellsCode() {
   return (
     <InTheCode title="how preprocessing splits a row">
       <p>
-        The primary-key column is skipped outright <Cite kind="code" ref="rustler/src/pre.rs:439-442" />. A foreign-key column produces no token
-        either; each non-null value becomes an entry in the row’s parent list plus a pair of edges{' '}
-        <Cite kind="code" ref="rustler/src/pre.rs:444-533" />. Every remaining column is a feature column. Each of its cells that is neither
-        null nor a NaN float becomes a cell record <Cite kind="code" ref="rustler/src/pre.rs:552" />
-        <Cite kind="code" ref="rustler/src/pre.rs:566-568" />, whose type follows its storage type{' '}
+        The primary-key column is skipped outright <Cite kind="code" ref="rustler/src/pre.rs:439-442" />. A foreign-key column makes no token
+        either: each non-null value becomes an entry in the row’s parent list plus a pair of edges{' '}
+        <Cite kind="code" ref="rustler/src/pre.rs:444-533" />. Every remaining column is a feature column, and each of its non-missing cells
+        becomes a cell record <Cite kind="code" ref="rustler/src/pre.rs:552" />, typed by how the column is stored{' '}
         <Cite kind="code" ref="rustler/src/pre.rs:543-611" />. Chapter 4 follows those records into numbers.
       </p>
       <CodeRef
@@ -71,8 +69,7 @@ export const CellsCode = memo(function CellsCode() {
         defaultOpen
         note={
           <>
-            <code>UInt32</code>, <code>Int32</code>, <code>Int64</code> and <code>Float32</code> values are cast to <code>Float64</code> and
-                become numbers. A null matches the empty arm on line 552 and
+            Integer and 32-bit float values are cast to <code>Float64</code> and become numbers. A null matches the empty arm on line 552 and
             leaves no trace. The boolean arm shown here is one of four (number, datetime and text follow in lines 565-605){' '}
             <Cite kind="spec" ref="§3.2" />
             <Cite kind="spec" ref="§3.5" />.
@@ -83,95 +80,20 @@ export const CellsCode = memo(function CellsCode() {
   );
 });
 
-export interface TimestampCodeProps {
-  coverage: ReturnType<typeof timestampCoverage>;
-  slots: Record<string, number>;
-  timeNoFk: { title: string; table: string; timeCol: string; rows: number; withTs: number; local: boolean } | null;
-  dbShort: string;
-  noFkTables: string[];
-}
-
-export const TimestampCode = memo(function TimestampCode({ coverage, slots, timeNoFk, dbShort, noFkTables }: TimestampCodeProps) {
+export const TimeFilterCode = memo(function TimeFilterCode() {
   return (
-    <InTheCode title="which rows carry a timestamp">
-      <p>
-        The code takes a row’s timestamp from its time column, in whole seconds, but it sets it only inside the loop over foreign keys{' '}
-        <Cite kind="code" ref="rustler/src/pre.rs:481-493" />. A row therefore gets a timestamp only if its table has a time column, its time value
-        is not null, and it has at least one non-null foreign key <Cite kind="spec" ref="§1.4" />. Counted in the live preprocessed graph:
-      </p>
-      <div className="scroll-quiet mb-3 overflow-x-auto">
-        <table className="w-full border-collapse text-[15.5px]">
-          <thead>
-            <tr className="border-b border-grid text-left align-bottom text-ink-2">
-              <th scope="col" className="py-1.5 pr-3 font-semibold">
-                table<span className="sm:hidden"> and time column</span>
-              </th>
-              <th scope="col" className="hidden py-1.5 pr-3 font-semibold sm:table-cell">
-                time column
-              </th>
-              <th scope="col" className="py-1.5 pr-3 text-right font-semibold">
-                <abbr title="foreign keys" className="no-underline sm:hidden">
-                  FKs
-                </abbr>
-                <span className="hidden sm:inline">foreign keys</span>
-              </th>
-              <th scope="col" className="py-1.5 text-right font-semibold">
-                <span className="sm:hidden">with timestamp</span>
-                <span className="hidden sm:inline">rows with a timestamp</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {coverage.map((c) => (
-              <tr key={c.table} className="border-b border-grid/70">
-                <td className="py-1.5 pr-3">
-                  <TableSwatch slot={slots[c.table] ?? 0} label={c.table} />
-                  <div className="text-[14px] whitespace-nowrap text-ink-2 sm:hidden">
-                    {c.timeCol ? <span>{c.timeCol}</span> : 'no time column'}
-                  </div>
-                </td>
-                <td className="hidden py-1.5 pr-3 text-[15px] text-ink-2 sm:table-cell">{c.timeCol ?? '—'}</td>
-                <td className="num py-1.5 pr-3 text-right text-ink">{c.nFk}</td>
-                <td className="num py-1.5 text-right whitespace-nowrap text-ink">
-                  {c.withTs.toLocaleString('en-US')} / {c.rows.toLocaleString('en-US')}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {timeNoFk && (
-        <p>
-          A time column alone is therefore not enough.{' '}
-          {timeNoFk.local ? `${dbShort} itself shows the edge case: its` : `${timeNoFk.title}, one of the other databases on this site, shows the edge case: its`}{' '}
-          <code>{timeNoFk.table}</code> table declares <code>{timeNoFk.timeCol}</code> as its time column but has no foreign key, so{' '}
-          {timeNoFk.withTs === 0 ? 'none' : timeNoFk.withTs} of its {timeNoFk.rows} rows get{timeNoFk.withTs <= 1 ? 's' : ''} a timestamp in the
-          preprocessed graph <Cite kind="spec" ref="§1.4" />.
-        </p>
-      )}
-      <CodeRef
-        title="A row’s timestamp is set inside the foreign-key loop"
-        file={TS.file}
-        lines={TS.lines}
-        code={TS.code}
-        defaultOpen
-        note={
-          <>
-            Nanoseconds divided by 10⁹: whole seconds. Because this runs only for non-null foreign-key values, a table without foreign keys
-            {noFkTables.length > 0 ? ` (${noFkTables.join(', ')})` : ''} never gets a timestamp, time column or not <Cite kind="spec" ref="§1.4" />.
-          </>
-        }
-      />
+    <InTheCode title="how the sampler applies the time rule">
       <CodeRef
         title="Preview of chapter 6: parents unfiltered, children checked against the seed’s time"
         file={TEMPORAL.file}
         lines={TEMPORAL.lines}
         code={TEMPORAL.code}
         highlightLines={[406, 407, 408, 421, 422, 423, 424]}
+        defaultOpen
         note={
           <>
-            Lines 406-408 push every parent with no time test. Lines 421-424 drop a child only when both timestamps exist and the child’s is later
-            than the seed’s <Cite kind="spec" ref="§4.6" />.
+            Lines 406-408 push every parent with no time test. Lines 421-424 drop a child whose timestamp is later than the seed’s{' '}
+            <Cite kind="spec" ref="§4.6" />.
           </>
         }
       />

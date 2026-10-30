@@ -244,8 +244,7 @@ export function generateRacing(seed = RACING_SEED): GeneratedDb {
         fkeys: {},
         timeCol: 'race_date',
         description:
-          'One row per race. It has a time column but no foreign key, so preprocessing gives its rows no timestamp ' +
-          '(pre.rs sets a row timestamp only inside the foreign-key loop).',
+          'One row per race. It has a time column but no foreign key, so preprocessing gives its rows no timestamp.',
         columns: [
           col('race_id', 'int', 'Primary key (= row position; races are in calendar order).'),
           col('circuit', 'str', 'Circuit where the race is held.'),

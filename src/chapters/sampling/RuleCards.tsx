@@ -120,11 +120,11 @@ export function RuleCards() {
       <Card
         n={1}
         icon={<Layers size={17} />}
-        title="Parents first, always, never filtered"
+        title="Parents first, never filtered"
         rule={
           <>
-            Whenever the F→P stack is non-empty, its top is popped: no randomness, no time filter, no width bound, and the last foreign key pushed is
-            followed first.
+            As long as the F→P stack is not empty, the sampler pops its top entry, without any random choice. Parents skip both the time filter and the
+            width bound, and the last foreign key pushed is followed first.
           </>
         }
         cite={
@@ -142,8 +142,8 @@ export function RuleCards() {
         }
         code={
           <>
-            no random pick: a LIFO pop. Each parent’s own parents go on top, so foreign-key chains are followed depth-first, completely, before any child
-            row <Cite kind="spec" ref="§4.4" />.
+            a LIFO pop instead of a random pick. A parent’s own parents go on top of the stack, so a chain of foreign keys is followed to its end before any
+            child row is drawn <Cite kind="spec" ref="§4.4" />.
           </>
         }
         example={
@@ -171,8 +171,8 @@ export function RuleCards() {
         title="Children only if not later than the seed"
         rule={
           <>
-            A P→F child is skipped only when both timestamps exist and the child’s is later than the seed’s. Equal timestamps pass, rows without a timestamp
-            pass, and the comparison is always against the <em>seed</em>, never the current row.
+            A P→F child is skipped only when both timestamps exist and the child’s is later than the seed’s. Equal timestamps pass, and so do rows without a
+            timestamp. The comparison is always with the <em>seed’s</em> timestamp, whichever row is being expanded.
           </>
         }
         cite={
@@ -183,15 +183,13 @@ export function RuleCards() {
         }
         paper={
           <>
-            the prose says “rows with timestamps later than the seed row are excluded” <Cite kind="paper" ref="p.4 §3.1" />, and training uses database rows
-            “only up to the training cutoff timestamps” <Cite kind="paper" ref="p.6 §4.1" />; Algorithm 1 itself applies <span className="font-mono">T(q) ≤ T(s)</span> only
-            to P→F neighbors <Cite kind="paper" ref="p.15 Alg. 1" />.
+            Algorithm 1 keeps the P→F neighbors with <span className="font-mono">T(q) ≤ T(s)</span> <Cite kind="paper" ref="p.15 Alg. 1" />.
           </>
         }
         code={
           <>
-            the same scope as Algorithm 1 (parents are never tested), but the test needs both timestamps: a child without one passes, and a seed without one
-            disables the filter <Cite kind="code" ref="rustler/src/fly.rs:406-424" />. No global cutoff exists <Cite kind="spec" ref="§10" />.
+            the same test, also on children only, but it needs both timestamps: a child without one passes, and a seed without one turns the filter off{' '}
+            <Cite kind="code" ref="rustler/src/fly.rs:406-424" />.
           </>
         }
         example={
@@ -214,8 +212,8 @@ export function RuleCards() {
         title="At most w DB children per row; task rows never subsampled"
         rule={
           <>
-            If more than w of a row’s DB children pass the time filter, a uniform random w of them is kept (without replacement). Children from the seed’s
-            task table that pass the time filter bypass the bound: all of them enter the frontier.
+            If more than w of a row’s DB children pass the time filter, the sampler keeps a uniform random w of them (without replacement). Children from the
+            seed’s task table that pass the time filter all enter the frontier.
           </>
         }
         cite={
@@ -231,7 +229,7 @@ export function RuleCards() {
         }
         code={
           <>
-            only DB children are subsampled, and children that are already visited still count toward w <Cite kind="spec" ref="§4.7" />.
+            the bound applies to DB children only, so task rows are never subsampled <Cite kind="spec" ref="§4.7" />.
           </>
         }
         example={
@@ -270,7 +268,8 @@ export function RuleCards() {
         }
         code={
           <>
-            the last row can be partial: the loop does not finish the row it is writing <Cite kind="code" ref="rustler/src/fly.rs:502-509" />.
+            the row being written when the context fills up is cut short, so it does not add all of its cells{' '}
+            <Cite kind="code" ref="rustler/src/fly.rs:502-509" />.
           </>
         }
         example={

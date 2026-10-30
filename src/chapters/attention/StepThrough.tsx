@@ -253,10 +253,7 @@ function describe(stage: (typeof STAGES)[number]['id'], live: AttnLive, qv: Quer
       return (
         <>
           <strong className="font-semibold">Scores.</strong> The query’s head slice is dotted with every key’s head slice and divided by √{dh}.
-          Nothing is masked yet, as in the paper’s formula. The real FlexAttention kernel never computes the tiles of its block mask that hold no
-          allowed key <Cite kind="code" ref="rt/model.py:89-101" />{' '}
-          <Cite kind="url" ref="https://docs.pytorch.org/docs/2.8/nn.attention.flex_attention.html" title="PyTorch FlexAttention documentation" />,
-          which gives the same weights.
+          Nothing is masked yet. That happens in the next step.
         </>
       );
     case 'mask':
@@ -705,8 +702,7 @@ function BarsVisual({ live, qv, stage, inspected, onInspect }: { live: AttnLive;
       )}
       {keys.padding.length > 0 && (
         <p className="!mb-0 mt-1 text-[14px] text-muted">
-          Not drawn: {keys.padding.length} padding keys. Their k is the zero vector, so their score is 0, and the padding AND blocks them in every
-          mask <Cite kind="spec" ref="§6.2" />.
+          Not drawn: {keys.padding.length} padding keys, which every mask blocks <Cite kind="spec" ref="§6.2" />.
         </p>
       )}
     </div>
@@ -847,7 +843,7 @@ function StageMath({ stage, live, qv, inspected }: { stage: (typeof STAGES)[numb
         <KV k="row" v={rowName(ctx.tokens[query])} />
         <KV k="dimensions" v={d} />
         <KV k="‖x‖" v={norm2(qv.x).toFixed(3)} />
-        <p className="!mb-0 mt-2 text-ink-2">The same x feeds all {H} heads; heads split the projections, not the input.</p>
+        <p className="!mb-0 mt-2 text-ink-2">The same x feeds all {H} heads. The heads split the projections, and each one still sees the whole input.</p>
       </>
     );
   }
@@ -878,9 +874,8 @@ function StageMath({ stage, live, qv, inspected }: { stage: (typeof STAGES)[numb
         <KV k="γ range" v={`${sgn(gmin, 3)} … ${sgn(gmax, 3)}`} />
         <KV k="‖h‖" v={norm2(qv.h).toFixed(3)} />
         <p className="!mb-0 mt-2 text-ink-2">
-          Each attention layer of each block has its own RMSNorm, five per block with the feed-forward one <Cite kind="code" ref="rt/model.py:71-73" />. ε = 2⁻⁷:
-          with ε left at its default, PyTorch 2.6 uses the machine epsilon of bf16, the paper’s precision; this site keeps that value in float32{' '}
-          <Cite kind="spec" ref="§7.2" />.
+          Each attention layer of each block has its own RMSNorm, five per block counting the feed-forward one{' '}
+          <Cite kind="code" ref="rt/model.py:71-73" />. ε is a small constant that keeps the division away from zero <Cite kind="spec" ref="§7.2" />.
         </p>
       </>
     );
@@ -904,8 +899,8 @@ function StageMath({ stage, live, qv, inspected }: { stage: (typeof STAGES)[numb
         <KV k={<T tex={String.raw`\lVert v^{(${head + 1})}_{\#${inspected}}\rVert`} />} v={norm2(vh).toFixed(3)} />
         <KV k="head width" v={`${d} / ${H} = ${dh}`} />
         <p className="!mb-0 mt-2 text-ink-2">
-          For one token written as a column vector, <T tex="q=W_q h" /> is the row form <T tex={String.raw`h\,W_q^{\top}`} /> of the formula
-          above the figure.
+          The formula above the figure uses the row form <T tex={String.raw`h\,W_q^{\top}`} />. Written for one token as a column vector, it
+          becomes <T tex="q=W_q h" />.
         </p>
       </>
     );
@@ -936,7 +931,7 @@ function StageMath({ stage, live, qv, inspected }: { stage: (typeof STAGES)[numb
         <KV k={`std of q·k over the ${int(ks.length)} keys`} v={(sdScaled * Math.sqrt(dh)).toFixed(3)} />
         <KV k={`std after ÷√${dh}`} v={sdScaled.toFixed(3)} />
         <p className="!mb-0 mt-2 text-ink-2">
-          The scale 1/√{dh} = {(1 / Math.sqrt(dh)).toFixed(4)} is FlexAttention’s default, 1 over the square root of the head width{' '}
+          FlexAttention’s default scale is 1 over the square root of the head width, here 1/√{dh} = {(1 / Math.sqrt(dh)).toFixed(4)}{' '}
           <Cite kind="spec" ref="§6.1" />. In the paper model the head width is 32, so the factor is 1/√32 ≈ 0.1768.
         </p>
       </>
@@ -971,7 +966,7 @@ function StageMath({ stage, live, qv, inspected }: { stage: (typeof STAGES)[numb
         <p className="!mb-0 mt-2 text-ink-2">
           {layer === 'nbr' && n === 0
             ? 'No token in the context lists this row among its parents, so the row of the neighbor mask is empty.'
-            : `All ${H} heads use this same mask row: create_block_mask gets H=None.`}{' '}
+            : `All ${H} heads use this same mask row.`}{' '}
           {layer === 'nbr' && n === 0 ? <Cite kind="spec" ref="§6.2" /> : <Cite kind="code" ref="rt/model.py:89-101" />}
         </p>
       </>
@@ -985,8 +980,8 @@ function StageMath({ stage, live, qv, inspected }: { stage: (typeof STAGES)[numb
         <>
           {title('A row with no allowed key')}
           <p className="!mb-2 text-ink">
-            A softmax over nothing but −∞ would be 0/0. The pinned FlexAttention kernel handles this case: the row of weights stays 0 and the head
-            output is exactly 0, not NaN and not a uniform average <Cite kind="spec" ref="§6.1" />.
+            Every score is −∞, so there is nothing to normalize. FlexAttention leaves this row of weights at 0, and the head outputs exactly 0{' '}
+            <Cite kind="spec" ref="§6.1" />.
           </p>
           <KV k="allowed keys" v="0" />
           <KV k="Σ p" v="0" />
@@ -1084,7 +1079,7 @@ function MaskRule({ layer }: { layer: (typeof ATTN_ORDER)[number] }) {
     full: String.raw`\mathbf{M}[q,k]=1`,
   };
   const code: Record<string, { text: string; ref: string }> = {
-    col: { text: 'same column id and same table id, both tokens non-padding (equivalent: the column id already names its table, spec §10 #12)', ref: 'rt/model.py:181-183' },
+    col: { text: 'same column id and same table id, both tokens non-padding', ref: 'rt/model.py:181-183' },
     feat: { text: 'same row, or the key’s row is one of the query’s parents; both tokens non-padding', ref: 'rt/model.py:187' },
     nbr: { text: 'the query’s row is one of the key’s parents; both tokens non-padding', ref: 'rt/model.py:188' },
     full: { text: 'every pair of non-padding tokens', ref: 'rt/model.py:190' },
