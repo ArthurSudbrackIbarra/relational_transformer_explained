@@ -1,14 +1,5 @@
-/**
- * Site mark: three cell tokens in table colors and the dashed "?" target. The "?" is a path, not text, so it
- * sits inside its box in every font; the dash pattern divides the box's perimeter into eight equal periods,
- * one dash centered on each side and each corner. main.tsx (favicon) and certificate/render.ts draw the same mark.
- */
-export const LOGO_TARGET = {
-  dash: [2.06, 1.618],
-  dashOffset: 2.758,
-  question: 'M16.2 16.75C16.2 15.95 16.9 15.45 17.75 15.45S19.3 15.95 19.3 16.7C19.3 17.35 18.85 17.6 18.4 17.9C17.95 18.2 17.75 18.4 17.75 18.75',
-  dot: { cx: 17.75, cy: 20.3, r: 0.72 },
-} as const;
+/** The site mark (data and geometry in logoMark.ts). */
+import { LOGO_TARGET } from './logoMark';
 
 export function Logo({ size = 22 }: { size?: number }) {
   const t = LOGO_TARGET;

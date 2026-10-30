@@ -5,7 +5,7 @@
  */
 import { encode } from 'uqr';
 import { SITE_TITLE, SITE_URL } from '@/components/prose/sources';
-import { LOGO_TARGET } from '@/components/shell/Logo';
+import { LOGO_TARGET } from '@/components/shell/logoMark';
 import { jpegPdf } from './pdf';
 import { formatCertDate, type CertFacts } from './seal';
 

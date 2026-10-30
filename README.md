@@ -80,6 +80,9 @@ npm run build      # static site in dist/
 
 Pushes to `main` are tested, built and deployed to GitHub Pages by `.github/workflows/deploy.yml`.
 
+The site icon and the link-preview image (`public/favicon.svg`, `apple-touch-icon.png`, `og-image.png`) are drawn
+by `npx tsx scripts/social-images.ts`; rerun it after changing the logo or the preview card.
+
 The trained weights, embeddings and training curves are committed under `public/data/`, so the site needs no Python.
 To retrain the mini RT or rerun the parity checks, see [`python/README.md`](python/README.md).
 
